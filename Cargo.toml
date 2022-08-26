@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "packages/backend-shared",
+    "packages/app-desktop/src-tauri",
+    "packages/endpoint-graphql",
+]

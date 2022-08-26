@@ -1,0 +1,7 @@
+{
+  "name": "@white-rabbit/app-web",
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "@white-rabbit/frontend-shared": "workspace:^"
+  }
+}

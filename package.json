@@ -1,0 +1,33 @@
+{
+  "name": "white-rabbit",
+  "version": "0.1.0",
+  "license": "MIT",
+  "packageManager": "yarn@3.2.3",
+  "workspaces": [
+    "packages/frontend-shared",
+    "packages/app-desktop",
+    "packages/app-web"
+  ],
+  "scripts": {
+    "prepare": "husky install",
+    "build": "yarn build:endpoint-graphql && yarn build:app-desktop",
+    "build:endpoint-graphql": "cargo build -p endpoint-graphql --bin endpoint-graphql --release",
+    "build:app-desktop": "yarn workspace @white-rabbit/app-desktop run build",
+    "test": "cargo test",
+    "lint": "cargo fmt --check && cargo clippy",
+    "lint:fix": "cargo fmt && cargo clippy --fix --allow-dirty --allow-staged",
+    "upgrade": "yarn upgrade-interactive && cargo upgrade --workspace"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.1.1",
+    "@commitlint/config-conventional": "^17.1.0",
+    "commitizen": "^4.2.5",
+    "cz-conventional-changelog": "3.3.0",
+    "husky": "^8.0.1"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
