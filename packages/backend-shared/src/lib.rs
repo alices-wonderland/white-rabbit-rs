@@ -91,13 +91,27 @@ pub mod tests {
     let user_user_ids: InsertResult<_> = models::auth_id::Entity::insert_many(user_auth_ids).exec(&db).await?;
     log::info!("user_auth_ids: {:#?}", user_user_ids);
 
-    let users = models::user::Entity::find()
+    let users: Vec<(models::user::Model, Vec<models::auth_id::Model>)> = models::user::Entity::find()
       .find_with_related(models::auth_id::Entity)
       .order_by_desc(models::user::Column::Name)
       .order_by_desc(models::auth_id::Column::Provider)
       .all(&db)
       .await?;
-    log::info!("users: {:#?}", users);
+    assert_eq!(users.len(), 2);
+    for (_, auth_ids) in &users {
+      assert_eq!(auth_ids.len(), 3);
+    }
+
+    let result = models::user::Entity::delete_by_id(manager.id.clone().unwrap())
+      .exec(&db)
+      .await?;
+    assert_eq!(result.rows_affected, 1);
+
+    let user_auth_ids: Vec<models::auth_id::Model> = models::auth_id::Entity::find()
+      .filter(models::auth_id::Column::UserId.eq(manager.id.clone().unwrap()))
+      .all(&db)
+      .await?;
+    assert!(user_auth_ids.is_empty());
 
     Ok(())
   }
