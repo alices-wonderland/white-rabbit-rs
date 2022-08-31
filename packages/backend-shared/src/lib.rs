@@ -11,6 +11,7 @@ pub async fn run() -> Result<DatabaseConnection, anyhow::Error> {
 pub mod tests {
   use crate::{models, run};
   use chrono::Utc;
+  use migration::{Migrator, MigratorTrait};
   use rust_decimal_macros::dec;
   use sea_orm::prelude::Uuid;
   use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, ModelTrait, QueryFilter, QueryOrder, Set};
@@ -21,8 +22,9 @@ pub mod tests {
     env::set_var("WHITE_RABBIT_DATABASE_URL", "sqlite::memory:");
     env::set_var("RUST_LOG", "info");
     env_logger::init();
+
     let db = run().await?;
-    models::setup_schema(&db).await?;
+    Migrator::up(&db, None).await?;
 
     let manager = models::user::ActiveModel {
       name: Set("Manager 1".to_owned()),
@@ -276,6 +278,7 @@ pub mod tests {
     assert_eq!(record_items.len(), 1);
     assert_eq!(record_item, record_items[0]);
 
+    Migrator::down(&db, None).await?;
     Ok(())
   }
 }
