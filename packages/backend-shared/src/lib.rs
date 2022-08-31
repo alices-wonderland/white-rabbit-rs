@@ -1,4 +1,5 @@
 pub mod models;
+pub mod services;
 
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
@@ -9,29 +10,38 @@ pub async fn run() -> Result<DatabaseConnection, anyhow::Error> {
 
 #[cfg(test)]
 pub mod tests {
+  use crate::services::read_service::{Order, SortItem, TextQuery};
+  use crate::services::user::UserQuery;
+  use crate::services::{read_service::AbstractReadService, user::UserService};
   use crate::{models, run};
   use chrono::Utc;
   use migration::{Migrator, MigratorTrait};
   use rust_decimal_macros::dec;
   use sea_orm::prelude::Uuid;
-  use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, ModelTrait, QueryFilter, QueryOrder, Set};
+  use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, IntoActiveModel, JoinType, ModelTrait, QueryFilter,
+    QueryOrder, QuerySelect, RelationTrait, Set,
+  };
   use std::env;
 
   #[tokio::test]
   async fn my_test() -> Result<(), anyhow::Error> {
     env::set_var("WHITE_RABBIT_DATABASE_URL", "sqlite::memory:");
     env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    let _ = env_logger::try_init();
 
     let db = run().await?;
     Migrator::up(&db, None).await?;
+    let user_service = UserService {};
 
     let manager = models::user::ActiveModel {
       name: Set("Manager 1".to_owned()),
       role: Set(models::user::Role::Admin),
       ..Default::default()
     };
-    let manager: models::user::ActiveModel = manager.save(&db).await?;
+    let manager = manager.save(&db).await?;
+    let new_manager = user_service.find_by_id(&db, None, manager.id.clone().unwrap()).await?;
+    assert_eq!(new_manager.unwrap().into_active_model(), manager);
 
     let manager_auth_ids = vec![
       models::auth_id::ActiveModel {
@@ -118,6 +128,17 @@ pub mod tests {
     for (_, auth_ids) in &users {
       assert_eq!(auth_ids.len(), 3);
     }
+
+    let users = models::User::find()
+      .join(JoinType::LeftJoin, models::user::Relation::AuthId.def())
+      .group_by(models::user::Column::Id)
+      .having(models::user::Column::Role.eq(models::user::Role::Admin))
+      .order_by_desc(models::user::Column::Name)
+      .order_by_desc(models::auth_id::Column::Provider)
+      .all(&db)
+      .await?;
+    log::info!("users: {:#?}", users);
+    assert_eq!(users.len(), 2);
 
     let result = models::User::delete_by_id(manager.id.clone().unwrap())
       .exec(&db)
@@ -277,6 +298,24 @@ pub mod tests {
     let record_items = record.find_related(models::RecordItem).all(&db).await?;
     assert_eq!(record_items.len(), 1);
     assert_eq!(record_item, record_items[0]);
+
+    let json = serde_json::to_string_pretty(&record)?;
+    log::info!("json: {}", json);
+
+    let users = UserService::do_find_all(
+      &db,
+      Some(UserQuery {
+        name: Some(TextQuery::FullText("User".to_owned())),
+        ..Default::default()
+      }),
+      vec![SortItem {
+        field: "name".to_owned(),
+        order: Order::Desc,
+      }],
+      3,
+    )
+    .await?;
+    log::info!("do_find_all: {:#?}", users);
 
     Migrator::down(&db, None).await?;
     Ok(())
