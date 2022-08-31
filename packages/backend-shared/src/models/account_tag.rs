@@ -1,32 +1,31 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
-#[sea_orm(table_name = "auth_ids")]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, DeriveEntityModel)]
+#[sea_orm(table_name = "account_tags")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub user_id: i32,
+  pub account_id: i32,
   #[sea_orm(primary_key)]
-  pub provider: String,
-  pub value: String,
+  pub tag: String,
 }
 
-impl Related<super::User> for Entity {
+impl Related<super::Account> for Entity {
   fn to() -> RelationDef {
-    Relation::User.def()
+    Relation::Account.def()
   }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(
-    belongs_to = "super::User",
-    from = "Column::UserId",
-    to = "super::user::Column::Id",
+    belongs_to = "super::Account",
+    from = "Column::AccountId",
+    to = "super::account::Column::Id",
     on_update = "Cascade",
     on_delete = "Cascade"
   )]
-  User,
+  Account,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

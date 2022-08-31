@@ -20,16 +20,16 @@ pub enum Role {
   Owner = 2,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-  #[sea_orm(has_many = "super::auth_id::Entity")]
-  AuthId,
-}
-
-impl Related<super::auth_id::Entity> for Entity {
+impl Related<super::AuthId> for Entity {
   fn to() -> RelationDef {
     Relation::AuthId.def()
   }
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+  #[sea_orm(has_many = "super::AuthId")]
+  AuthId,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
