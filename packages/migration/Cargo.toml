@@ -10,7 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 backend-shared = { path = "../backend-shared" }
-tokio = { version = "1.20.1", features = ["rt", "macros"] }
+tokio = { version = "1.21.0", features = ["rt", "macros"] }
 
 [dependencies.sea-orm-migration]
 version = "0.9.2"

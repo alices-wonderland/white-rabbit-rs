@@ -1,31 +1,63 @@
 use crate::models::user::Model as UserModel;
-use sea_orm::sea_query::IntoCondition;
-use sea_orm::{ConnectionTrait, PrimaryKeyTrait, QueryFilter, QueryOrder, QuerySelect, Select};
-use sea_orm::{EntityTrait, FromQueryResult, ModelTrait};
+use futures::stream::{self, StreamExt};
+use sea_orm::sea_query::{IntoCondition, Value};
+use sea_orm::{
+  ColumnTrait, Condition, ConnectionTrait, EntityTrait, FromQueryResult, ModelTrait, PrimaryKeyToColumn,
+  PrimaryKeyTrait, QueryFilter, QueryOrder, QuerySelect, Select,
+};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+const DEFAULT_SIZE: usize = 100;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindAllInput<Q>
 where
   Q: Sized + IntoCondition,
 {
   pub query: Option<Q>,
-  pub pagination: Option<Pagination>,
+  pub size: Option<usize>,
   pub sort: Option<Sort>,
 }
 
-type Sort = Vec<SortItem>;
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindPageInput<Q>
+where
+  Q: Sized + IntoCondition,
+{
+  pub query: Option<Q>,
+  pub pagination: Option<Pagination>,
+  pub sort: Sort,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Page<M> {
+  pub info: PageInfo,
+  pub items: Vec<PageItem<M>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PageInfo {
+  pub has_previous: bool,
+  pub has_next: bool,
+  pub start_cursor: Option<String>,
+  pub end_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PageItem<M> {
+  pub cursor: String,
+  pub item: M,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Pagination {
   pub after: Option<String>,
   pub before: Option<String>,
   pub size: Option<usize>,
-  pub offset: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SortItem {
+pub struct Sort {
   pub field: String,
   pub order: Order,
 }
@@ -82,11 +114,40 @@ pub trait AbstractReadService {
 
   type Entity: EntityTrait<Model = Self::Model, PrimaryKey = Self::PrimaryKey>;
 
-  type PrimaryKey: PrimaryKeyTrait<ValueType = i32>;
+  type PrimaryKey: PrimaryKeyTrait<ValueType = i32> + PrimaryKeyToColumn;
 
   type Query: IntoCondition + Into<Vec<ExternalQuery>> + Clone + Sync + Send;
 
   async fn filter_by_external_query(items: Vec<Self::Model>, external_query: &ExternalQuery) -> Vec<Self::Model>;
+
+  fn find_all_select() -> Select<Self::Entity>;
+
+  fn primary_field() -> <Self::Entity as EntityTrait>::Column;
+
+  fn primary_value(model: &Self::Model) -> i32;
+
+  fn sortable_field(field: &str) -> Option<<Self::Entity as EntityTrait>::Column>;
+
+  fn sortable_value(field: &str, model: &Self::Model) -> Option<Value> {
+    Self::sortable_field(field).map(|col| model.get(col))
+  }
+
+  async fn find_by_cursor(conn: &impl ConnectionTrait, cursor: Option<String>) -> anyhow::Result<Option<Self::Model>> {
+    if let Some(cursor) = cursor {
+      let id = String::from_utf8(base64::decode(&cursor)?)?.parse::<i32>()?;
+      Ok(Self::Entity::find_by_id(id).one(conn).await?)
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn encode_cursor(model: &Self::Model) -> String {
+    base64::encode(Self::primary_value(model).to_string())
+  }
+
+  async fn is_readable(_conn: &impl ConnectionTrait, _operator: Option<&UserModel>, _model: &Self::Model) -> bool {
+    true
+  }
 
   async fn filter_by_external_queries(items: Vec<Self::Model>, external_queries: &[ExternalQuery]) -> Vec<Self::Model> {
     let mut result = items;
@@ -99,26 +160,20 @@ pub trait AbstractReadService {
     result
   }
 
-  fn find_all_select() -> Select<Self::Entity>;
-
-  fn sortable_field(field: &str) -> Option<<Self::Entity as EntityTrait>::Column>;
-
   async fn do_find_all(
     conn: &impl ConnectionTrait,
-    query: Option<Self::Query>,
-    sort: Sort,
-    size: u64,
+    operator: Option<&UserModel>,
+    condition: Condition,
+    external_queries: &[ExternalQuery],
+    sort: Option<Sort>,
+    size: usize,
   ) -> Result<Vec<Self::Model>, sea_orm::DbErr> {
     let mut results = Vec::new();
-    let query = query.map(|q| (q.clone().into_condition(), q.into()));
     let mut count = 0;
     while results.len() < size as usize {
-      let mut statement: Select<Self::Entity> = match query {
-        Some((ref cond, _)) => Self::find_all_select().filter(cond.clone()),
-        None => Self::find_all_select(),
-      };
+      let mut statement: Select<Self::Entity> = Self::find_all_select().filter(condition.clone());
 
-      for item in &sort {
+      if let Some(ref item) = sort {
         if let Some(column) = Self::sortable_field(&item.field) {
           statement = statement.order_by(
             column,
@@ -130,63 +185,353 @@ pub trait AbstractReadService {
         }
       }
 
-      let result = statement.offset(count * size).limit(size).all(conn).await?;
+      let result = statement
+        .offset(count * (size as u64))
+        .limit(size as u64)
+        .all(conn)
+        .await?;
       if result.is_empty() {
         break;
       }
       count += 1;
-      let mut result = match query {
-        Some((_, ref external)) => Self::filter_by_external_queries(result, external).await,
-        None => result,
-      };
+      let result = stream::iter(result)
+        .filter_map(|item| async move {
+          if Self::is_readable(conn, operator, &item).await {
+            Some(item)
+          } else {
+            None
+          }
+        })
+        .collect()
+        .await;
+      let mut result = Self::filter_by_external_queries(result, external_queries).await;
       results.append(&mut result);
     }
 
     Ok(results)
   }
 
-  async fn is_readable(
-    &self,
-    _conn: &impl ConnectionTrait,
-    _operator: Option<&UserModel>,
-    _model: &Self::Model,
-  ) -> bool {
-    true
-  }
-
   async fn find_by_id(
-    &self,
     conn: &impl ConnectionTrait,
     operator: Option<&UserModel>,
     id: i32,
-  ) -> Result<Option<Self::Model>, anyhow::Error> {
+  ) -> anyhow::Result<Option<Self::Model>> {
     if let Some(model) = Self::Entity::find_by_id(id).one(conn).await? {
-      if self.is_readable(conn, operator, &model).await {
+      if Self::is_readable(conn, operator, &model).await {
         return Ok(Some(model));
       }
     }
-
     Ok(None)
   }
 
   async fn find_all(
-    &self,
-    _conn: &impl ConnectionTrait,
-    _operator: Option<&UserModel>,
-    _input: FindAllInput<Self::Query>,
-  ) -> Result<Vec<Self::Model>, anyhow::Error> {
-    Err(anyhow::Error::msg("unimplemented"))
+    conn: &impl ConnectionTrait,
+    operator: Option<&UserModel>,
+    input: FindAllInput<Self::Query>,
+  ) -> anyhow::Result<Vec<Self::Model>> {
+    let condition = input
+      .query
+      .as_ref()
+      .map(|query| query.clone().into_condition())
+      .unwrap_or_else(Condition::all);
+
+    let external_queries: Vec<ExternalQuery> = input.query.map(|query| query.into()).unwrap_or_default();
+
+    Ok(
+      Self::do_find_all(
+        conn,
+        operator,
+        condition,
+        &external_queries,
+        input.sort,
+        input.size.unwrap_or(DEFAULT_SIZE),
+      )
+      .await?,
+    )
+  }
+
+  async fn find_page(
+    conn: &impl ConnectionTrait,
+    operator: Option<&UserModel>,
+    input: FindPageInput<Self::Query>,
+  ) -> anyhow::Result<Page<Self::Model>> {
+    let mut condition = input
+      .query
+      .as_ref()
+      .map(|query| query.clone().into_condition())
+      .unwrap_or_else(Condition::all);
+
+    let external_queries: Vec<ExternalQuery> = input.query.map(|query| query.into()).unwrap_or_default();
+
+    let mut sort = input.sort;
+    let mut is_reversed = false;
+    let size = input.pagination.as_ref().and_then(|p| p.size).unwrap_or(DEFAULT_SIZE);
+    let mut after_model = None;
+    let mut before_model = None;
+
+    if let Some(Pagination { after, before, .. }) = &input.pagination {
+      after_model = Self::find_by_cursor(conn, after.clone()).await?;
+      before_model = Self::find_by_cursor(conn, before.clone()).await?;
+
+      if before_model.is_some() && after_model.is_none() {
+        is_reversed = true;
+      }
+
+      if let Some(column) = Self::sortable_field(&sort.field) {
+        if let Some((model, value)) = after_model
+          .as_ref()
+          .and_then(|m| Self::sortable_value(&sort.field, m).map(|v| (m, v)))
+        {
+          let value_eq_cond = {
+            Condition::all().add(column.eq(value.clone())).add(if is_reversed {
+              Self::primary_field().lt(Self::primary_value(model))
+            } else {
+              Self::primary_field().gt(Self::primary_value(model))
+            })
+          };
+
+          condition = condition.add(match sort.order {
+            Order::Asc => Condition::any().add(column.gt(value)).add(value_eq_cond),
+            Order::Desc => Condition::any().add(column.lt(value)).add(value_eq_cond),
+          });
+        }
+
+        if let Some((model, value)) = before_model
+          .as_ref()
+          .and_then(|m| Self::sortable_value(&sort.field, m).map(|v| (m, v)))
+        {
+          let value_eq_cond = {
+            Condition::all().add(column.eq(value.clone())).add(if is_reversed {
+              Self::primary_field().gt(Self::primary_value(model))
+            } else {
+              Self::primary_field().lt(Self::primary_value(model))
+            })
+          };
+
+          condition = condition.add(match sort.order {
+            Order::Asc => Condition::any().add(column.lt(value)).add(value_eq_cond),
+            Order::Desc => Condition::any().add(column.gt(value)).add(value_eq_cond),
+          });
+        }
+      }
+
+      if is_reversed {
+        sort = Sort {
+          order: match sort.order {
+            Order::Asc => Order::Desc,
+            Order::Desc => Order::Asc,
+          },
+          ..sort
+        };
+      }
+    }
+
+    let mut result = Self::do_find_all(conn, operator, condition, &external_queries, Some(sort), size + 1).await?;
+    let has_next = result.len() > size;
+    let has_previous = (is_reversed && before_model.is_some()) || (!is_reversed && after_model.is_some());
+
+    if is_reversed {
+      result.reverse();
+    }
+
+    let result: Vec<_> = result
+      .into_iter()
+      .take(size)
+      .map(|item| PageItem {
+        cursor: Self::encode_cursor(&item),
+        item,
+      })
+      .collect();
+
+    Ok(Page {
+      info: PageInfo {
+        has_previous,
+        has_next,
+        start_cursor: result.first().map(|item| item.cursor.clone()),
+        end_cursor: result.last().map(|item| item.cursor.clone()),
+      },
+      items: result,
+    })
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::services::read_service::FullTextQuery;
+
+  use crate::models::{user, User};
+  use crate::services::read_service::{AbstractReadService, FindPageInput, Order, Pagination, Sort};
+  use crate::services::user::UserService;
+  use crate::{run, services::read_service::FullTextQuery};
 
   use super::{IdQuery, RangeQuery, TextQuery};
   use chrono::{TimeZone, Utc};
+  use migration::{Migrator, MigratorTrait};
+  use sea_orm::{EntityTrait, Set};
   use serde_json::json;
   use std::env;
+
+  #[tokio::test]
+  async fn test_full_text_query() -> anyhow::Result<()> {
+    env::set_var("WHITE_RABBIT_DATABASE_URL", "sqlite::memory:");
+    env::set_var("RUST_LOG", "info");
+    let _ = env_logger::try_init();
+
+    let db = run().await?;
+    Migrator::up(&db, None).await?;
+
+    let users = (0..5)
+      .map(|idx| user::ActiveModel {
+        name: Set(format!("User {}", idx)),
+        role: Set(match idx % 3 {
+          0 => user::Role::Admin,
+          1 => user::Role::User,
+          _ => user::Role::Owner,
+        }),
+        ..Default::default()
+      })
+      .collect::<Vec<_>>();
+
+    let _ = User::insert_many(users).exec(&db).await?;
+    let users = User::find().all(&db).await?;
+    log::info!("Users: {:#?}", users);
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Asc,
+        },
+        pagination: Some(Pagination {
+          size: Some(3),
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 1: {:#?}", page);
+    assert_eq!(page.items.len(), 3);
+    assert_eq!(page.items[0].item.id, 1);
+    assert_eq!(page.items[2].item.id, 3);
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Asc,
+        },
+        pagination: Some(Pagination {
+          size: Some(3),
+          after: page.info.end_cursor,
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 2: {:#?}", page);
+    assert_eq!(page.items.len(), 2);
+    assert_eq!(page.items[0].item.id, 4);
+    assert_eq!(page.items[1].item.id, 5);
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Asc,
+        },
+        pagination: Some(Pagination {
+          size: Some(3),
+          before: page.info.start_cursor,
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 3: {:#?}", page);
+    assert_eq!(page.items.len(), 3);
+    assert_eq!(page.items[0].item.id, 1);
+    assert_eq!(page.items[2].item.id, 3);
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Desc,
+        },
+        pagination: Some(Pagination {
+          size: Some(3),
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 4: {:#?}", page);
+    assert_eq!(page.items.len(), 3);
+    assert_eq!(page.items[0].item.id, 5);
+    assert_eq!(page.items[2].item.id, 3);
+    assert!(page.info.end_cursor.is_some());
+    assert!(page.info.start_cursor.is_some());
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Desc,
+        },
+        pagination: Some(Pagination {
+          size: Some(3),
+          after: page.info.end_cursor,
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 5: {:#?}", page);
+    assert_eq!(page.items.len(), 2);
+    assert_eq!(page.items[0].item.id, 2);
+    assert_eq!(page.items[1].item.id, 1);
+
+    let page = UserService::find_page(
+      &db,
+      None,
+      FindPageInput {
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Desc,
+        },
+        pagination: Some(Pagination {
+          size: Some(4),
+          before: page.info.start_cursor,
+          ..Default::default()
+        }),
+        query: None,
+      },
+    )
+    .await?;
+    log::info!("page 6: {:#?}", page);
+    assert_eq!(page.items.len(), 3);
+    assert_eq!(page.items[0].item.id, 5);
+    assert_eq!(page.items[2].item.id, 3);
+    assert!(page.info.end_cursor.is_some());
+    assert!(page.info.start_cursor.is_some());
+
+    Migrator::down(&db, None).await?;
+    Ok(())
+  }
 
   #[test]
   fn test_serde() -> anyhow::Result<()> {

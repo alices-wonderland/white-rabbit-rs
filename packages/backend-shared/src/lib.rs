@@ -10,8 +10,7 @@ pub async fn run() -> Result<DatabaseConnection, anyhow::Error> {
 
 #[cfg(test)]
 pub mod tests {
-  use crate::services::read_service::{Order, SortItem, TextQuery};
-  use crate::services::user::UserQuery;
+
   use crate::services::{read_service::AbstractReadService, user::UserService};
   use crate::{models, run};
   use chrono::Utc;
@@ -32,7 +31,6 @@ pub mod tests {
 
     let db = run().await?;
     Migrator::up(&db, None).await?;
-    let user_service = UserService {};
 
     let manager = models::user::ActiveModel {
       name: Set("Manager 1".to_owned()),
@@ -40,7 +38,7 @@ pub mod tests {
       ..Default::default()
     };
     let manager = manager.save(&db).await?;
-    let new_manager = user_service.find_by_id(&db, None, manager.id.clone().unwrap()).await?;
+    let new_manager = UserService::find_by_id(&db, None, manager.id.clone().unwrap()).await?;
     assert_eq!(new_manager.unwrap().into_active_model(), manager);
 
     let manager_auth_ids = vec![
@@ -301,21 +299,6 @@ pub mod tests {
 
     let json = serde_json::to_string_pretty(&record)?;
     log::info!("json: {}", json);
-
-    let users = UserService::do_find_all(
-      &db,
-      Some(UserQuery {
-        name: Some(TextQuery::FullText("User".to_owned())),
-        ..Default::default()
-      }),
-      vec![SortItem {
-        field: "name".to_owned(),
-        order: Order::Desc,
-      }],
-      3,
-    )
-    .await?;
-    log::info!("do_find_all: {:#?}", users);
 
     Migrator::down(&db, None).await?;
     Ok(())

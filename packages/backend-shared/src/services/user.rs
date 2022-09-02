@@ -50,11 +50,11 @@ impl IntoCondition for UserQuery {
   }
 }
 
-impl Into<Vec<ExternalQuery>> for UserQuery {
-  fn into(self) -> Vec<ExternalQuery> {
+impl From<UserQuery> for Vec<ExternalQuery> {
+  fn from(value: UserQuery) -> Self {
     let mut result = Vec::new();
 
-    if let Some(TextQuery::FullText(value)) = self.name {
+    if let Some(TextQuery::FullText(value)) = value.name {
       result.push(ExternalQuery::FullText(FullTextQuery {
         fields: Some(vec!["name".to_owned()]),
         value,
@@ -95,6 +95,14 @@ impl AbstractReadService for UserService {
       "name" => Some(user::Column::Name),
       _ => None,
     }
+  }
+
+  fn primary_field() -> user::Column {
+    user::Column::Id
+  }
+
+  fn primary_value(model: &Self::Model) -> i32 {
+    model.id
   }
 }
 

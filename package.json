@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "prepare": "husky install",
+    "commit": "cz",
     "build": "yarn build:endpoint-graphql && yarn build:app-desktop",
     "build:endpoint-graphql": "cargo build -p endpoint-graphql --bin endpoint-graphql --release",
     "build:app-desktop": "yarn workspace @white-rabbit/app-desktop run build",
