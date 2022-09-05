@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "auth_ids")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub user_id: i32,
+  pub user_id: uuid::Uuid,
   #[sea_orm(primary_key)]
   pub provider: String,
   pub value: String,

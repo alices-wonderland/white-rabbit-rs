@@ -1,4 +1,3 @@
-use crate::models::user::Model as UserModel;
 use futures::stream::{self, StreamExt};
 use sea_orm::sea_query::{IntoCondition, Value};
 use sea_orm::{
@@ -6,6 +5,8 @@ use sea_orm::{
   PrimaryKeyTrait, QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use serde::{Deserialize, Serialize};
+
+use super::AuthUser;
 
 const DEFAULT_SIZE: usize = 100;
 
@@ -71,8 +72,8 @@ pub enum Order {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum IdQuery {
-  Single(i32),
-  Multiple(Vec<i32>),
+  Single(uuid::Uuid),
+  Multiple(Vec<uuid::Uuid>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,7 +93,7 @@ pub struct FullTextQuery {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalQuery {
-  ContainUser(i32),
+  ContainUser(uuid::Uuid),
   FullText(FullTextQuery),
 }
 
@@ -114,7 +115,7 @@ pub trait AbstractReadService {
 
   type Entity: EntityTrait<Model = Self::Model, PrimaryKey = Self::PrimaryKey>;
 
-  type PrimaryKey: PrimaryKeyTrait<ValueType = i32> + PrimaryKeyToColumn;
+  type PrimaryKey: PrimaryKeyTrait<ValueType = uuid::Uuid> + PrimaryKeyToColumn;
 
   type Query: IntoCondition + Into<Vec<ExternalQuery>> + Clone + Sync + Send;
 
@@ -124,7 +125,7 @@ pub trait AbstractReadService {
 
   fn primary_field() -> <Self::Entity as EntityTrait>::Column;
 
-  fn primary_value(model: &Self::Model) -> i32;
+  fn primary_value(model: &Self::Model) -> uuid::Uuid;
 
   fn sortable_field(field: &str) -> Option<<Self::Entity as EntityTrait>::Column>;
 
@@ -134,7 +135,7 @@ pub trait AbstractReadService {
 
   async fn find_by_cursor(conn: &impl ConnectionTrait, cursor: Option<String>) -> anyhow::Result<Option<Self::Model>> {
     if let Some(cursor) = cursor {
-      let id = String::from_utf8(base64::decode(&cursor)?)?.parse::<i32>()?;
+      let id: uuid::Uuid = String::from_utf8(base64::decode(&cursor)?)?.parse()?;
       Ok(Self::Entity::find_by_id(id).one(conn).await?)
     } else {
       Ok(None)
@@ -142,10 +143,11 @@ pub trait AbstractReadService {
   }
 
   fn encode_cursor(model: &Self::Model) -> String {
-    base64::encode(Self::primary_value(model).to_string())
+    let id = Self::primary_value(model).to_string();
+    base64::encode(id)
   }
 
-  async fn is_readable(_conn: &impl ConnectionTrait, _operator: Option<&UserModel>, _model: &Self::Model) -> bool {
+  async fn is_readable(_conn: &impl ConnectionTrait, _operator: &AuthUser, _model: &Self::Model) -> bool {
     true
   }
 
@@ -162,7 +164,7 @@ pub trait AbstractReadService {
 
   async fn do_find_all(
     conn: &impl ConnectionTrait,
-    operator: Option<&UserModel>,
+    operator: &AuthUser,
     condition: Condition,
     external_queries: &[ExternalQuery],
     sort: Option<Sort>,
@@ -213,11 +215,11 @@ pub trait AbstractReadService {
 
   async fn find_by_id(
     conn: &impl ConnectionTrait,
-    operator: Option<&UserModel>,
-    id: i32,
+    operator: AuthUser,
+    id: uuid::Uuid,
   ) -> anyhow::Result<Option<Self::Model>> {
     if let Some(model) = Self::Entity::find_by_id(id).one(conn).await? {
-      if Self::is_readable(conn, operator, &model).await {
+      if Self::is_readable(conn, &operator, &model).await {
         return Ok(Some(model));
       }
     }
@@ -226,7 +228,7 @@ pub trait AbstractReadService {
 
   async fn find_all(
     conn: &impl ConnectionTrait,
-    operator: Option<&UserModel>,
+    operator: AuthUser,
     input: FindAllInput<Self::Query>,
   ) -> anyhow::Result<Vec<Self::Model>> {
     let condition = input
@@ -240,7 +242,7 @@ pub trait AbstractReadService {
     Ok(
       Self::do_find_all(
         conn,
-        operator,
+        &operator,
         condition,
         &external_queries,
         input.sort,
@@ -252,7 +254,7 @@ pub trait AbstractReadService {
 
   async fn find_page(
     conn: &impl ConnectionTrait,
-    operator: Option<&UserModel>,
+    operator: AuthUser,
     input: FindPageInput<Self::Query>,
   ) -> anyhow::Result<Page<Self::Model>> {
     let mut condition = input
@@ -326,7 +328,7 @@ pub trait AbstractReadService {
       }
     }
 
-    let mut result = Self::do_find_all(conn, operator, condition, &external_queries, Some(sort), size + 1).await?;
+    let mut result = Self::do_find_all(conn, &operator, condition, &external_queries, Some(sort), size + 1).await?;
     let has_next = result.len() > size;
     let has_previous = (is_reversed && before_model.is_some()) || (!is_reversed && after_model.is_some());
 
@@ -361,6 +363,7 @@ mod tests {
   use crate::models::{user, User};
   use crate::services::read_service::{AbstractReadService, FindPageInput, Order, Pagination, Sort};
   use crate::services::user::UserService;
+  use crate::services::AuthUser;
   use crate::{run, services::read_service::FullTextQuery};
 
   use super::{IdQuery, RangeQuery, TextQuery};
@@ -368,26 +371,32 @@ mod tests {
   use migration::{Migrator, MigratorTrait};
   use sea_orm::{EntityTrait, Set};
   use serde_json::json;
-  use std::env;
 
   #[tokio::test]
   async fn test_full_text_query() -> anyhow::Result<()> {
-    env::set_var("WHITE_RABBIT_DATABASE_URL", "sqlite::memory:");
-    env::set_var("RUST_LOG", "info");
+    dotenv::from_filename(".test.env")?;
     let _ = env_logger::try_init();
 
     let db = run().await?;
     Migrator::up(&db, None).await?;
 
+    let user_ids = vec![
+      uuid::Uuid::new_v4(),
+      uuid::Uuid::new_v4(),
+      uuid::Uuid::new_v4(),
+      uuid::Uuid::new_v4(),
+      uuid::Uuid::new_v4(),
+    ];
+
     let users = (0..5)
       .map(|idx| user::ActiveModel {
+        id: Set(user_ids[idx]),
         name: Set(format!("User {}", idx)),
         role: Set(match idx % 3 {
           0 => user::Role::Admin,
           1 => user::Role::User,
           _ => user::Role::Owner,
         }),
-        ..Default::default()
       })
       .collect::<Vec<_>>();
 
@@ -397,7 +406,7 @@ mod tests {
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -413,12 +422,12 @@ mod tests {
     .await?;
     log::info!("page 1: {:#?}", page);
     assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, 1);
-    assert_eq!(page.items[2].item.id, 3);
+    assert_eq!(page.items[0].item.id, user_ids[0]);
+    assert_eq!(page.items[2].item.id, user_ids[2]);
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -435,12 +444,12 @@ mod tests {
     .await?;
     log::info!("page 2: {:#?}", page);
     assert_eq!(page.items.len(), 2);
-    assert_eq!(page.items[0].item.id, 4);
-    assert_eq!(page.items[1].item.id, 5);
+    assert_eq!(page.items[0].item.id, user_ids[3]);
+    assert_eq!(page.items[1].item.id, user_ids[4]);
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -457,12 +466,12 @@ mod tests {
     .await?;
     log::info!("page 3: {:#?}", page);
     assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, 1);
-    assert_eq!(page.items[2].item.id, 3);
+    assert_eq!(page.items[0].item.id, user_ids[0]);
+    assert_eq!(page.items[2].item.id, user_ids[2]);
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -478,14 +487,14 @@ mod tests {
     .await?;
     log::info!("page 4: {:#?}", page);
     assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, 5);
-    assert_eq!(page.items[2].item.id, 3);
+    assert_eq!(page.items[0].item.id, user_ids[4]);
+    assert_eq!(page.items[2].item.id, user_ids[2]);
     assert!(page.info.end_cursor.is_some());
     assert!(page.info.start_cursor.is_some());
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -502,12 +511,12 @@ mod tests {
     .await?;
     log::info!("page 5: {:#?}", page);
     assert_eq!(page.items.len(), 2);
-    assert_eq!(page.items[0].item.id, 2);
-    assert_eq!(page.items[1].item.id, 1);
+    assert_eq!(page.items[0].item.id, user_ids[1]);
+    assert_eq!(page.items[1].item.id, user_ids[0]);
 
     let page = UserService::find_page(
       &db,
-      None,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
       FindPageInput {
         sort: Sort {
           field: "name".to_owned(),
@@ -524,8 +533,8 @@ mod tests {
     .await?;
     log::info!("page 6: {:#?}", page);
     assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, 5);
-    assert_eq!(page.items[2].item.id, 3);
+    assert_eq!(page.items[0].item.id, user_ids[4]);
+    assert_eq!(page.items[2].item.id, user_ids[2]);
     assert!(page.info.end_cursor.is_some());
     assert!(page.info.start_cursor.is_some());
 
@@ -535,17 +544,19 @@ mod tests {
 
   #[test]
   fn test_serde() -> anyhow::Result<()> {
-    env::set_var("RUST_LOG", "info");
+    dotenv::from_filename(".test.env")?;
     let _ = env_logger::try_init();
 
-    let query = IdQuery::Single(42);
+    let id = uuid::Uuid::new_v4();
+    let query = IdQuery::Single(id);
     let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!(42));
+    assert_eq!(json, json!(id));
     assert_eq!(query, serde_json::from_value::<IdQuery>(json)?);
 
-    let query = IdQuery::Multiple(vec![1, 2, 3, 4]);
+    let id = uuid::Uuid::new_v4();
+    let query = IdQuery::Multiple(vec![id]);
     let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!([1, 2, 3, 4]));
+    assert_eq!(json, json!([id]));
     assert_eq!(query, serde_json::from_value::<IdQuery>(json)?);
 
     let query = TextQuery::Value("String".to_owned());

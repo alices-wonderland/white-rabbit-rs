@@ -11,6 +11,7 @@ pub async fn run() -> Result<DatabaseConnection, anyhow::Error> {
 #[cfg(test)]
 pub mod tests {
 
+  use crate::services::AuthUser;
   use crate::services::{read_service::AbstractReadService, user::UserService};
   use crate::{models, run};
   use chrono::Utc;
@@ -18,42 +19,45 @@ pub mod tests {
   use rust_decimal_macros::dec;
   use sea_orm::prelude::Uuid;
   use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, IntoActiveModel, JoinType, ModelTrait, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, JoinType, ModelTrait, QueryFilter, QueryOrder,
+    QuerySelect, RelationTrait, Set,
   };
-  use std::env;
 
   #[tokio::test]
   async fn my_test() -> Result<(), anyhow::Error> {
-    env::set_var("WHITE_RABBIT_DATABASE_URL", "sqlite::memory:");
-    env::set_var("RUST_LOG", "info");
+    dotenv::from_filename(".test.env")?;
     let _ = env_logger::try_init();
 
     let db = run().await?;
     Migrator::up(&db, None).await?;
 
     let manager = models::user::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       name: Set("Manager 1".to_owned()),
       role: Set(models::user::Role::Admin),
-      ..Default::default()
     };
-    let manager = manager.save(&db).await?;
-    let new_manager = UserService::find_by_id(&db, None, manager.id.clone().unwrap()).await?;
-    assert_eq!(new_manager.unwrap().into_active_model(), manager);
+    let manager = models::User::insert(manager).exec_with_returning(&db).await?;
+    let new_manager = UserService::find_by_id(
+      &db,
+      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
+      manager.id,
+    )
+    .await?;
+    assert_eq!(new_manager.unwrap(), manager);
 
     let manager_auth_ids = vec![
       models::auth_id::ActiveModel {
-        user_id: Set(manager.id.clone().unwrap()),
+        user_id: Set(manager.id),
         provider: Set("provider 1".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(manager.id.clone().unwrap()),
+        user_id: Set(manager.id),
         provider: Set("provider 2".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(manager.id.clone().unwrap()),
+        user_id: Set(manager.id),
         provider: Set("provider 3".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
@@ -62,25 +66,25 @@ pub mod tests {
     log::info!("manager_auth_ids: {:#?}", manager_user_ids);
 
     let user = models::user::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       name: Set("User 1".to_owned()),
       role: Set(models::user::Role::User),
-      ..Default::default()
     };
-    let user: models::user::ActiveModel = user.save(&db).await?;
+    let user = models::User::insert(user).exec_with_returning(&db).await?;
 
     let user_auth_ids = vec![
       models::auth_id::ActiveModel {
-        user_id: Set(user.id.clone().unwrap()),
+        user_id: Set(user.id),
         provider: Set("provider 1".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(user.id.clone().unwrap()),
+        user_id: Set(user.id),
         provider: Set("provider 2".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(user.id.clone().unwrap()),
+        user_id: Set(user.id),
         provider: Set("provider 3".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
@@ -89,25 +93,25 @@ pub mod tests {
     log::info!("user_auth_ids: {:#?}", user_user_ids);
 
     let user2 = models::user::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       name: Set("User 2".to_owned()),
       role: Set(models::user::Role::Admin),
-      ..Default::default()
     };
-    let user2 = user2.save(&db).await?;
+    let user2 = models::User::insert(user2).exec_with_returning(&db).await?;
 
     let user2_auth_ids = vec![
       models::auth_id::ActiveModel {
-        user_id: Set(user2.id.clone().unwrap()),
+        user_id: Set(user2.id),
         provider: Set("provider 1".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(user2.id.clone().unwrap()),
+        user_id: Set(user2.id),
         provider: Set("provider 2".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
       models::auth_id::ActiveModel {
-        user_id: Set(user2.id.clone().unwrap()),
+        user_id: Set(user2.id),
         provider: Set("provider 3".to_string()),
         value: Set(Uuid::new_v4().to_string()),
       },
@@ -138,29 +142,27 @@ pub mod tests {
     log::info!("users: {:#?}", users);
     assert_eq!(users.len(), 2);
 
-    let result = models::User::delete_by_id(manager.id.clone().unwrap())
-      .exec(&db)
-      .await?;
+    let result = models::User::delete_by_id(manager.id).exec(&db).await?;
     assert_eq!(result.rows_affected, 1);
 
     let user_auth_ids: Vec<models::auth_id::Model> = models::AuthId::find()
-      .filter(models::auth_id::Column::UserId.eq(manager.id.clone().unwrap()))
+      .filter(models::auth_id::Column::UserId.eq(manager.id))
       .all(&db)
       .await?;
     assert!(user_auth_ids.is_empty());
 
     let group = models::group::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       name: Set("Group 1".to_owned()),
       description: Set("Description".to_owned()),
-      ..Default::default()
     };
 
-    let group = group.save(&db).await?;
+    let group = models::Group::insert(group).exec_with_returning(&db).await?;
     let users = models::User::find().all(&db).await?;
     let members: Vec<models::group_user::ActiveModel> = users
       .iter()
       .map(|u| models::group_user::ActiveModel {
-        group_id: Set(group.id.clone().unwrap()),
+        group_id: Set(group.id),
         user_id: Set(u.id),
         is_admin: Set(u.role != models::user::Role::User),
       })
@@ -171,10 +173,7 @@ pub mod tests {
 
     let _ = models::GroupUser::find().all(&db).await?;
 
-    let group = models::Group::find_by_id(group.id.clone().unwrap())
-      .one(&db)
-      .await?
-      .unwrap();
+    let group = models::Group::find_by_id(group.id).one(&db).await?.unwrap();
     let group_admins = group.find_linked(models::group::GroupAdmin).all(&db).await?;
     log::info!("group_admins: {:#?}", group_admins);
     assert_eq!(group_admins.len(), 1);
@@ -186,26 +185,24 @@ pub mod tests {
     assert_eq!(group_members[0].id, members[0].user_id.clone().unwrap());
 
     let journal = models::journal::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       name: Set("Journal 1".to_owned()),
       description: Set("Journal 1 description".to_owned()),
       unit: Set("UNIT".to_owned()),
       ..Default::default()
     };
-    let journal = journal.save(&db).await?;
+    let journal = models::Journal::insert(journal).exec_with_returning(&db).await?;
 
     let journal_tags: Vec<_> = vec!["tag 1", "tag 2"]
       .iter()
       .map(|tag| models::journal_tag::ActiveModel {
-        journal_id: Set(journal.id.clone().unwrap()),
+        journal_id: Set(journal.id),
         tag: Set(tag.to_string()),
       })
       .collect();
     let _ = models::JournalTag::insert_many(journal_tags).exec(&db).await?;
 
-    let journal = models::Journal::find_by_id(journal.id.clone().unwrap())
-      .one(&db)
-      .await?
-      .unwrap();
+    let journal = models::Journal::find_by_id(journal.id).one(&db).await?.unwrap();
     assert!(!journal.is_archived);
     let journal_tags = journal.find_related(models::JournalTag).all(&db).await?;
     assert_eq!(journal_tags.len(), 2);
@@ -241,6 +238,7 @@ pub mod tests {
     assert_eq!(members_groups_members.len(), 0);
 
     let account = models::account::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       journal_id: Set(journal.id),
       name: Set("Journal 1".to_owned()),
       description: Set("Journal Description".to_owned()),
@@ -249,7 +247,7 @@ pub mod tests {
       unit: Set("TEST".to_owned()),
       ..Default::default()
     };
-    let account = account.insert(&db).await?;
+    let account = models::Account::insert(account).exec_with_returning(&db).await?;
 
     let accounts = journal.find_related(models::Account).all(&db).await?;
     assert_eq!(accounts.len(), 1);
@@ -266,14 +264,14 @@ pub mod tests {
     assert_eq!(account_tags.len(), 2);
 
     let record = models::record::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
       journal_id: Set(journal.id),
       name: Set("Journal Record 1".to_owned()),
       description: Set("Journal Record Description".to_owned()),
       typ: Set(models::record::Type::Record),
       date: Set(Utc::now()),
-      ..Default::default()
     };
-    let record = record.insert(&db).await?;
+    let record = models::Record::insert(record).exec_with_returning(&db).await?;
 
     let record_tags: Vec<_> = vec!["record tag 1", "record tag 2"]
       .iter()

@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a26fa4d7e3f2eebadf743988fc8aec9fa9a9e82611acafd77c1462ed6262440a"
+checksum = "b9a8f622bcf6ff3df478e9deba3e03e4e04b300f8e6a139e192c05fa3490afc7"
 
 [[package]]
 name = "arrayvec"
@@ -318,6 +318,7 @@ dependencies = [
  "async-trait",
  "base64",
  "chrono",
+ "dotenv",
  "env_logger",
  "futures",
  "log",
@@ -328,6 +329,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -996,6 +998,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "backend-shared",
+ "dotenv",
  "env_logger",
  "log",
  "sea-orm",
@@ -1012,6 +1015,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "backend-shared",
+ "dotenv",
  "env_logger",
  "log",
  "sea-orm",

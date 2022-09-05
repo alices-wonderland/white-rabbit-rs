@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "groups")]
 pub struct Model {
-  #[sea_orm(primary_key)]
-  pub id: i32,
+  #[sea_orm(primary_key, auto_increment = false)]
+  pub id: uuid::Uuid,
   #[sea_orm(unique, indexed)]
   pub name: String,
   pub description: String,

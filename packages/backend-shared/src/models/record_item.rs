@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "record_items")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub record_id: i32,
+  pub record_id: uuid::Uuid,
   #[sea_orm(primary_key)]
-  pub account_id: i32,
+  pub account_id: uuid::Uuid,
   pub amount: Option<Decimal>,
   pub price: Option<Decimal>,
 }

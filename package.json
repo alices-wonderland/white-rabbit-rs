@@ -17,7 +17,7 @@
     "build:app-desktop:vue": "yarn workspace @white-rabbit/app-desktop run build:vue",
     "test": "cargo test",
     "lint": "cargo fmt --check && cargo clippy",
-    "lint:fix": "cargo fmt && cargo clippy --fix --allow-dirty --allow-staged",
+    "lint:fix": "cargo sort -w && cargo fmt && cargo clippy --fix --allow-dirty --allow-staged",
     "upgrade": "yarn upgrade-interactive && cargo upgrade --workspace"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "record_tags")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub record_id: i32,
+  pub record_id: uuid::Uuid,
   #[sea_orm(primary_key)]
   pub tag: String,
 }
