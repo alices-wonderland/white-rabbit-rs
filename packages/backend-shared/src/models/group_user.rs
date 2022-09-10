@@ -12,6 +12,18 @@ pub struct Model {
   pub is_admin: bool,
 }
 
+impl Related<super::Group> for Entity {
+  fn to() -> RelationDef {
+    Relation::Group.def()
+  }
+}
+
+impl Related<super::User> for Entity {
+  fn to() -> RelationDef {
+    Relation::User.def()
+  }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(

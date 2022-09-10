@@ -91,9 +91,20 @@ pub struct FullTextQuery {
   pub fields: Option<Vec<String>>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContainingUserQuery {
+  Value(uuid::Uuid),
+  Object {
+    id: uuid::Uuid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    fields: Option<Vec<String>>,
+  },
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalQuery {
-  ContainUser(uuid::Uuid),
+  ContainingUser(ContainingUserQuery),
   FullText(FullTextQuery),
 }
 

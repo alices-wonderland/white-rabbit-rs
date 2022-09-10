@@ -1,6 +1,7 @@
 use sea_orm::sea_query::{Condition, IntoCondition, JoinType};
 use sea_orm::{
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, RelationTrait, Select, Set,
+  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect, RelationTrait,
+  Select, Set,
 };
 
 use super::read_service::{AbstractReadService, ExternalQuery, FullTextQuery, IdQuery, TextQuery};
@@ -80,8 +81,8 @@ impl AbstractReadService for UserService {
     items
       .into_iter()
       .filter(|item| match external_query {
-        ExternalQuery::ContainUser(id) => item.id == *id,
         ExternalQuery::FullText(FullTextQuery { value, .. }) => item.name.contains(value),
+        _ => true,
       })
       .collect()
   }
@@ -92,19 +93,19 @@ impl AbstractReadService for UserService {
       .group_by(user::Column::Id)
   }
 
-  fn sortable_field(field: &str) -> Option<user::Column> {
-    match field {
-      "name" => Some(user::Column::Name),
-      _ => None,
-    }
-  }
-
   fn primary_field() -> user::Column {
     user::Column::Id
   }
 
   fn primary_value(model: &Self::Model) -> uuid::Uuid {
     model.id
+  }
+
+  fn sortable_field(field: &str) -> Option<user::Column> {
+    match field {
+      "name" => Some(user::Column::Name),
+      _ => None,
+    }
   }
 }
 
@@ -164,6 +165,15 @@ impl UserService {
     operator: AuthUser,
     command: UserCommandCreate,
   ) -> anyhow::Result<user::Model> {
+    if User::find()
+      .filter(user::Column::Name.eq(command.name.clone()))
+      .count(conn)
+      .await?
+      > 0
+    {
+      return Err(anyhow::Error::msg("Group name exists"));
+    }
+
     let auth_ids = match operator {
       AuthUser::User(user) => {
         if user.role != user::Role::Owner && user.role <= command.role {
