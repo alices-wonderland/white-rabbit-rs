@@ -12,13 +12,8 @@ use crate::models::{group, group_user, user, Group, GroupUser, User};
 use super::{
   read_service::{AbstractReadService, ContainingUserQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
-  AuthUser,
+  AuthUser, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_MEMBERS, FIELD_NAME,
 };
-
-const FIELD_ADMINS: &str = "admins";
-const FIELD_MEMBERS: &str = "members";
-const FIELD_NAME: &str = "name";
-const FIELD_DESCRIPTION: &str = "description";
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct GroupQuery {
@@ -35,6 +30,12 @@ pub struct GroupQuery {
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub description: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  pub admins: Option<Vec<uuid::Uuid>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  pub members: Option<Vec<uuid::Uuid>>,
 }
 
 impl IntoCondition for GroupQuery {
@@ -53,27 +54,40 @@ impl IntoCondition for GroupQuery {
     }
 
     if let Some(containing_user) = self.containing_user {
-      cond = match containing_user {
-        ContainingUserQuery::Value(id) => cond.add(group_user::Column::UserId.eq(id)),
-        ContainingUserQuery::Object { id, fields } => {
-          let cond_user = group_user::Column::UserId.eq(id);
-          let cond_fields = if let Some(fields) = fields {
-            let mut cond_fields = Condition::any();
-            for field in fields {
-              cond_fields = cond_fields.add_option(match field.as_str() {
-                FIELD_ADMINS => Some(group_user::Column::IsAdmin.eq(true)),
-                FIELD_MEMBERS => Some(group_user::Column::IsAdmin.eq(false)),
-                _ => None,
-              });
-            }
-            Some(cond_fields)
-          } else {
-            None
-          };
-          cond.add(cond_user).add_option(cond_fields)
+      let mut sub_cond = Condition::all().add(group_user::Column::UserId.eq(containing_user.id()));
+
+      if let ContainingUserQuery::Object {
+        fields: Some(fields), ..
+      } = containing_user
+      {
+        for field in fields {
+          sub_cond = sub_cond.add_option(match field.as_str() {
+            FIELD_ADMINS => Some(group_user::Column::IsAdmin.eq(true)),
+            FIELD_MEMBERS => Some(group_user::Column::IsAdmin.eq(false)),
+            _ => None,
+          });
         }
-      }
-    };
+      };
+
+      cond = cond.add(sub_cond);
+    }
+
+    if let Some(admins) = self.admins {
+      cond = cond.add(
+        group_user::Column::UserId
+          .is_in(admins)
+          .and(group_user::Column::IsAdmin.eq(true)),
+      );
+    }
+
+    if let Some(members) = self.members {
+      cond = cond.add(
+        group_user::Column::UserId
+          .is_in(members)
+          .and(group_user::Column::IsAdmin.eq(false)),
+      );
+    }
+
     cond
   }
 }
@@ -175,10 +189,7 @@ pub struct GroupCommandUpdate {
 
 impl GroupCommandUpdate {
   pub fn is_empty(&self) -> bool {
-    self.name.is_none()
-      && self.description.is_none()
-      && self.admins.as_ref().map_or(true, |admins| admins.is_empty())
-      && self.members.as_ref().map_or(true, |members| members.is_empty())
+    self.name.is_none() && self.description.is_none() && self.admins.is_none() && self.members.is_none()
   }
 }
 

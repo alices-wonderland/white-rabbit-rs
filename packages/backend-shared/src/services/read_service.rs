@@ -102,6 +102,15 @@ pub enum ContainingUserQuery {
   },
 }
 
+impl ContainingUserQuery {
+  pub fn id(&self) -> uuid::Uuid {
+    match self {
+      ContainingUserQuery::Value(id) => *id,
+      ContainingUserQuery::Object { id, .. } => *id,
+    }
+  }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalQuery {
   ContainingUser(ContainingUserQuery),

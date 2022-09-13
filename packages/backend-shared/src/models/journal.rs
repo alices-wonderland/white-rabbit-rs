@@ -27,6 +27,19 @@ impl Related<super::Account> for Entity {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AccessItemType {
+  User,
+  Group,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AccessItem {
+  pub id: uuid::Uuid,
+  #[serde(rename = "type")]
+  pub typ: AccessItemType,
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(has_many = "super::JournalTag")]
