@@ -218,6 +218,27 @@ impl AbstractCommand for GroupCommand {
 }
 
 impl GroupService {
+  pub async fn contain_user(
+    conn: &impl ConnectionTrait,
+    model: &group::Model,
+    user: &user::Model,
+    fields: Option<Vec<&str>>,
+  ) -> anyhow::Result<bool> {
+    for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS, FIELD_MEMBERS]) {
+      if let Some(query) = match field {
+        FIELD_ADMINS => Some(model.find_linked(group::GroupAdmin)),
+        FIELD_MEMBERS => Some(model.find_linked(group::GroupMember)),
+        _ => None,
+      } {
+        if query.all(conn).await?.contains(user) {
+          return Ok(true);
+        }
+      }
+    }
+
+    Ok(false)
+  }
+
   pub async fn create(
     conn: &impl ConnectionTrait,
     operator: user::Model,
@@ -270,12 +291,7 @@ impl GroupService {
       .one(conn)
       .await?
       .ok_or_else(|| anyhow::Error::msg("Not found"))?;
-    if !group
-      .find_linked(group::GroupAdmin)
-      .all(conn)
-      .await?
-      .contains(&operator)
-    {
+    if !Self::contain_user(conn, &group, &operator, Some(vec![FIELD_ADMINS])).await? {
       return Err(anyhow::Error::msg("No permission"));
     }
 
@@ -289,6 +305,15 @@ impl GroupService {
     };
 
     if let Some(name) = command.name {
+      if Group::find()
+        .filter(group::Column::Name.eq(name.clone()))
+        .count(conn)
+        .await?
+        > 0
+      {
+        return Err(anyhow::Error::msg("Group name exists"));
+      }
+
       model.name = Set(name);
     }
 
@@ -330,11 +355,13 @@ impl GroupService {
 
     let group_users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
 
-    GroupUser::delete_many()
-      .filter(group_user::Column::GroupId.eq(group.id))
-      .exec(conn)
-      .await?;
-    GroupUser::insert_many(group_users).exec(conn).await?;
+    if !group_users.is_empty() {
+      GroupUser::delete_many()
+        .filter(group_user::Column::GroupId.eq(group.id))
+        .exec(conn)
+        .await?;
+      GroupUser::insert_many(group_users).exec(conn).await?;
+    }
 
     Ok(model.update(conn).await?)
   }

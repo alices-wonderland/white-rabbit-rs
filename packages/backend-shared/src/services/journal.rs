@@ -1,17 +1,22 @@
 use crate::models::{
+  group,
   journal::{self, AccessItem, AccessItemType},
-  journal_group, journal_tag, journal_user, Journal,
+  journal_group, journal_tag, journal_user, user, Group, Journal, JournalGroup, JournalTag, JournalUser, User,
 };
+use futures::{stream, StreamExt};
 use sea_orm::{
   sea_query::{Condition, IntoCondition, JoinType},
-  ColumnTrait, EntityTrait, QuerySelect, RelationTrait, Select,
+  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter, QuerySelect,
+  RelationTrait, Select, Set,
 };
 use serde::{Deserialize, Serialize};
 
 use super::{
+  group::GroupService,
   read_service::{AbstractReadService, ContainingUserQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
+  user::UserService,
   write_service::AbstractCommand,
-  FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAG,
+  AuthUser, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_MEMBERS, FIELD_NAME, FIELD_TAG,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -227,6 +232,7 @@ pub struct JournalCommandUpdate {
   pub name: Option<String>,
   pub description: Option<String>,
   pub unit: Option<String>,
+  pub is_archived: Option<bool>,
   pub tags: Option<Vec<String>>,
   pub admins: Option<Vec<AccessItem>>,
   pub members: Option<Vec<AccessItem>>,
@@ -264,5 +270,292 @@ impl AbstractCommand for JournalCommand {
       }),
       JournalCommand::Delete(_) => JournalCommand::Delete(id),
     }
+  }
+}
+
+impl JournalService {
+  pub async fn contain_user(
+    conn: &impl ConnectionTrait,
+    model: &journal::Model,
+    user: &user::Model,
+    fields: Option<Vec<&str>>,
+  ) -> anyhow::Result<bool> {
+    for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS, FIELD_MEMBERS]) {
+      if let Some((user_query, group_query)) = match field {
+        FIELD_ADMINS => Some((
+          model.find_linked(journal::JournalUserAdmin),
+          model.find_linked(journal::JournalGroupAdmin),
+        )),
+        FIELD_MEMBERS => Some((
+          model.find_linked(journal::JournalUserMember),
+          model.find_linked(journal::JournalGroupMember),
+        )),
+        _ => None,
+      } {
+        if user_query.all(conn).await?.contains(user) {
+          return Ok(true);
+        }
+
+        for group in group_query.all(conn).await? {
+          if GroupService::contain_user(conn, &group, user, None).await? {
+            return Ok(true);
+          }
+        }
+      }
+    }
+
+    Ok(false)
+  }
+
+  async fn load_users(
+    conn: &impl ConnectionTrait,
+    operator: &user::Model,
+    journal: &journal::Model,
+    admins: &[AccessItem],
+    members: &[AccessItem],
+  ) -> anyhow::Result<Vec<journal_user::ActiveModel>> {
+    let admins: Vec<_> = admins
+      .iter()
+      .filter_map(|item| match item.typ {
+        AccessItemType::User => Some(item.id),
+        AccessItemType::Group => None,
+      })
+      .collect();
+    let admins: Vec<_> = stream::iter(User::find().filter(user::Column::Id.is_in(admins)).all(conn).await?)
+      .filter_map(|user| async move {
+        if UserService::is_readable(conn, &AuthUser::User(operator.clone()), &user).await {
+          Some(journal_user::ActiveModel {
+            journal_id: Set(journal.id),
+            user_id: Set(user.id),
+            is_admin: Set(true),
+          })
+        } else {
+          None
+        }
+      })
+      .collect()
+      .await;
+
+    let members: Vec<_> = members
+      .iter()
+      .filter_map(|item| match item.typ {
+        AccessItemType::User => Some(item.id),
+        AccessItemType::Group => None,
+      })
+      .collect();
+    let members: Vec<_> = stream::iter(User::find().filter(user::Column::Id.is_in(members)).all(conn).await?)
+      .filter_map(|user| async move {
+        if UserService::is_readable(conn, &AuthUser::User(operator.clone()), &user).await {
+          Some(journal_user::ActiveModel {
+            journal_id: Set(journal.id),
+            user_id: Set(user.id),
+            is_admin: Set(false),
+          })
+        } else {
+          None
+        }
+      })
+      .collect()
+      .await;
+
+    Ok(vec![admins, members].into_iter().flatten().collect())
+  }
+
+  async fn load_groups(
+    conn: &impl ConnectionTrait,
+    operator: &user::Model,
+    journal: &journal::Model,
+    admins: &[AccessItem],
+    members: &[AccessItem],
+  ) -> anyhow::Result<Vec<journal_group::ActiveModel>> {
+    let admins: Vec<_> = admins
+      .iter()
+      .filter_map(|item| match item.typ {
+        AccessItemType::Group => Some(item.id),
+        AccessItemType::User => None,
+      })
+      .collect();
+    let admins: Vec<_> = stream::iter(Group::find().filter(group::Column::Id.is_in(admins)).all(conn).await?)
+      .filter_map(|group| async move {
+        if GroupService::is_readable(conn, &AuthUser::User(operator.clone()), &group).await {
+          Some(journal_group::ActiveModel {
+            journal_id: Set(journal.id),
+            group_id: Set(group.id),
+            is_admin: Set(true),
+          })
+        } else {
+          None
+        }
+      })
+      .collect()
+      .await;
+
+    let members: Vec<_> = members
+      .iter()
+      .filter_map(|item| match item.typ {
+        AccessItemType::Group => Some(item.id),
+        AccessItemType::User => None,
+      })
+      .collect();
+    let members: Vec<_> = stream::iter(Group::find().filter(group::Column::Id.is_in(members)).all(conn).await?)
+      .filter_map(|group| async move {
+        if GroupService::is_readable(conn, &AuthUser::User(operator.clone()), &group).await {
+          Some(journal_group::ActiveModel {
+            journal_id: Set(journal.id),
+            group_id: Set(group.id),
+            is_admin: Set(false),
+          })
+        } else {
+          None
+        }
+      })
+      .collect()
+      .await;
+
+    Ok(vec![admins, members].into_iter().flatten().collect())
+  }
+
+  pub async fn create(
+    conn: &impl ConnectionTrait,
+    operator: user::Model,
+    command: JournalCommandCreate,
+  ) -> anyhow::Result<journal::Model> {
+    if Journal::find()
+      .filter(journal::Column::Name.eq(command.name.clone()))
+      .count(conn)
+      .await?
+      > 0
+    {
+      return Err(anyhow::Error::msg("Journal name exists"));
+    }
+
+    let journal = journal::ActiveModel {
+      id: Set(uuid::Uuid::new_v4()),
+      name: Set(command.name.clone()),
+      description: Set(command.description.clone()),
+      unit: Set(command.unit.clone()),
+      is_archived: Set(false),
+    };
+    let journal = journal.insert(conn).await?;
+
+    let tags: Vec<_> = command
+      .tags
+      .into_iter()
+      .map(|tag| journal_tag::ActiveModel {
+        journal_id: Set(journal.id),
+        tag: Set(tag),
+      })
+      .collect();
+    let _ = JournalTag::insert_many(tags).exec(conn).await?;
+
+    let users = Self::load_users(conn, &operator, &journal, &command.admins, &command.members).await?;
+    let _ = JournalUser::insert_many(users).exec(conn).await?;
+
+    let groups = Self::load_groups(conn, &operator, &journal, &command.admins, &command.members).await?;
+    let _ = JournalGroup::insert_many(groups).exec(conn).await?;
+
+    Ok(journal)
+  }
+
+  pub async fn update(
+    conn: &impl ConnectionTrait,
+    operator: user::Model,
+    command: JournalCommandUpdate,
+  ) -> anyhow::Result<journal::Model> {
+    let journal = Journal::find_by_id(command.target_id)
+      .one(conn)
+      .await?
+      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+    if !Self::contain_user(conn, &journal, &operator, Some(vec![FIELD_ADMINS])).await? {
+      return Err(anyhow::Error::msg("No permission"));
+    }
+
+    if command.is_empty() {
+      return Ok(journal);
+    }
+
+    let mut model = journal::ActiveModel {
+      id: Set(command.target_id),
+      ..Default::default()
+    };
+
+    if let Some(name) = command.name {
+      if Journal::find()
+        .filter(journal::Column::Name.eq(name.clone()))
+        .count(conn)
+        .await?
+        > 0
+      {
+        return Err(anyhow::Error::msg("Group name exists"));
+      }
+
+      model.name = Set(name);
+    }
+
+    if let Some(description) = command.description {
+      model.description = Set(description);
+    }
+
+    if let Some(unit) = command.unit {
+      model.unit = Set(unit);
+    }
+
+    if let Some(is_archived) = command.is_archived {
+      model.is_archived = Set(is_archived);
+    }
+
+    let tags: Vec<_> = command
+      .tags
+      .unwrap_or_default()
+      .into_iter()
+      .map(|tag| journal_tag::ActiveModel {
+        journal_id: Set(journal.id),
+        tag: Set(tag),
+      })
+      .collect();
+    if !tags.is_empty() {
+      let _ = JournalTag::delete_many()
+        .filter(journal_tag::Column::JournalId.eq(journal.id))
+        .exec(conn)
+        .await?;
+      let _ = JournalTag::insert_many(tags).exec(conn).await?;
+    }
+
+    let admins = command.admins.unwrap_or_default();
+    let members = command.members.unwrap_or_default();
+
+    let users = Self::load_users(conn, &operator, &journal, &admins, &members).await?;
+    if !users.is_empty() {
+      let _ = JournalUser::delete_many()
+        .filter(journal_user::Column::JournalId.eq(journal.id))
+        .exec(conn)
+        .await?;
+      let _ = JournalUser::insert_many(users).exec(conn).await?;
+    }
+
+    let groups = Self::load_groups(conn, &operator, &journal, &admins, &members).await?;
+    if !groups.is_empty() {
+      let _ = JournalGroup::delete_many()
+        .filter(journal_group::Column::JournalId.eq(journal.id))
+        .exec(conn)
+        .await?;
+      let _ = JournalGroup::insert_many(groups).exec(conn).await?;
+    }
+
+    Ok(journal)
+  }
+
+  pub async fn delete(conn: &impl ConnectionTrait, _operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+    let _ = Journal::find_by_id(id)
+      .one(conn)
+      .await?
+      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+
+    let model = group::ActiveModel {
+      id: Set(id),
+      ..Default::default()
+    };
+    model.delete(conn).await?;
+    Ok(())
   }
 }

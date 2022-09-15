@@ -149,6 +149,10 @@ pub trait AbstractReadService {
 
   fn sortable_field(field: &str) -> Option<<Self::Entity as EntityTrait>::Column>;
 
+  async fn is_readable(_conn: &impl ConnectionTrait, _operator: &AuthUser, _model: &Self::Model) -> bool {
+    true
+  }
+
   fn sortable_value(field: &str, model: &Self::Model) -> Option<Value> {
     Self::sortable_field(field).map(|col| model.get(col))
   }
@@ -165,10 +169,6 @@ pub trait AbstractReadService {
   fn encode_cursor(model: &Self::Model) -> String {
     let id = Self::primary_value(model).to_string();
     base64::encode(id)
-  }
-
-  async fn is_readable(_conn: &impl ConnectionTrait, _operator: &AuthUser, _model: &Self::Model) -> bool {
-    true
   }
 
   async fn filter_by_external_queries(items: Vec<Self::Model>, external_queries: &[ExternalQuery]) -> Vec<Self::Model> {
