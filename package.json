@@ -18,7 +18,7 @@
     "test": "cargo test",
     "lint": "cargo fmt --check && cargo clippy",
     "lint:fix": "cargo sort -w && cargo fmt && cargo clippy --fix --allow-dirty --allow-staged",
-    "upgrade": "yarn upgrade-interactive && cargo update && cargo upgrade --workspace"
+    "upgrade": "yarn upgrade-interactive && cargo update && cargo upgrade --incompatible --pinned"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",

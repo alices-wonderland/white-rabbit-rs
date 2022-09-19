@@ -77,7 +77,11 @@ impl AbstractReadService for UserService {
   type PrimaryKey = user::PrimaryKey;
   type Query = UserQuery;
 
-  async fn filter_by_external_query(items: Vec<user::Model>, external_query: &ExternalQuery) -> Vec<user::Model> {
+  async fn filter_by_external_query(
+    _: &impl ConnectionTrait,
+    items: Vec<user::Model>,
+    external_query: &ExternalQuery,
+  ) -> Vec<user::Model> {
     items
       .into_iter()
       .filter(|item| match external_query {
@@ -317,8 +321,10 @@ impl AbstractWriteService for UserService {
 #[cfg(test)]
 mod tests {
 
-  use migration::{IntoCondition, Migrator, MigratorTrait};
-  use sea_orm::{DbBackend, EntityTrait, ModelTrait, QueryFilter, QueryTrait, Set, TransactionTrait};
+  use migration::{MigratorTrait, TestMigrator};
+  use sea_orm::{
+    sea_query::IntoCondition, DbBackend, EntityTrait, ModelTrait, QueryFilter, QueryTrait, Set, TransactionTrait,
+  };
 
   use crate::{
     models::{self, auth_id, user, User},
@@ -339,7 +345,7 @@ mod tests {
     let _ = env_logger::try_init();
 
     let db = run().await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, Some(1)).await?;
 
     let manager = models::user::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
@@ -399,6 +405,9 @@ mod tests {
 
     let user = User::find_by_id(result_0.id).one(&db).await?;
     assert!(user.is_none());
+
+    TestMigrator::down(&db, None).await?;
+
     Ok(())
   }
 
@@ -408,7 +417,7 @@ mod tests {
     let _ = env_logger::try_init();
 
     let db = run().await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, Some(1)).await?;
 
     let txn = db.begin().await?;
 
@@ -449,6 +458,8 @@ mod tests {
     let user = User::find_by_id(user.id).one(&db).await?;
     assert!(user.is_none());
 
+    TestMigrator::down(&db, None).await?;
+
     Ok(())
   }
 
@@ -458,7 +469,7 @@ mod tests {
     let _ = env_logger::try_init();
 
     let db = run().await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, Some(1)).await?;
 
     let txn = db.begin().await?;
 
@@ -524,6 +535,9 @@ mod tests {
     assert!(user.is_none());
 
     txn.commit().await?;
+
+    TestMigrator::down(&db, None).await?;
+
     Ok(())
   }
 

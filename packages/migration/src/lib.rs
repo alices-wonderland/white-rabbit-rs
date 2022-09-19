@@ -1,12 +1,8 @@
-pub use sea_orm_migration::prelude::*;
-
 mod m20220101_000001_create_table;
+mod m20220916_095218_seed_data;
+mod migrator;
+mod test_migrator;
 
-pub struct Migrator;
-
-#[async_trait::async_trait]
-impl MigratorTrait for Migrator {
-  fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-    vec![Box::new(m20220101_000001_create_table::Migration)]
-  }
-}
+pub use migrator::Migrator;
+pub use sea_orm_migration::MigratorTrait;
+pub use test_migrator::TestMigrator;

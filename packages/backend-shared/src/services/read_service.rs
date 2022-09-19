@@ -139,7 +139,11 @@ pub trait AbstractReadService {
 
   type Query: IntoCondition + Into<Vec<ExternalQuery>> + Clone + Sync + Send;
 
-  async fn filter_by_external_query(items: Vec<Self::Model>, external_query: &ExternalQuery) -> Vec<Self::Model>;
+  async fn filter_by_external_query(
+    conn: &impl ConnectionTrait,
+    items: Vec<Self::Model>,
+    external_query: &ExternalQuery,
+  ) -> Vec<Self::Model>;
 
   fn find_all_select() -> Select<Self::Entity>;
 
@@ -171,10 +175,14 @@ pub trait AbstractReadService {
     base64::encode(id)
   }
 
-  async fn filter_by_external_queries(items: Vec<Self::Model>, external_queries: &[ExternalQuery]) -> Vec<Self::Model> {
+  async fn filter_by_external_queries(
+    conn: &impl ConnectionTrait,
+    items: Vec<Self::Model>,
+    external_queries: &[ExternalQuery],
+  ) -> Vec<Self::Model> {
     let mut result = items;
     for query in external_queries {
-      result = Self::filter_by_external_query(result, query).await;
+      result = Self::filter_by_external_query(conn, result, query).await;
       if result.is_empty() {
         break;
       }
@@ -226,7 +234,7 @@ pub trait AbstractReadService {
         })
         .collect()
         .await;
-      let mut result = Self::filter_by_external_queries(result, external_queries).await;
+      let mut result = Self::filter_by_external_queries(conn, result, external_queries).await;
       results.append(&mut result);
     }
 
@@ -388,7 +396,7 @@ mod tests {
 
   use super::{IdQuery, RangeQuery, TextQuery};
   use chrono::{TimeZone, Utc};
-  use migration::{Migrator, MigratorTrait};
+  use migration::{MigratorTrait, TestMigrator};
   use sea_orm::{EntityTrait, Set};
   use serde_json::json;
 
@@ -398,7 +406,7 @@ mod tests {
     let _ = env_logger::try_init();
 
     let db = run().await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, Some(1)).await?;
 
     let user_ids = vec![
       uuid::Uuid::new_v4(),
@@ -558,7 +566,7 @@ mod tests {
     assert!(page.info.end_cursor.is_some());
     assert!(page.info.start_cursor.is_some());
 
-    Migrator::down(&db, None).await?;
+    TestMigrator::down(&db, None).await?;
     Ok(())
   }
 

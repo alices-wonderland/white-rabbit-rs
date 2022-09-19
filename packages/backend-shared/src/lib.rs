@@ -15,7 +15,7 @@ pub mod tests {
   use crate::services::{read_service::AbstractReadService, user::UserService};
   use crate::{models, run};
   use chrono::Utc;
-  use migration::{Migrator, MigratorTrait};
+  use migration::{MigratorTrait, TestMigrator};
   use rust_decimal_macros::dec;
   use sea_orm::prelude::Uuid;
   use sea_orm::{
@@ -29,7 +29,7 @@ pub mod tests {
     let _ = env_logger::try_init();
 
     let db = run().await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, Some(1)).await?;
 
     let manager = models::user::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
@@ -298,7 +298,7 @@ pub mod tests {
     let json = serde_json::to_string_pretty(&record)?;
     log::info!("json: {}", json);
 
-    Migrator::down(&db, None).await?;
+    TestMigrator::down(&db, None).await?;
     Ok(())
   }
 }

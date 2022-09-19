@@ -123,7 +123,19 @@ impl AbstractReadService for GroupService {
   type PrimaryKey = group::PrimaryKey;
   type Query = GroupQuery;
 
-  async fn filter_by_external_query(items: Vec<Self::Model>, external_query: &ExternalQuery) -> Vec<Self::Model> {
+  async fn is_readable(conn: &impl ConnectionTrait, operator: &AuthUser, model: &Self::Model) -> bool {
+    if let AuthUser::User(operator) = operator {
+      (operator.role > user::Role::User) || Self::contain_user(conn, model, operator, None).await.unwrap_or(false)
+    } else {
+      false
+    }
+  }
+
+  async fn filter_by_external_query(
+    _: &impl ConnectionTrait,
+    items: Vec<Self::Model>,
+    external_query: &ExternalQuery,
+  ) -> Vec<Self::Model> {
     items
       .into_iter()
       .filter(|item| match external_query {
@@ -291,9 +303,8 @@ impl GroupService {
       .one(conn)
       .await?
       .ok_or_else(|| anyhow::Error::msg("Not found"))?;
-    if !Self::contain_user(conn, &group, &operator, Some(vec![FIELD_ADMINS])).await? {
-      return Err(anyhow::Error::msg("No permission"));
-    }
+
+    Self::check_writeable(conn, &operator, &group).await?;
 
     if command.is_empty() {
       return Ok(group);
@@ -371,14 +382,8 @@ impl GroupService {
       .one(conn)
       .await?
       .ok_or_else(|| anyhow::Error::msg("Not found"))?;
-    if !group
-      .find_linked(group::GroupAdmin)
-      .all(conn)
-      .await?
-      .contains(&operator)
-    {
-      return Err(anyhow::Error::msg("No permission"));
-    }
+
+    Self::check_writeable(conn, &operator, &group).await?;
 
     let model = group::ActiveModel {
       id: Set(id),
@@ -392,6 +397,18 @@ impl GroupService {
 #[async_trait::async_trait]
 impl AbstractWriteService for GroupService {
   type Command = GroupCommand;
+
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+    if user.role > user::Role::User {
+      return Ok(());
+    }
+
+    if !Self::contain_user(conn, model, user, Some(vec![FIELD_ADMINS])).await? {
+      return Err(anyhow::Error::msg("No permission"));
+    }
+
+    Ok(())
+  }
 
   async fn handle(
     conn: &impl ConnectionTrait,

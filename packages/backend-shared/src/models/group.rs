@@ -12,6 +12,12 @@ pub struct Model {
   pub description: String,
 }
 
+impl Related<super::User> for Entity {
+  fn to() -> RelationDef {
+    Relation::User.def()
+  }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(has_many = "super::GroupUser")]

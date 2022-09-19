@@ -18,3 +18,8 @@ pub enum AuthUser {
   Id((String, String)),
   User(models::user::Model),
 }
+
+pub use account::AccountService;
+pub use group::GroupService;
+pub use journal::JournalService;
+pub use user::UserService;

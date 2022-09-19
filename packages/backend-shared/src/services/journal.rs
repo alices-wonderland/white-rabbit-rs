@@ -15,7 +15,7 @@ use super::{
   group::GroupService,
   read_service::{AbstractReadService, ContainingUserQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   user::UserService,
-  write_service::AbstractCommand,
+  write_service::{AbstractCommand, AbstractWriteService},
   AuthUser, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_MEMBERS, FIELD_NAME, FIELD_TAG,
 };
 
@@ -92,7 +92,11 @@ impl IntoCondition for JournalQuery {
       let groups = if groups.is_empty() {
         None
       } else {
-        Some(journal_group::Column::GroupId.is_in(groups))
+        Some(
+          journal_group::Column::GroupId
+            .is_in(groups)
+            .and(journal_group::Column::IsAdmin.eq(true)),
+        )
       };
 
       let users: Vec<_> = admins
@@ -108,7 +112,55 @@ impl IntoCondition for JournalQuery {
       let users = if users.is_empty() {
         None
       } else {
-        Some(journal_user::Column::UserId.is_in(users))
+        Some(
+          journal_user::Column::UserId
+            .is_in(users)
+            .and(journal_group::Column::IsAdmin.eq(true)),
+        )
+      };
+
+      cond = cond.add(Condition::any().add_option(groups).add_option(users));
+    }
+
+    if let Some(members) = self.members {
+      let groups: Vec<_> = members
+        .iter()
+        .filter_map(|item| {
+          if item.typ == AccessItemType::Group {
+            Some(item.id)
+          } else {
+            None
+          }
+        })
+        .collect();
+      let groups = if groups.is_empty() {
+        None
+      } else {
+        Some(
+          journal_group::Column::GroupId
+            .is_in(groups)
+            .and(journal_group::Column::IsAdmin.eq(false)),
+        )
+      };
+
+      let users: Vec<_> = members
+        .iter()
+        .filter_map(|item| {
+          if item.typ == AccessItemType::User {
+            Some(item.id)
+          } else {
+            None
+          }
+        })
+        .collect();
+      let users = if users.is_empty() {
+        None
+      } else {
+        Some(
+          journal_user::Column::UserId
+            .is_in(users)
+            .and(journal_group::Column::IsAdmin.eq(false)),
+        )
       };
 
       cond = cond.add(Condition::any().add_option(groups).add_option(users));
@@ -164,24 +216,54 @@ impl AbstractReadService for JournalService {
   type PrimaryKey = journal::PrimaryKey;
   type Query = JournalQuery;
 
-  async fn filter_by_external_query(items: Vec<Self::Model>, external_query: &ExternalQuery) -> Vec<Self::Model> {
-    items
-      .into_iter()
-      .filter(|item| match external_query {
-        ExternalQuery::FullText(FullTextQuery { value, fields }) => {
-          if let Some(fields) = fields {
-            fields.iter().all(|field| match field.as_str() {
-              FIELD_NAME => item.name.contains(value),
-              FIELD_DESCRIPTION => item.description.contains(value),
-              _ => true,
-            })
-          } else {
-            item.name.contains(value) || item.description.contains(value)
+  async fn is_readable(conn: &impl ConnectionTrait, operator: &AuthUser, model: &Self::Model) -> bool {
+    if let AuthUser::User(operator) = operator {
+      (operator.role > user::Role::User) || Self::contain_user(conn, model, operator, None).await.unwrap_or(false)
+    } else {
+      false
+    }
+  }
+
+  async fn filter_by_external_query(
+    conn: &impl ConnectionTrait,
+    items: Vec<Self::Model>,
+    external_query: &ExternalQuery,
+  ) -> Vec<Self::Model> {
+    stream::iter(items)
+      .filter_map(|item| async {
+        match external_query {
+          ExternalQuery::FullText(FullTextQuery { value, fields }) => {
+            let fields = fields.clone().unwrap_or_else(|| {
+              vec![
+                FIELD_NAME.to_owned(),
+                FIELD_DESCRIPTION.to_owned(),
+                FIELD_TAG.to_owned(),
+              ]
+            });
+
+            for field in fields {
+              if match field.as_str() {
+                FIELD_NAME => item.name.contains(value),
+                FIELD_DESCRIPTION => item.description.contains(value),
+                FIELD_TAG => item
+                  .find_related(JournalTag)
+                  .all(conn)
+                  .await
+                  .unwrap_or_default()
+                  .into_iter()
+                  .any(|tag| tag.tag.contains(value)),
+                _ => true,
+              } {
+                return Some(item);
+              }
+            }
+            None
           }
+          _ => None,
         }
-        _ => true,
       })
       .collect()
+      .await
   }
 
   fn find_all_select() -> Select<Self::Entity> {
@@ -466,9 +548,8 @@ impl JournalService {
       .one(conn)
       .await?
       .ok_or_else(|| anyhow::Error::msg("Not found"))?;
-    if !Self::contain_user(conn, &journal, &operator, Some(vec![FIELD_ADMINS])).await? {
-      return Err(anyhow::Error::msg("No permission"));
-    }
+
+    Self::check_writeable(conn, &operator, &journal).await?;
 
     if command.is_empty() {
       return Ok(journal);
@@ -542,14 +623,16 @@ impl JournalService {
       let _ = JournalGroup::insert_many(groups).exec(conn).await?;
     }
 
-    Ok(journal)
+    Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, _operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
-    let _ = Journal::find_by_id(id)
+  pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+    let journal = Journal::find_by_id(id)
       .one(conn)
       .await?
       .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+
+    Self::check_writeable(conn, &operator, &journal).await?;
 
     let model = group::ActiveModel {
       id: Set(id),
@@ -557,5 +640,47 @@ impl JournalService {
     };
     model.delete(conn).await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait]
+impl AbstractWriteService for JournalService {
+  type Command = JournalCommand;
+
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+    if user.role > user::Role::Admin {
+      return Ok(());
+    }
+
+    if !Self::contain_user(conn, model, user, Some(vec![FIELD_ADMINS])).await? {
+      return Err(anyhow::Error::msg("No permission"));
+    }
+
+    Ok(())
+  }
+
+  async fn handle(
+    conn: &impl ConnectionTrait,
+    operator: AuthUser,
+    command: Self::Command,
+  ) -> anyhow::Result<Option<Self::Model>> {
+    if let AuthUser::User(operator) = operator {
+      match command {
+        JournalCommand::Create(command) => {
+          let result = Self::create(conn, operator, command).await?;
+          Ok(Some(result))
+        }
+        JournalCommand::Update(command) => {
+          let result = Self::update(conn, operator, command).await?;
+          Ok(Some(result))
+        }
+        JournalCommand::Delete(id) => {
+          Self::delete(conn, operator, id).await?;
+          Ok(None)
+        }
+      }
+    } else {
+      Err(anyhow::Error::msg("Please login"))
+    }
   }
 }

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use sea_orm::ConnectionTrait;
 
+use crate::models::user;
+
 use super::{read_service::AbstractReadService, AuthUser};
 
 pub trait AbstractCommand: Send + Sync {
@@ -12,6 +14,14 @@ pub trait AbstractCommand: Send + Sync {
 #[async_trait::async_trait]
 pub trait AbstractWriteService: AbstractReadService {
   type Command: AbstractCommand;
+
+  async fn check_writeable(
+    _conn: &impl ConnectionTrait,
+    _user: &user::Model,
+    _model: &Self::Model,
+  ) -> anyhow::Result<()> {
+    Ok(())
+  }
 
   async fn handle(
     conn: &impl ConnectionTrait,

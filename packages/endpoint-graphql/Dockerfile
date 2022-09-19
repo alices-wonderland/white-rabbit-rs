@@ -16,4 +16,4 @@ COPY --from=builder target/release endpoint-graphql /app/
 
 USER whiterabbit
 
-ENTRYPOINT ['/app/endpoint-graphql']
+ENTRYPOINT ["/app/endpoint-graphql"]
