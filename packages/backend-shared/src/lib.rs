@@ -14,7 +14,7 @@ pub mod tests {
   use crate::services::AuthUser;
   use crate::services::{read_service::AbstractReadService, user::UserService};
   use crate::{models, run};
-  use chrono::Utc;
+  use chrono::NaiveDate;
   use migration::{MigratorTrait, TestMigrator};
   use rust_decimal_macros::dec;
   use sea_orm::prelude::Uuid;
@@ -269,7 +269,7 @@ pub mod tests {
       name: Set("Journal Record 1".to_owned()),
       description: Set("Journal Record Description".to_owned()),
       typ: Set(models::record::Type::Record),
-      date: Set(Utc::now()),
+      date: Set(NaiveDate::MIN),
     };
     let record = models::Record::insert(record).exec_with_returning(&db).await?;
 

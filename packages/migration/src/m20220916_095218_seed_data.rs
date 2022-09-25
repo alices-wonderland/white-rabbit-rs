@@ -5,12 +5,12 @@ use backend_shared::models::{
   record_item, record_tag, user, Account, AccountTag, AuthId, Group, GroupUser, Journal, JournalGroup, JournalTag,
   JournalUser, Record, RecordItem, RecordTag, User,
 };
-use chrono::prelude::*;
+
 use fake::{
   faker::{
     address::en::{CountryCode, CountryName},
     boolean::en::Boolean,
-    chrono::en::DateTimeBetween,
+    chrono::en::Date,
     company::en::{Bs, BsNoun, Buzzword, CompanyName, Industry, Profession},
     lorem::en::Paragraph,
     name::en::Name,
@@ -222,13 +222,7 @@ fn create_records(
         } else {
           record::Type::Record
         }),
-        date: Set(
-          DateTimeBetween(
-            Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
-            Utc.ymd(2022, 1, 1).and_hms(0, 0, 0),
-          )
-          .fake(),
-        ),
+        date: Set(Date().fake()),
       };
       let record_id = record.id.clone();
       records.push(record);
