@@ -4,6 +4,7 @@ pub mod account;
 pub mod group;
 pub mod journal;
 pub mod read_service;
+pub mod record;
 pub mod user;
 pub mod write_service;
 
@@ -22,4 +23,5 @@ pub enum AuthUser {
 pub use account::AccountService;
 pub use group::GroupService;
 pub use journal::JournalService;
+pub use record::RecordService;
 pub use user::UserService;

@@ -1,7 +1,21 @@
-use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+
+use chrono::NaiveDate;
 use sea_orm::entity::prelude::*;
 
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecordState {
+  Record(bool),
+  Check(HashMap<uuid::Uuid, CheckRecordState>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CheckRecordState {
+  Valid,
+  Invalid { expected: Decimal, actual: Decimal },
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "records")]
@@ -15,7 +29,7 @@ pub struct Model {
   pub description: String,
   #[sea_orm(column_name = "type")]
   pub typ: Type,
-  pub date: DateTime<Utc>,
+  pub date: NaiveDate,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]

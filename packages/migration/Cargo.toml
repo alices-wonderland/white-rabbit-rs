@@ -19,7 +19,7 @@ fake = { version = "2.5", features = ['chrono', 'uuid', 'rust_decimal'] }
 log = "0.4.17"
 rand = "0.8"
 rust_decimal = "1.26.1"
-tokio = { version = "1.21.1", features = ["rt", "macros"] }
+tokio = { version = "1.21.2", features = ["rt", "macros"] }
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
 
 [dependencies.sea-orm-migration]
@@ -27,4 +27,4 @@ version = "0.9.2"
 features = ["sqlx-sqlite", "runtime-tokio-rustls"]
 
 [dev-dependencies]
-tokio = { version = "1.21.1", features = ["rt", "macros"] }
+tokio = { version = "1.21.2", features = ["rt", "macros"] }

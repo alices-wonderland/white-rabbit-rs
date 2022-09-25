@@ -5,12 +5,13 @@ use backend_shared::models::{
   record_item, record_tag, user, Account, AccountTag, AuthId, Group, GroupUser, Journal, JournalGroup, JournalTag,
   JournalUser, Record, RecordItem, RecordTag, User,
 };
-use chrono::prelude::*;
+use backend_shared::services::RecordService;
+
 use fake::{
   faker::{
     address::en::{CountryCode, CountryName},
     boolean::en::Boolean,
-    chrono::en::DateTimeBetween,
+    chrono::en::Date,
     company::en::{Bs, BsNoun, Buzzword, CompanyName, Industry, Profession},
     lorem::en::Paragraph,
     name::en::Name,
@@ -212,23 +213,18 @@ fn create_records(
     for idx in 0..size_per_journal {
       accounts.shuffle(&mut rng);
 
+      let typ = if Boolean(20).fake() {
+        record::Type::Check
+      } else {
+        record::Type::Record
+      };
       let record = record::ActiveModel {
         id: Set(Faker.fake::<Uuid>()),
         journal_id: Set(journal_id),
         name: Set(format!("{}-{}-{}", journal_id, Profession().fake::<String>(), idx)),
         description: Set(Paragraph(1..3).fake()),
-        typ: Set(if Boolean(20).fake() {
-          record::Type::Check
-        } else {
-          record::Type::Record
-        }),
-        date: Set(
-          DateTimeBetween(
-            Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
-            Utc.ymd(2022, 1, 1).and_hms(0, 0, 0),
-          )
-          .fake(),
-        ),
+        typ: Set(typ.clone()),
+        date: Set(Date().fake()),
       };
       let record_id = record.id.clone();
       records.push(record);
@@ -243,7 +239,7 @@ fn create_records(
         })
         .collect();
       // 1/4 of the records are valid, by the feature "default amount"
-      if !items.is_empty() && rng.gen_ratio(1, 4) {
+      if typ == record::Type::Record && !items.is_empty() && rng.gen_ratio(1, 4) {
         items[0].amount = Set(None);
         items[0].price = Set(None);
       }
@@ -319,6 +315,32 @@ impl MigrationTrait for Migration {
     log::info!("{:#?} record_tags found", record_tags);
     let record_items = records[0].find_related(RecordItem).all(&txn).await?;
     log::info!("{:#?} record_items found", record_items);
+    let mut valid_record_count = 0;
+    let mut valid_check_count = 0;
+    let mut record_count = 0;
+    let mut check_count = 0;
+    for record in &records {
+      if record.typ == record::Type::Record {
+        record_count += 1;
+      } else {
+        check_count += 1;
+      }
+      match RecordService::get_state(&txn, record).await.unwrap() {
+        record::RecordState::Record(true) => valid_record_count += 1,
+        record::RecordState::Check(results) => {
+          let mut valid = true;
+          for (_account_id, result) in results {
+            valid = valid && result == record::CheckRecordState::Valid;
+          }
+          if valid {
+            valid_check_count += 1;
+          }
+        }
+        _ => {}
+      }
+    }
+    log::info!("There are {record_count} records, {valid_record_count} of them are valid");
+    log::info!("There are {check_count} checks, {valid_check_count} of them are valid");
 
     txn.commit().await?;
     Ok(())
@@ -335,7 +357,7 @@ mod tests {
 
   use sea_orm_migration::{sea_orm::Database, MigratorTrait};
 
-  use crate::Migrator;
+  use crate::TestMigrator;
 
   #[tokio::test]
   async fn test_seed_data() -> anyhow::Result<()> {
@@ -343,7 +365,7 @@ mod tests {
     let _ = env_logger::try_init();
 
     let db = Database::connect(env::var("WHITE_RABBIT_DATABASE_URL")?).await?;
-    Migrator::up(&db, None).await?;
+    TestMigrator::up(&db, None).await?;
 
     Ok(())
   }

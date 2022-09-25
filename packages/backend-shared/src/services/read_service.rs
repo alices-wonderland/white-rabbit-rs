@@ -111,6 +111,15 @@ impl ContainingUserQuery {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ComparableQuery<V: Ord + PartialOrd> {
+  pub eq: Option<V>,
+  pub gt: Option<V>,
+  pub lt: Option<V>,
+  pub gte: Option<V>,
+  pub lte: Option<V>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalQuery {
   ContainingUser(ContainingUserQuery),
