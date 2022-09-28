@@ -1,20 +1,26 @@
+use std::collections::HashSet;
+
 use futures::{stream, StreamExt};
 use sea_orm::{
   sea_query::{Condition, IntoCondition, JoinType},
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter, QuerySelect,
-  RelationTrait, Select, Set,
+  ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter,
+  QuerySelect, RelationTrait, Select, Set,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::models::{
-  account::{self, Strategy, Type},
-  account_tag, user, Account, AccountTag, Journal,
+use crate::{
+  errors::Error,
+  models::{
+    account::{self, Strategy, Type},
+    account_tag, journal, user, Account, AccountTag, Journal,
+  },
 };
 
 use super::{
   read_service::{AbstractReadService, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
-  AuthUser, JournalService, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAG,
+  AuthUser, JournalService, Permission, FIELD_DESCRIPTION, FIELD_ID, FIELD_NAME, FIELD_TAG, FIELD_UNIT,
+  MAX_DESCRIPTION, MAX_NAME, MAX_UNIT, MIN_NAME,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -233,7 +239,7 @@ pub struct AccountCommandCreate {
   pub typ: Type,
   pub strategy: Strategy,
   pub unit: String,
-  pub tags: Vec<String>,
+  pub tags: HashSet<String>,
 }
 
 pub struct AccountCommandUpdate {
@@ -243,7 +249,7 @@ pub struct AccountCommandUpdate {
   pub typ: Option<Type>,
   pub strategy: Option<Strategy>,
   pub unit: Option<String>,
-  pub tags: Option<Vec<String>>,
+  pub tags: Option<HashSet<String>>,
   pub is_archived: Option<bool>,
 }
 
@@ -282,6 +288,47 @@ impl AbstractCommand for AccountCommand {
 }
 
 impl AccountService {
+  fn validate(model: &account::ActiveModel, tags: Option<&HashSet<String>>) -> anyhow::Result<()> {
+    let mut errors = Vec::<Error>::new();
+    match &model.name {
+      ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        min: MIN_NAME,
+        max: MAX_NAME,
+      }),
+      _ => (),
+    }
+
+    match &model.description {
+      ActiveValue::Set(description) if description.len() > MAX_DESCRIPTION => errors.push(Error::MaxLength {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_DESCRIPTION.to_owned(),
+        value: MAX_DESCRIPTION,
+      }),
+      _ => (),
+    }
+
+    match &model.unit {
+      ActiveValue::Set(unit) if unit.len() > MAX_UNIT => errors.push(Error::MaxLength {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_UNIT.to_owned(),
+        value: MAX_UNIT,
+      }),
+      _ => (),
+    }
+
+    if let Some(tags) = tags {
+      errors.append(&mut Error::validate_tags(account::TYPE, tags));
+    }
+
+    match errors.first() {
+      Some(error) if errors.len() == 1 => Err(error.clone())?,
+      Some(_) => Err(Error::Errors(errors))?,
+      None => Ok(()),
+    }
+  }
+
   pub async fn create(
     conn: &impl ConnectionTrait,
     operator: user::Model,
@@ -293,14 +340,22 @@ impl AccountService {
       .await?
       > 0
     {
-      return Err(anyhow::Error::msg("Account name exists"));
+      return Err(Error::AlreadyExists {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        value: command.name,
+      })?;
     }
 
     let journal =
       if let Some(journal) = JournalService::find_by_id(conn, AuthUser::User(operator), command.journal_id).await? {
         journal
       } else {
-        return Err(anyhow::Error::msg("Journal not exists"));
+        return Err(Error::NotFound {
+          entity: journal::TYPE.to_owned(),
+          field: FIELD_ID.to_owned(),
+          value: command.journal_id.to_string(),
+        })?;
       };
 
     let account = account::ActiveModel {
@@ -313,8 +368,9 @@ impl AccountService {
       unit: Set(command.unit.clone()),
       is_archived: Set(false),
     };
-    let account = account.insert(conn).await?;
+    Self::validate(&account, Some(&command.tags))?;
 
+    let account = account.insert(conn).await?;
     let tags: Vec<_> = command
       .tags
       .into_iter()
@@ -336,7 +392,11 @@ impl AccountService {
     let account = Account::find_by_id(command.target_id)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.target_id.to_string(),
+      })?;
 
     Self::check_writeable(conn, &operator, &account).await?;
 
@@ -356,7 +416,11 @@ impl AccountService {
         .await?
         > 0
       {
-        return Err(anyhow::Error::msg("Account name exists"));
+        return Err(Error::AlreadyExists {
+          entity: account::TYPE.to_owned(),
+          field: FIELD_NAME.to_owned(),
+          value: name,
+        })?;
       }
 
       model.name = Set(name);
@@ -378,25 +442,25 @@ impl AccountService {
       model.unit = Set(unit);
     }
 
-    let tags: Vec<_> = command
-      .tags
-      .unwrap_or_default()
-      .into_iter()
-      .map(|tag| account_tag::ActiveModel {
-        account_id: Set(account.id),
-        tag: Set(tag),
-      })
-      .collect();
-    if !tags.is_empty() {
+    if let Some(is_archived) = command.is_archived {
+      model.is_archived = Set(is_archived);
+    }
+
+    Self::validate(&model, command.tags.as_ref())?;
+
+    if let Some(tags) = command.tags {
+      let tags: Vec<_> = tags
+        .into_iter()
+        .map(|tag| account_tag::ActiveModel {
+          account_id: Set(account.id),
+          tag: Set(tag),
+        })
+        .collect();
       let _ = AccountTag::delete_many()
         .filter(account_tag::Column::AccountId.eq(account.id))
         .exec(conn)
         .await?;
       let _ = AccountTag::insert_many(tags).exec(conn).await?;
-    }
-
-    if let Some(is_archived) = command.is_archived {
-      model.is_archived = Set(is_archived);
     }
 
     Ok(model.update(conn).await?)
@@ -406,7 +470,11 @@ impl AccountService {
     let account = Account::find_by_id(id)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: account::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: id.to_string(),
+      })?;
 
     Self::check_writeable(conn, &operator, &account).await?;
 
@@ -429,7 +497,11 @@ impl AbstractWriteService for AccountService {
     } else if let Some(journal) = Journal::find_by_id(model.journal_id).one(conn).await? {
       JournalService::check_writeable(conn, user, &journal).await
     } else {
-      Err(anyhow::Error::msg("Journal not found"))
+      Err(Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: model.journal_id.to_string(),
+      })?
     }
   }
 
@@ -454,7 +526,12 @@ impl AbstractWriteService for AccountService {
         }
       }
     } else {
-      Err(anyhow::Error::msg("Please login"))
+      return Err(Error::InvalidPermission {
+        user: operator.get_id(),
+        entity: account::TYPE.to_owned(),
+        id: command.target_id(),
+        permission: Permission::Write,
+      })?;
     }
   }
 }

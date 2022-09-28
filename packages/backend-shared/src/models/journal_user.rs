@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::journal;
+use super::{journal, AccessItemType};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "journals_users")]
@@ -18,7 +18,7 @@ impl From<Model> for journal::AccessItem {
   fn from(val: Model) -> Self {
     Self {
       id: val.user_id,
-      typ: journal::AccessItemType::User,
+      typ: AccessItemType::User,
     }
   }
 }

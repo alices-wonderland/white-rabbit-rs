@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod models;
 pub mod services;
 
@@ -266,7 +267,6 @@ pub mod tests {
     let record = models::record::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
       journal_id: Set(journal.id),
-      name: Set("Journal Record 1".to_owned()),
       description: Set("Journal Record Description".to_owned()),
       typ: Set(models::record::Type::Record),
       date: Set(NaiveDate::MIN),

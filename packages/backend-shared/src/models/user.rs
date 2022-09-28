@@ -1,7 +1,10 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
+pub const TYPE: &str = "user";
+pub const MULTIPLE: &str = "users";
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
@@ -12,7 +15,7 @@ pub struct Model {
   pub role: Role,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Hash, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i8", db_type = "TinyInteger")]
 pub enum Role {
   User = 0,

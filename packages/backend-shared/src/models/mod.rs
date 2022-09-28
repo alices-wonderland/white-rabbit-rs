@@ -12,6 +12,8 @@ pub mod record_item;
 pub mod record_tag;
 pub mod user;
 
+use serde::{Deserialize, Serialize};
+
 pub use account::Entity as Account;
 pub use account_tag::Entity as AccountTag;
 pub use auth_id::Entity as AuthId;
@@ -25,3 +27,9 @@ pub use record::Entity as Record;
 pub use record_item::Entity as RecordItem;
 pub use record_tag::Entity as RecordTag;
 pub use user::Entity as User;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, strum_macros::Display, Serialize, Deserialize)]
+pub enum AccessItemType {
+  User,
+  Group,
+}

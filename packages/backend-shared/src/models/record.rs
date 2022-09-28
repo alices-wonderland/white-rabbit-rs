@@ -5,17 +5,8 @@ use sea_orm::entity::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecordState {
-  Record(bool),
-  Check(HashMap<uuid::Uuid, CheckRecordState>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CheckRecordState {
-  Valid,
-  Invalid { expected: Decimal, actual: Decimal },
-}
+pub const TYPE: &str = "record";
+pub const MULTIPLE: &str = "records";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "records")]
@@ -24,8 +15,6 @@ pub struct Model {
   pub id: uuid::Uuid,
   #[sea_orm(indexed)]
   pub journal_id: uuid::Uuid,
-  #[sea_orm(unique, indexed)]
-  pub name: String,
   pub description: String,
   #[sea_orm(column_name = "type")]
   pub typ: Type,
@@ -72,3 +61,15 @@ pub enum Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecordState {
+  Record(bool),
+  Check(HashMap<uuid::Uuid, CheckRecordState>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CheckRecordState {
+  Valid,
+  Invalid { expected: Decimal, actual: Decimal },
+}

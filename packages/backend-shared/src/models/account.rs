@@ -2,6 +2,9 @@ use sea_orm::entity::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
+pub const TYPE: &str = "account";
+pub const MULTIPLE: &str = "accounts";
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "accounts")]
 pub struct Model {

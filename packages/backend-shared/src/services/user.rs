@@ -1,12 +1,13 @@
 use sea_orm::sea_query::{Condition, IntoCondition, JoinType};
 use sea_orm::{
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect, RelationTrait,
-  Select, Set,
+  ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect,
+  RelationTrait, Select, Set,
 };
 
 use super::read_service::{AbstractReadService, ExternalQuery, FullTextQuery, IdQuery, TextQuery};
 use super::write_service::{AbstractCommand, AbstractWriteService};
-use super::AuthUser;
+use super::{AuthUser, Permission, FIELD_ID, FIELD_NAME, MAX_NAME, MIN_NAME};
+use crate::errors::Error;
 use crate::models::{auth_id, user, AuthId, User};
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +60,7 @@ impl From<UserQuery> for Vec<ExternalQuery> {
 
     if let Some(TextQuery::FullText(value)) = value.name {
       result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec!["name".to_owned()]),
+        fields: Some(vec![FIELD_NAME.to_owned()]),
         value,
       }));
     }
@@ -107,7 +108,7 @@ impl AbstractReadService for UserService {
 
   fn sortable_field(field: &str) -> Option<user::Column> {
     match field {
-      "name" => Some(user::Column::Name),
+      FIELD_NAME => Some(user::Column::Name),
       _ => None,
     }
   }
@@ -164,6 +165,25 @@ impl AbstractCommand for UserCommand {
 }
 
 impl UserService {
+  fn validate(model: &user::ActiveModel) -> anyhow::Result<()> {
+    let mut errors = Vec::<Error>::new();
+    match &model.name {
+      ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
+        entity: user::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        min: MIN_NAME,
+        max: MAX_NAME,
+      }),
+      _ => (),
+    }
+
+    match errors.first() {
+      Some(error) if errors.len() == 1 => Err(error.clone())?,
+      Some(_) => Err(Error::Errors(errors))?,
+      None => Ok(()),
+    }
+  }
+
   pub async fn create(
     conn: &impl ConnectionTrait,
     operator: AuthUser,
@@ -175,42 +195,45 @@ impl UserService {
       .await?
       > 0
     {
-      return Err(anyhow::Error::msg("Group name exists"));
+      return Err(Error::AlreadyExists {
+        entity: user::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        value: command.name,
+      })?;
     }
 
     let auth_ids = match operator {
-      AuthUser::User(user) => {
-        if user.role != user::Role::Owner && user.role <= command.role {
-          return Err(anyhow::Error::msg("Invalid permission"));
-        }
-        command.auth_ids
-      }
-      AuthUser::Id(auth_id) => {
-        if command.role != user::Role::User {
-          return Err(anyhow::Error::msg("Invalid permission"));
-        }
-        vec![auth_id]
+      AuthUser::User(user) if user.role != user::Role::User || user.role > command.role => command.auth_ids,
+      AuthUser::Id(auth_id) if command.role == user::Role::User => vec![auth_id],
+      _ => {
+        return Err(Error::InvalidPermission {
+          user: operator.get_id(),
+          entity: user::TYPE.to_owned(),
+          id: None,
+          permission: Permission::Write,
+        })?
       }
     };
 
-    let user = user::ActiveModel {
+    let model = user::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
       name: Set(command.name),
       role: Set(command.role),
     };
-    let user = user.insert(conn).await?;
+    Self::validate(&model)?;
+    let model = model.insert(conn).await?;
 
     let auth_ids = auth_ids
       .into_iter()
       .map(|(provider, value)| auth_id::ActiveModel {
-        user_id: Set(user.id),
+        user_id: Set(model.id),
         provider: Set(provider),
         value: Set(value),
       })
       .collect::<Vec<_>>();
     AuthId::insert_many(auth_ids).exec(conn).await?;
 
-    Ok(user)
+    Ok(model)
   }
 
   pub async fn update(
@@ -221,13 +244,22 @@ impl UserService {
     let user = User::find_by_id(command.target_id)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: user::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.target_id.to_string(),
+      })?;
 
     if operator.role != user::Role::Owner
       && operator.id != command.target_id
       && (operator.role <= user.role || operator.role <= command.role.clone().unwrap_or_default())
     {
-      return Err(anyhow::Error::msg("Invalid permission"));
+      return Err(Error::InvalidPermission {
+        user: operator.id.to_string(),
+        entity: user::TYPE.to_owned(),
+        id: Some(command.target_id),
+        permission: Permission::Write,
+      })?;
     }
 
     if command.is_empty() {
@@ -262,18 +294,24 @@ impl UserService {
         .collect::<Vec<_>>();
       AuthId::insert_many(auth_ids).exec(conn).await?;
     }
+    Self::validate(&model)?;
 
     Ok(model.update(conn).await?)
   }
 
   pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
-    let user = User::find_by_id(id)
-      .one(conn)
-      .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
-
+    let user = User::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
+      entity: user::TYPE.to_owned(),
+      field: FIELD_ID.to_owned(),
+      value: id.to_string(),
+    })?;
     if operator.role != user::Role::Owner && operator.id != id && operator.role <= user.role {
-      return Err(anyhow::Error::msg("Invalid permission"));
+      return Err(Error::InvalidPermission {
+        user: operator.id.to_string(),
+        entity: user::TYPE.to_owned(),
+        id: Some(id),
+        permission: Permission::Write,
+      })?;
     }
     let model = user::ActiveModel {
       id: Set(id),
@@ -298,21 +336,21 @@ impl AbstractWriteService for UserService {
         let result = Self::create(conn, operator, command).await?;
         Ok(Some(result))
       }
-      UserCommand::Update(command) => {
-        if let AuthUser::User(operator) = operator {
-          let result = Self::update(conn, operator, command).await?;
-          Ok(Some(result))
-        } else {
-          Err(anyhow::Error::msg("Please login"))
-        }
+      UserCommand::Update(command) if matches!(operator, AuthUser::User(_)) => {
+        let result = Self::update(conn, operator.into(), command).await?;
+        Ok(Some(result))
       }
-      UserCommand::Delete(id) => {
-        if let AuthUser::User(operator) = operator {
-          Self::delete(conn, operator, id).await?;
-          Ok(None)
-        } else {
-          Err(anyhow::Error::msg("Please login"))
-        }
+      UserCommand::Delete(id) if matches!(operator, AuthUser::User(_)) => {
+        Self::delete(conn, operator.into(), id).await?;
+        Ok(None)
+      }
+      _ => {
+        return Err(Error::InvalidPermission {
+          user: operator.get_id(),
+          entity: user::TYPE.to_owned(),
+          id: command.target_id(),
+          permission: Permission::Write,
+        })?
       }
     }
   }
@@ -322,15 +360,13 @@ impl AbstractWriteService for UserService {
 mod tests {
 
   use migration::{MigratorTrait, TestMigrator};
-  use sea_orm::{
-    sea_query::IntoCondition, DbBackend, EntityTrait, ModelTrait, QueryFilter, QueryTrait, Set, TransactionTrait,
-  };
+  use sea_orm::{EntityTrait, ModelTrait, QueryTrait, Set, TransactionTrait};
 
   use crate::{
     models::{self, auth_id, user, User},
     run,
     services::{
-      read_service::{IdQuery, TextQuery},
+      read_service::{AbstractReadService, FindAllInput, FindPageInput, Order, Pagination, Sort},
       user::UserCommandUpdate,
       write_service::AbstractWriteService,
       AuthUser,
@@ -338,6 +374,89 @@ mod tests {
   };
 
   use super::{UserCommand, UserCommandCreate, UserQuery, UserService};
+  use itertools::Itertools;
+
+  #[tokio::test]
+  async fn test_find_by_query() -> anyhow::Result<()> {
+    dotenv::from_filename(".test.env")?;
+    let _ = env_logger::try_init();
+
+    let db = run().await?;
+    TestMigrator::up(&db, None).await?;
+
+    let users = UserService::find_all(
+      &db,
+      AuthUser::Id(("".to_owned(), "".to_owned())),
+      FindAllInput {
+        query: Some(UserQuery {
+          role: Some(user::Role::Admin),
+          ..Default::default()
+        }),
+        ..Default::default()
+      },
+    )
+    .await?;
+    assert!(!users.is_empty());
+    assert!(users.into_iter().all(|user| user.role == user::Role::Admin));
+
+    let page_1 = UserService::find_page(
+      &db,
+      AuthUser::Id(("".to_owned(), "".to_owned())),
+      FindPageInput {
+        query: Some(UserQuery {
+          role: Some(user::Role::Admin),
+          ..Default::default()
+        }),
+        pagination: Some(Pagination {
+          size: Some(3),
+          ..Default::default()
+        }),
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Desc,
+        },
+      },
+    )
+    .await?;
+    assert_eq!(page_1.items.len(), 3);
+    for (a, b) in page_1.items.iter().tuple_windows() {
+      assert!(a.item.name > b.item.name);
+    }
+
+    let page_2 = UserService::find_page(
+      &db,
+      AuthUser::Id(("".to_owned(), "".to_owned())),
+      FindPageInput {
+        query: Some(UserQuery {
+          role: Some(user::Role::Admin),
+          ..Default::default()
+        }),
+        pagination: Some(Pagination {
+          size: Some(3),
+          after: page_1.info.end_cursor,
+          ..Default::default()
+        }),
+        sort: Sort {
+          field: "name".to_owned(),
+          order: Order::Desc,
+        },
+      },
+    )
+    .await?;
+    assert_eq!(page_2.items.len(), 3);
+    for (a, b) in vec![page_1.items, page_2.items]
+      .iter()
+      .flatten()
+      .map(|item| item.item.clone())
+      .tuple_windows()
+    {
+      assert!(a.name > b.name);
+    }
+
+    TestMigrator::down(&db, None).await?;
+
+    Ok(())
+  }
 
   #[tokio::test]
   async fn test_write_all() -> anyhow::Result<()> {
@@ -461,127 +580,5 @@ mod tests {
     TestMigrator::down(&db, None).await?;
 
     Ok(())
-  }
-
-  #[tokio::test]
-  async fn test_write_separate() -> anyhow::Result<()> {
-    dotenv::from_filename(".test.env")?;
-    let _ = env_logger::try_init();
-
-    let db = run().await?;
-    TestMigrator::up(&db, Some(1)).await?;
-
-    let txn = db.begin().await?;
-
-    let command = UserCommandCreate {
-      target_id: None,
-      name: "Name 1".to_owned(),
-      role: user::Role::User,
-      auth_ids: vec![("Provider 1".to_owned(), "Value 1".to_owned())],
-    };
-    let user = UserService::create(
-      &txn,
-      AuthUser::Id(("Provider 2".to_owned(), "Value 2".to_owned())),
-      command,
-    )
-    .await?;
-    let auth_ids = user.find_related(models::AuthId).all(&txn).await?;
-
-    assert_eq!(
-      user,
-      user::Model {
-        id: user.id,
-        name: "Name 1".to_owned(),
-        role: user::Role::User,
-      }
-    );
-
-    assert_eq!(
-      auth_ids,
-      vec![auth_id::Model {
-        user_id: user.id,
-        provider: "Provider 2".to_owned(),
-        value: "Value 2".to_owned()
-      }]
-    );
-
-    let command = UserCommandUpdate {
-      target_id: user.id,
-      name: Some("new name".to_owned()),
-      role: None,
-      auth_ids: Some(vec![("New Provider".to_owned(), "New Value".to_owned())]),
-    };
-    let user = UserService::update(&txn, user, command).await?;
-    let auth_ids = user.find_related(models::AuthId).all(&txn).await?;
-    assert_eq!(
-      user,
-      user::Model {
-        id: user.id,
-        name: "new name".to_owned(),
-        role: user::Role::User,
-      }
-    );
-    assert_eq!(
-      auth_ids,
-      vec![auth_id::Model {
-        user_id: user.id,
-        provider: "New Provider".to_owned(),
-        value: "New Value".to_owned()
-      }]
-    );
-
-    UserService::delete(&txn, user.clone(), user.id).await?;
-    let user = User::find_by_id(user.id).one(&txn).await?;
-    assert!(user.is_none());
-
-    txn.commit().await?;
-
-    TestMigrator::down(&db, None).await?;
-
-    Ok(())
-  }
-
-  #[test]
-  fn test_condition() {
-    dotenv::from_filename(".test.env").ok();
-    let _ = env_logger::try_init();
-
-    let query = UserQuery {
-      id: Some(IdQuery::Multiple(vec![
-        uuid::Uuid::new_v4(),
-        uuid::Uuid::new_v4(),
-        uuid::Uuid::new_v4(),
-      ])),
-      name: Some(TextQuery::FullText("FullTextValue".to_owned())),
-      role: Some(user::Role::Admin),
-      auth_id_providers: Some(vec![
-        "Provider 1".to_string(),
-        "Provider 2".to_string(),
-        "Provider 3".to_string(),
-      ]),
-    };
-
-    let statement = models::User::find()
-      .find_also_related(models::AuthId)
-      .filter(query.clone().into_condition())
-      .build(DbBackend::Sqlite)
-      .to_string();
-    log::info!("sql: {}", statement);
-
-    let statement = models::User::find()
-      .find_with_related(models::AuthId)
-      .filter(query.into_condition())
-      .build(DbBackend::Sqlite)
-      .to_string();
-    log::info!("sql: {}", statement);
-
-    let query = UserQuery::default();
-
-    let statement = models::User::find()
-      .filter(query.into_condition())
-      .build(DbBackend::Sqlite)
-      .to_string();
-
-    log::info!("sql: {}", statement);
   }
 }

@@ -2,17 +2,21 @@ use std::collections::HashSet;
 
 use sea_orm::{
   sea_query::{Condition, IntoCondition, JoinType},
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter, QuerySelect,
-  RelationTrait, Select, Set,
+  ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter,
+  QuerySelect, RelationTrait, Select, Set,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::models::{group, group_user, user, Group, GroupUser, User};
+use crate::{
+  errors::Error,
+  models::{group, group_user, user, AccessItemType, Group, GroupUser, User},
+};
 
 use super::{
   read_service::{AbstractReadService, ContainingUserQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
-  AuthUser, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_MEMBERS, FIELD_NAME,
+  AuthUser, Permission, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_ID, FIELD_MEMBERS, FIELD_NAME, MAX_ACCESS_ITEM,
+  MAX_DESCRIPTION, MAX_NAME, MIN_NAME,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -230,6 +234,77 @@ impl AbstractCommand for GroupCommand {
 }
 
 impl GroupService {
+  fn validate(
+    model: &group::ActiveModel,
+    admins: &HashSet<user::Model>,
+    members: &HashSet<user::Model>,
+  ) -> anyhow::Result<()> {
+    let mut errors = Vec::<Error>::new();
+    match &model.name {
+      ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        min: MIN_NAME,
+        max: MAX_NAME,
+      }),
+      _ => (),
+    }
+
+    match &model.description {
+      ActiveValue::Set(description) if description.len() > MAX_DESCRIPTION => errors.push(Error::MaxLength {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_DESCRIPTION.to_owned(),
+        value: MAX_DESCRIPTION,
+      }),
+      _ => (),
+    }
+
+    if admins.len() > MAX_ACCESS_ITEM {
+      errors.push(Error::MaxLength {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_ADMINS.to_owned(),
+        value: MAX_ACCESS_ITEM,
+      });
+    }
+
+    if members.len() > MAX_ACCESS_ITEM {
+      errors.push(Error::MaxLength {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_MEMBERS.to_owned(),
+        value: MAX_ACCESS_ITEM,
+      });
+    }
+
+    for item in admins.intersection(members) {
+      errors.push(Error::DuplicatedAccessItem {
+        entity: group::TYPE.to_owned(),
+        id: model.id.clone().unwrap(),
+        access_item_type: AccessItemType::User,
+        access_item_id: item.id,
+      });
+    }
+
+    match errors.first() {
+      Some(error) if errors.len() == 1 => Err(error.clone())?,
+      Some(_) => Err(Error::Errors(errors))?,
+      None => Ok(()),
+    }
+  }
+
+  async fn load_access_items(
+    conn: &impl ConnectionTrait,
+    users: impl IntoIterator<Item = uuid::Uuid>,
+  ) -> anyhow::Result<HashSet<user::Model>> {
+    Ok(
+      User::find()
+        .filter(user::Column::Id.is_in(users))
+        .all(conn)
+        .await?
+        .into_iter()
+        .collect(),
+    )
+  }
+
   pub async fn contain_user(
     conn: &impl ConnectionTrait,
     model: &group::Model,
@@ -262,36 +337,47 @@ impl GroupService {
       .await?
       > 0
     {
-      return Err(anyhow::Error::msg("Group name exists"));
+      return Err(Error::AlreadyExists {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        value: command.name,
+      })?;
     }
 
-    let group = group::ActiveModel {
-      id: Set(uuid::Uuid::new_v4()),
+    let id = uuid::Uuid::new_v4();
+    let model = group::ActiveModel {
+      id: Set(id),
       name: Set(command.name),
       description: Set(command.description),
     };
-    let group = group.insert(conn).await?;
 
-    let users: HashSet<_> = vec![command.admins.clone(), command.members.clone(), vec![operator.id]]
-      .into_iter()
-      .flatten()
-      .collect();
-    let users: Vec<_> = User::find()
-      .filter(user::Column::Id.is_in(users))
-      .all(conn)
-      .await?
+    let admins: HashSet<_> = vec![command.admins, vec![operator.id]].into_iter().flatten().collect();
+    let admins = Self::load_access_items(conn, admins).await?;
+    let members = Self::load_access_items(conn, command.members).await?;
+    Self::validate(&model, &admins, &members)?;
+
+    let admins: Vec<_> = admins
       .into_iter()
       .map(|user| group_user::ActiveModel {
-        group_id: Set(group.id),
+        group_id: Set(id),
         user_id: Set(user.id),
-        is_admin: Set(
-          operator.id == user.id || (command.admins.contains(&user.id) && !command.members.contains(&user.id)),
-        ),
+        is_admin: Set(true),
       })
       .collect();
+    let members: Vec<_> = members
+      .into_iter()
+      .map(|user| group_user::ActiveModel {
+        group_id: Set(id),
+        user_id: Set(user.id),
+        is_admin: Set(false),
+      })
+      .collect();
+
+    let model = model.insert(conn).await?;
+    let users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
     let _ = GroupUser::insert_many(users).exec(conn).await?;
 
-    Ok(group)
+    Ok(model)
   }
 
   pub async fn update(
@@ -302,7 +388,11 @@ impl GroupService {
     let group = Group::find_by_id(command.target_id)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: group::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.target_id.to_string(),
+      })?;
 
     Self::check_writeable(conn, &operator, &group).await?;
 
@@ -322,7 +412,11 @@ impl GroupService {
         .await?
         > 0
       {
-        return Err(anyhow::Error::msg("Group name exists"));
+        return Err(Error::AlreadyExists {
+          entity: group::TYPE.to_owned(),
+          field: FIELD_NAME.to_owned(),
+          value: name,
+        })?;
       }
 
       model.name = Set(name);
@@ -332,56 +426,62 @@ impl GroupService {
       model.description = Set(description);
     }
 
-    let admins = if let Some(admins) = command.admins {
-      User::find()
-        .filter(user::Column::Id.is_in(admins))
+    let admins: HashSet<_> = if let Some(admins) = command.admins {
+      Self::load_access_items(conn, admins).await?
+    } else {
+      group
+        .find_linked(group::GroupAdmin)
         .all(conn)
         .await?
         .into_iter()
-        .map(|user| group_user::ActiveModel {
-          group_id: Set(group.id),
-          user_id: Set(user.id),
-          is_admin: Set(true),
-        })
         .collect()
-    } else {
-      Vec::new()
     };
 
-    let members = if let Some(members) = command.members {
-      User::find()
-        .filter(user::Column::Id.is_in(members))
+    let members: HashSet<_> = if let Some(members) = command.members {
+      Self::load_access_items(conn, members).await?
+    } else {
+      group
+        .find_linked(group::GroupMember)
         .all(conn)
         .await?
         .into_iter()
-        .map(|user| group_user::ActiveModel {
-          group_id: Set(group.id),
-          user_id: Set(user.id),
-          is_admin: Set(false),
-        })
         .collect()
-    } else {
-      Vec::new()
     };
+    Self::validate(&model, &admins, &members)?;
 
-    let group_users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
+    let admins: Vec<_> = admins
+      .into_iter()
+      .map(|user| group_user::ActiveModel {
+        group_id: Set(command.target_id),
+        user_id: Set(user.id),
+        is_admin: Set(true),
+      })
+      .collect();
+    let members: Vec<_> = members
+      .into_iter()
+      .map(|user| group_user::ActiveModel {
+        group_id: Set(command.target_id),
+        user_id: Set(user.id),
+        is_admin: Set(false),
+      })
+      .collect();
 
-    if !group_users.is_empty() {
-      GroupUser::delete_many()
-        .filter(group_user::Column::GroupId.eq(group.id))
-        .exec(conn)
-        .await?;
-      GroupUser::insert_many(group_users).exec(conn).await?;
-    }
+    GroupUser::delete_many()
+      .filter(group_user::Column::GroupId.eq(group.id))
+      .exec(conn)
+      .await?;
+    let users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
+    let _ = GroupUser::insert_many(users).exec(conn).await?;
 
     Ok(model.update(conn).await?)
   }
 
   pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
-    let group = Group::find_by_id(id)
-      .one(conn)
-      .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+    let group = Group::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
+      entity: group::TYPE.to_owned(),
+      field: FIELD_ID.to_owned(),
+      value: id.to_string(),
+    })?;
 
     Self::check_writeable(conn, &operator, &group).await?;
 
@@ -404,7 +504,12 @@ impl AbstractWriteService for GroupService {
     }
 
     if !Self::contain_user(conn, model, user, Some(vec![FIELD_ADMINS])).await? {
-      return Err(anyhow::Error::msg("No permission"));
+      return Err(Error::InvalidPermission {
+        user: user.id.to_string(),
+        entity: group::TYPE.to_owned(),
+        id: Some(model.id),
+        permission: Permission::Write,
+      })?;
     }
 
     Ok(())
@@ -431,7 +536,12 @@ impl AbstractWriteService for GroupService {
         }
       }
     } else {
-      Err(anyhow::Error::msg("Please login"))
+      Err(Error::InvalidPermission {
+        user: operator.get_id(),
+        entity: group::TYPE.to_owned(),
+        id: command.target_id(),
+        permission: Permission::Write,
+      })?
     }
   }
 }

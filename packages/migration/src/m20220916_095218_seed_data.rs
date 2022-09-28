@@ -12,7 +12,7 @@ use fake::{
     address::en::{CountryCode, CountryName},
     boolean::en::Boolean,
     chrono::en::Date,
-    company::en::{Bs, BsNoun, Buzzword, CompanyName, Industry, Profession},
+    company::en::{Bs, BsNoun, Buzzword, CompanyName, Industry},
     lorem::en::Paragraph,
     name::en::Name,
   },
@@ -210,7 +210,7 @@ fn create_records(
   let mut record_tags = Vec::new();
 
   for (journal_id, mut accounts) in accounts {
-    for idx in 0..size_per_journal {
+    for _ in 0..size_per_journal {
       accounts.shuffle(&mut rng);
 
       let typ = if Boolean(20).fake() {
@@ -221,7 +221,6 @@ fn create_records(
       let record = record::ActiveModel {
         id: Set(Faker.fake::<Uuid>()),
         journal_id: Set(journal_id),
-        name: Set(format!("{}-{}-{}", journal_id, Profession().fake::<String>(), idx)),
         description: Set(Paragraph(1..3).fake()),
         typ: Set(typ.clone()),
         date: Set(Date().fake()),
@@ -325,7 +324,7 @@ impl MigrationTrait for Migration {
       } else {
         check_count += 1;
       }
-      match RecordService::get_state(&txn, record).await.unwrap() {
+      match RecordService::state(&txn, record).await.unwrap() {
         record::RecordState::Record(true) => valid_record_count += 1,
         record::RecordState::Check(results) => {
           let mut valid = true;

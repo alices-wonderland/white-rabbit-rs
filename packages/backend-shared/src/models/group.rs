@@ -2,7 +2,10 @@ use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{Expr, IntoCondition};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
+pub const TYPE: &str = "group";
+pub const MULTIPLE: &str = "groups";
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "groups")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]

@@ -4,21 +4,25 @@ use chrono::NaiveDate;
 use futures::{stream, StreamExt};
 use rust_decimal::Decimal;
 use sea_orm::{
-  sea_query::IntoCondition, ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, JoinType,
-  ModelTrait, PaginatorTrait, QueryFilter, QuerySelect, RelationTrait, Select, Set,
+  sea_query::IntoCondition, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
+  JoinType, ModelTrait, QueryFilter, QuerySelect, RelationTrait, Select, Set,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::models::{
-  account,
-  record::{self, Type},
-  record_item, record_tag, user, Account, Journal, Record, RecordItem, RecordTag,
+use crate::{
+  errors::Error,
+  models::{
+    account, journal,
+    record::{self, Type},
+    record_item, record_tag, user, Account, Journal, Record, RecordItem, RecordTag,
+  },
 };
 
 use super::{
   read_service::{AbstractReadService, ComparableQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
-  AuthUser, JournalService, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAG,
+  AuthUser, JournalService, Permission, FIELD_DESCRIPTION, FIELD_ID, FIELD_NAME, FIELD_RECORD_ITEMS, FIELD_TAG,
+  MAX_DESCRIPTION, MAX_RECORD_ITEMS, MIN_RECORD_ITEMS,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -33,9 +37,6 @@ pub struct RecordQuery {
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub journal: Option<uuid::Uuid>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(default)]
-  pub name: Option<TextQuery>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub description: Option<String>,
@@ -66,10 +67,6 @@ impl IntoCondition for RecordQuery {
 
     if let Some(journal) = self.journal {
       cond = cond.add(record::Column::JournalId.eq(journal));
-    }
-
-    if let Some(TextQuery::Value(name)) = self.name {
-      cond = cond.add(record::Column::Name.eq(name));
     }
 
     if let Some(typ) = self.typ {
@@ -119,13 +116,6 @@ impl From<RecordQuery> for Vec<ExternalQuery> {
 
     if let Some(value) = value.full_text {
       result.push(ExternalQuery::FullText(value));
-    }
-
-    if let Some(TextQuery::FullText(value)) = value.name {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_NAME.to_owned()]),
-        value,
-      }));
     }
 
     if let Some(value) = value.description {
@@ -187,7 +177,6 @@ impl AbstractReadService for RecordService {
 
             for field in fields {
               if match field.as_str() {
-                FIELD_NAME => item.name.contains(value),
                 FIELD_DESCRIPTION => item.description.contains(value),
                 FIELD_TAG => item
                   .find_related(RecordTag)
@@ -227,7 +216,6 @@ impl AbstractReadService for RecordService {
 
   fn sortable_field(field: &str) -> Option<record::Column> {
     match field {
-      "name" => Some(record::Column::Name),
       "journal" => Some(record::Column::JournalId),
       "typ" => Some(record::Column::Typ),
       "date" => Some(record::Column::Date),
@@ -243,7 +231,7 @@ pub enum RecordCommand {
   Delete(uuid::Uuid),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RecordItemValue {
   pub account_id: uuid::Uuid,
   pub amount: Option<Decimal>,
@@ -254,29 +242,26 @@ pub struct RecordItemValue {
 pub struct RecordCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub journal_id: uuid::Uuid,
-  pub name: String,
   pub description: String,
   pub typ: Type,
   pub date: NaiveDate,
-  pub tags: Vec<String>,
-  pub items: Vec<RecordItemValue>,
+  pub tags: HashSet<String>,
+  pub items: HashSet<RecordItemValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordCommandUpdate {
   pub target_id: uuid::Uuid,
-  pub name: Option<String>,
   pub description: Option<String>,
   pub typ: Option<Type>,
   pub date: Option<NaiveDate>,
-  pub tags: Option<Vec<String>>,
-  pub items: Option<Vec<RecordItemValue>>,
+  pub tags: Option<HashSet<String>>,
+  pub items: Option<HashSet<RecordItemValue>>,
 }
 
 impl RecordCommandUpdate {
   pub fn is_empty(&self) -> bool {
-    self.name.is_none()
-      && self.description.is_none()
+    self.description.is_none()
       && self.typ.is_none()
       && self.date.is_none()
       && self.tags.is_none()
@@ -309,90 +294,203 @@ impl AbstractCommand for RecordCommand {
 }
 
 impl RecordService {
-  pub async fn get_state(conn: &impl ConnectionTrait, model: &record::Model) -> anyhow::Result<record::RecordState> {
+  fn validate(
+    model: &record::ActiveModel,
+    tags: Option<&HashSet<String>>,
+    unit_items_accounts: Option<(String, &HashSet<RecordItemValue>, HashMap<uuid::Uuid, account::Model>)>,
+  ) -> anyhow::Result<()> {
+    let mut errors = Vec::<Error>::new();
+
+    match &model.description {
+      ActiveValue::Set(description) if description.len() > MAX_DESCRIPTION => errors.push(Error::MaxLength {
+        entity: record::TYPE.to_owned(),
+        field: FIELD_DESCRIPTION.to_owned(),
+        value: MAX_DESCRIPTION,
+      }),
+      _ => (),
+    }
+
+    if let Some(tags) = tags {
+      errors.append(&mut Error::validate_tags(account::TYPE, tags));
+    }
+
+    if let Some((unit, items, accounts)) = unit_items_accounts {
+      if items.len() < MIN_RECORD_ITEMS || items.len() > MAX_RECORD_ITEMS {
+        errors.push(Error::LengthRange {
+          entity: record::TYPE.to_owned(),
+          field: FIELD_RECORD_ITEMS.to_owned(),
+          min: MIN_RECORD_ITEMS,
+          max: MAX_RECORD_ITEMS,
+        })
+      }
+      let mut empty_count = 0;
+      let mut used_accounts = HashSet::<uuid::Uuid>::new();
+      for item in items {
+        if item.amount.is_none() && item.price.is_none() {
+          empty_count += 1;
+        }
+
+        if let Some(account) = accounts.get(&item.account_id) {
+          if account.is_archived {
+            errors.push(Error::ArchivedAccount { id: account.id })
+          }
+
+          if used_accounts.contains(&account.id) {
+            errors.push(Error::DuplicateAccountsInRecord {
+              id: model.id.clone().unwrap(),
+              account: account.id,
+            })
+          } else {
+            used_accounts.insert(account.id);
+          }
+
+          if account.unit.as_str() != unit && item.price.is_none() {
+            errors.push(Error::RecordItemMustContainPrice {
+              id: model.id.clone().unwrap(),
+              account: account.id,
+            })
+          }
+
+          if item.price.is_some() && item.amount.is_none() {
+            errors.push(Error::RecordItemOnlyPriceExist {
+              id: model.id.clone().unwrap(),
+              account: account.id,
+            })
+          }
+        } else {
+          errors.push(Error::NotFound {
+            entity: account::TYPE.to_owned(),
+            field: FIELD_ID.to_owned(),
+            value: item.account_id.to_string(),
+          })
+        }
+      }
+
+      if empty_count > 1 {
+        errors.push(Error::RecordAtMostOneEmptyItem {
+          id: model.id.clone().unwrap(),
+        });
+      }
+    }
+
+    match errors.first() {
+      Some(error) if errors.len() == 1 => Err(error.clone())?,
+      Some(_) => Err(Error::Errors(errors))?,
+      None => Ok(()),
+    }
+  }
+
+  fn record_state(
+    journal: journal::Model,
+    items: Vec<record_item::Model>,
+    accounts: HashMap<uuid::Uuid, account::Model>,
+  ) -> anyhow::Result<record::RecordState> {
+    let mut sum = Decimal::ZERO;
+    let mut blanks = 0;
+    for item in items {
+      if let Some(account) = accounts.get(&item.account_id) {
+        if let Some(amount) = item.amount {
+          let assign = match account.typ {
+            account::Type::Asset | account::Type::Expense => Decimal::ONE,
+            _ => Decimal::NEGATIVE_ONE,
+          };
+          let price = if journal.unit == account.unit {
+            Decimal::ONE
+          } else if let Some(price) = item.price {
+            price
+          } else {
+            return Err(Error::RecordItemMustContainPrice {
+              id: journal.id,
+              account: account.id,
+            })?;
+          };
+          sum += amount * price * assign;
+        } else {
+          blanks += 1;
+        }
+      } else {
+        return Err(Error::NotFound {
+          entity: account::TYPE.to_owned(),
+          field: FIELD_ID.to_owned(),
+          value: item.account_id.to_string(),
+        })?;
+      }
+    }
+    Ok(record::RecordState::Record(
+      (blanks == 0 && sum == Decimal::ZERO) || blanks == 1,
+    ))
+  }
+
+  async fn check_state(
+    conn: &impl ConnectionTrait,
+    model: &record::Model,
+    items: Vec<record_item::Model>,
+    accounts: HashSet<uuid::Uuid>,
+  ) -> anyhow::Result<record::RecordState> {
+    let record_items: HashMap<uuid::Uuid, Decimal> = RecordItem::find()
+      .left_join(Record)
+      .left_join(Account)
+      .filter(
+        record::Column::Typ
+          .eq(record::Type::Record)
+          .and(record::Column::Date.lte(model.date))
+          .and(account::Column::Id.is_in(accounts)),
+      )
+      .all(conn)
+      .await?
+      .into_iter()
+      .fold(HashMap::new(), |mut acc, item| {
+        let key = item.account_id;
+        let value = acc.get(&key).cloned().unwrap_or_default() + item.amount.unwrap_or_default();
+        acc.insert(key, value);
+        acc
+      });
+
+    Ok(record::RecordState::Check(
+      items
+        .into_iter()
+        .map(|item| {
+          let account_id = item.account_id;
+          let expected = item.amount.unwrap_or_default();
+          let actual = record_items.get(&account_id).cloned().unwrap_or_default();
+          (
+            account_id,
+            if expected == actual {
+              record::CheckRecordState::Valid
+            } else {
+              record::CheckRecordState::Invalid { expected, actual }
+            },
+          )
+        })
+        .collect(),
+    ))
+  }
+
+  pub async fn state(conn: &impl ConnectionTrait, model: &record::Model) -> anyhow::Result<record::RecordState> {
     let journal = model
       .find_related(Journal)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Journal not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: model.journal_id.to_string(),
+      })?;
     let items = model.find_related(RecordItem).all(conn).await?;
     let accounts: HashSet<_> = items.iter().map(|item| item.account_id).collect();
-    let accounts: HashMap<uuid::Uuid, account::Model> = Account::find()
-      .filter(account::Column::Id.is_in(accounts))
-      .all(conn)
-      .await?
-      .into_iter()
-      .map(|account| (account.id, account))
-      .collect();
 
     if model.typ == record::Type::Record {
-      let mut sum = Decimal::ZERO;
-      let mut blanks = 0;
-      for item in items {
-        if let Some(account) = accounts.get(&item.account_id) {
-          if let Some(amount) = item.amount {
-            let assign = match account.typ {
-              account::Type::Asset | account::Type::Expense => Decimal::ONE,
-              _ => Decimal::NEGATIVE_ONE,
-            };
-            let price = if journal.unit == account.unit {
-              Decimal::ONE
-            } else if let Some(price) = item.price {
-              price
-            } else {
-              return Err(anyhow::Error::msg(
-                "Account in one of the record items has a different unit than journal's, so a price must be provided",
-              ));
-            };
-            sum += amount * price * assign;
-          } else {
-            blanks += 1;
-          }
-        } else {
-          return Err(anyhow::Error::msg("Account not found"));
-        }
-      }
-      Ok(record::RecordState::Record(
-        (blanks == 0 && sum == Decimal::ZERO) || blanks == 1,
-      ))
-    } else {
-      let record_items: HashMap<uuid::Uuid, Decimal> = RecordItem::find()
-        .left_join(Record)
-        .left_join(Account)
-        .filter(
-          record::Column::Typ
-            .eq(record::Type::Record)
-            .and(record::Column::Date.lte(model.date))
-            .and(account::Column::Id.is_in(accounts.keys().copied().collect::<Vec<_>>())),
-        )
+      let accounts: HashMap<uuid::Uuid, account::Model> = Account::find()
+        .filter(account::Column::Id.is_in(accounts))
         .all(conn)
         .await?
         .into_iter()
-        .fold(HashMap::new(), |mut acc, item| {
-          let key = item.account_id;
-          let value = acc.get(&key).cloned().unwrap_or_default() + item.amount.unwrap_or_default();
-          acc.insert(key, value);
-          acc
-        });
+        .map(|account| (account.id, account))
+        .collect();
 
-      Ok(record::RecordState::Check(
-        items
-          .into_iter()
-          .map(|item| {
-            let account_id = item.account_id;
-            let expected = item.amount.unwrap_or_default();
-            let actual = record_items.get(&account_id).cloned().unwrap_or_default();
-            (
-              account_id,
-              if expected == actual {
-                record::CheckRecordState::Valid
-              } else {
-                record::CheckRecordState::Invalid { expected, actual }
-              },
-            )
-          })
-          .collect(),
-      ))
+      Self::record_state(journal, items, accounts)
+    } else {
+      Self::check_state(conn, model, items, accounts).await
     }
   }
 
@@ -401,30 +499,40 @@ impl RecordService {
     operator: user::Model,
     command: RecordCommandCreate,
   ) -> anyhow::Result<record::Model> {
-    if Record::find()
-      .filter(record::Column::Name.eq(command.name.clone()))
-      .count(conn)
-      .await?
-      > 0
-    {
-      return Err(anyhow::Error::msg("Record name exists"));
-    }
-
     let journal =
       if let Some(journal) = JournalService::find_by_id(conn, AuthUser::User(operator), command.journal_id).await? {
         journal
       } else {
-        return Err(anyhow::Error::msg("Journal not exists"));
+        return Err(Error::NotFound {
+          entity: journal::TYPE.to_owned(),
+          field: FIELD_ID.to_owned(),
+          value: command.journal_id.to_string(),
+        })?;
       };
 
     let record = record::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
       journal_id: Set(journal.id),
-      name: Set(command.name.clone()),
       description: Set(command.description.clone()),
       typ: Set(command.typ.clone()),
       date: Set(command.date),
     };
+
+    let accounts: HashSet<_> = command.items.iter().map(|item| item.account_id).collect();
+    let accounts: HashMap<_, _> = Account::find()
+      .filter(account::Column::Id.is_in(accounts))
+      .all(conn)
+      .await?
+      .into_iter()
+      .map(|account| (account.id, account))
+      .collect();
+
+    Self::validate(
+      &record,
+      Some(&command.tags),
+      Some((journal.unit, &command.items, accounts)),
+    )?;
+
     let record = record.insert(conn).await?;
 
     let tags: Vec<_> = command
@@ -460,7 +568,11 @@ impl RecordService {
     let record = Record::find_by_id(command.target_id)
       .one(conn)
       .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+      .ok_or_else(|| Error::NotFound {
+        entity: record::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.target_id.to_string(),
+      })?;
 
     Self::check_writeable(conn, &operator, &record).await?;
 
@@ -472,19 +584,6 @@ impl RecordService {
       id: Set(command.target_id),
       ..Default::default()
     };
-
-    if let Some(name) = command.name {
-      if Record::find()
-        .filter(record::Column::Name.eq(name.clone()))
-        .count(conn)
-        .await?
-        > 0
-      {
-        return Err(anyhow::Error::msg("Account name exists"));
-      }
-
-      model.name = Set(name);
-    }
 
     if let Some(description) = command.description {
       model.description = Set(description);
@@ -498,35 +597,56 @@ impl RecordService {
       model.date = Set(date);
     }
 
-    let tags: Vec<_> = command
-      .tags
-      .unwrap_or_default()
-      .into_iter()
-      .map(|tag| record_tag::ActiveModel {
-        record_id: Set(record.id),
-        tag: Set(tag),
-      })
-      .collect();
-    if !tags.is_empty() {
+    let unit_items_accounts = if let Some(ref items) = command.items {
+      let journal = record
+        .find_related(Journal)
+        .one(conn)
+        .await?
+        .ok_or_else(|| Error::NotFound {
+          entity: journal::TYPE.to_owned(),
+          field: FIELD_ID.to_owned(),
+          value: record.journal_id.to_string(),
+        })?;
+      let accounts: HashSet<_> = items.iter().map(|item| item.account_id).collect();
+      let accounts: HashMap<_, _> = Account::find()
+        .filter(account::Column::Id.is_in(accounts))
+        .all(conn)
+        .await?
+        .into_iter()
+        .map(|account| (account.id, account))
+        .collect();
+      Some((journal.unit, items, accounts))
+    } else {
+      None
+    };
+
+    Self::validate(&model, command.tags.as_ref(), unit_items_accounts)?;
+
+    if let Some(tags) = command.tags {
+      let tags: Vec<_> = tags
+        .into_iter()
+        .map(|tag| record_tag::ActiveModel {
+          record_id: Set(command.target_id),
+          tag: Set(tag),
+        })
+        .collect();
       let _ = RecordTag::delete_many()
-        .filter(record_tag::Column::RecordId.eq(record.id))
+        .filter(record_tag::Column::RecordId.eq(command.target_id))
         .exec(conn)
         .await?;
       let _ = RecordTag::insert_many(tags).exec(conn).await?;
     }
 
-    let items: Vec<_> = command
-      .items
-      .unwrap_or_default()
-      .into_iter()
-      .map(|item| record_item::ActiveModel {
-        record_id: Set(record.id),
-        account_id: Set(item.account_id),
-        amount: Set(item.amount),
-        price: Set(item.price),
-      })
-      .collect();
-    if !items.is_empty() {
+    if let Some(items) = command.items {
+      let items: Vec<_> = items
+        .into_iter()
+        .map(|item| record_item::ActiveModel {
+          record_id: Set(record.id),
+          account_id: Set(item.account_id),
+          amount: Set(item.amount),
+          price: Set(item.price),
+        })
+        .collect();
       let _ = RecordItem::delete_many()
         .filter(record_item::Column::RecordId.eq(record.id))
         .exec(conn)
@@ -538,10 +658,11 @@ impl RecordService {
   }
 
   pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
-    let account = Record::find_by_id(id)
-      .one(conn)
-      .await?
-      .ok_or_else(|| anyhow::Error::msg("Not found"))?;
+    let account = Record::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
+      entity: record::TYPE.to_owned(),
+      field: FIELD_ID.to_owned(),
+      value: id.to_string(),
+    })?;
 
     Self::check_writeable(conn, &operator, &account).await?;
 
@@ -564,7 +685,11 @@ impl AbstractWriteService for RecordService {
     } else if let Some(journal) = Journal::find_by_id(model.journal_id).one(conn).await? {
       JournalService::check_writeable(conn, user, &journal).await
     } else {
-      Err(anyhow::Error::msg("Journal not found"))
+      Err(Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: model.journal_id.to_string(),
+      })?
     }
   }
 
@@ -589,7 +714,12 @@ impl AbstractWriteService for RecordService {
         }
       }
     } else {
-      Err(anyhow::Error::msg("Please login"))
+      Err(Error::InvalidPermission {
+        user: operator.get_id(),
+        entity: record::TYPE.to_owned(),
+        id: command.target_id(),
+        permission: Permission::Write,
+      })?
     }
   }
 }

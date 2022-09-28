@@ -2,6 +2,11 @@ use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{Expr, IntoCondition};
 use serde::{Deserialize, Serialize};
 
+use super::AccessItemType;
+
+pub const TYPE: &str = "journal";
+pub const MULTIPLE: &str = "journals";
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "journals")]
 pub struct Model {
@@ -27,13 +32,7 @@ impl Related<super::Account> for Entity {
   }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AccessItemType {
-  User,
-  Group,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AccessItem {
   pub id: uuid::Uuid,
   #[serde(rename = "type")]
