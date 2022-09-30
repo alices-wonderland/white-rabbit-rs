@@ -4,9 +4,9 @@ use sea_orm::ConnectionTrait;
 
 use crate::models::user;
 
-use super::{read_service::AbstractReadService, AuthUser};
+use super::{AbstractReadService, AuthUser};
 
-pub trait AbstractCommand: Send + Sync {
+pub trait AbstractCommand: Send + Sync + Clone {
   fn target_id(&self) -> Option<uuid::Uuid>;
   fn with_target_id(self, id: uuid::Uuid) -> Self;
 }
@@ -25,13 +25,13 @@ pub trait AbstractWriteService: AbstractReadService {
 
   async fn handle(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>>;
 
   async fn handle_all(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     commands: Vec<Self::Command>,
   ) -> anyhow::Result<Vec<Option<Self::Model>>> {
     let mut id_map = HashMap::<uuid::Uuid, uuid::Uuid>::new();
@@ -46,7 +46,7 @@ pub trait AbstractWriteService: AbstractReadService {
         }
       }
 
-      let result = Self::handle(conn, operator.clone(), command).await?;
+      let result = Self::handle(conn, operator, command).await?;
       if let Some(ref result) = result {
         if let Some(target_id) = target_id {
           id_map.insert(target_id, Self::primary_value(result));

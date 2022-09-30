@@ -300,12 +300,14 @@ impl AbstractReadService for JournalService {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JournalCommand {
   Create(JournalCommandCreate),
   Update(JournalCommandUpdate),
   Delete(uuid::Uuid),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
@@ -316,6 +318,7 @@ pub struct JournalCommandCreate {
   pub members: HashSet<AccessItem>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalCommandUpdate {
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
@@ -537,7 +540,7 @@ impl JournalService {
 
   pub async fn create(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: JournalCommandCreate,
   ) -> anyhow::Result<journal::Model> {
     if Journal::find()
@@ -562,8 +565,8 @@ impl JournalService {
       is_archived: Set(false),
     };
 
-    let (admin_users, admin_groups) = Self::load_access_items(conn, &operator, command.admins).await?;
-    let (member_users, member_groups) = Self::load_access_items(conn, &operator, command.members).await?;
+    let (admin_users, admin_groups) = Self::load_access_items(conn, operator, command.admins).await?;
+    let (member_users, member_groups) = Self::load_access_items(conn, operator, command.members).await?;
 
     Self::validate(
       &journal,
@@ -595,7 +598,7 @@ impl JournalService {
 
   pub async fn update(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: JournalCommandUpdate,
   ) -> anyhow::Result<journal::Model> {
     let journal = Journal::find_by_id(command.target_id)
@@ -607,7 +610,7 @@ impl JournalService {
         value: command.target_id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &journal).await?;
+    Self::check_writeable(conn, operator, &journal).await?;
 
     if command.is_empty() {
       return Ok(journal);
@@ -648,7 +651,7 @@ impl JournalService {
     }
 
     let (admin_users, admin_groups) = if let Some(admins) = command.admins {
-      Self::load_access_items(conn, &operator, admins).await?
+      Self::load_access_items(conn, operator, admins).await?
     } else {
       (
         journal
@@ -667,7 +670,7 @@ impl JournalService {
     };
 
     let (member_users, member_groups) = if let Some(members) = command.members {
-      Self::load_access_items(conn, &operator, members).await?
+      Self::load_access_items(conn, operator, members).await?
     } else {
       (
         journal
@@ -722,7 +725,7 @@ impl JournalService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
     let journal = Journal::find_by_id(id)
       .one(conn)
       .await?
@@ -732,7 +735,7 @@ impl JournalService {
         value: id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &journal).await?;
+    Self::check_writeable(conn, operator, &journal).await?;
 
     let model = group::ActiveModel {
       id: Set(id),
@@ -766,7 +769,7 @@ impl AbstractWriteService for JournalService {
 
   async fn handle(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>> {
     if let AuthUser::User(operator) = operator {

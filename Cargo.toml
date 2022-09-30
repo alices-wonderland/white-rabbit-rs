@@ -2,6 +2,7 @@
 members = [
     "packages/app-desktop/src-tauri",
     "packages/backend-shared",
+    "packages/backend-test",
     "packages/endpoint-graphql",
     "packages/migration",
 ]

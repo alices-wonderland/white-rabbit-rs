@@ -225,12 +225,14 @@ impl AbstractReadService for AccountService {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccountCommand {
   Create(AccountCommandCreate),
   Update(AccountCommandUpdate),
   Delete(uuid::Uuid),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccountCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub journal_id: uuid::Uuid,
@@ -242,6 +244,7 @@ pub struct AccountCommandCreate {
   pub tags: HashSet<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccountCommandUpdate {
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
@@ -331,7 +334,7 @@ impl AccountService {
 
   pub async fn create(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &AuthUser,
     command: AccountCommandCreate,
   ) -> anyhow::Result<account::Model> {
     if Account::find()
@@ -347,16 +350,15 @@ impl AccountService {
       })?;
     }
 
-    let journal =
-      if let Some(journal) = JournalService::find_by_id(conn, AuthUser::User(operator), command.journal_id).await? {
-        journal
-      } else {
-        return Err(Error::NotFound {
-          entity: journal::TYPE.to_owned(),
-          field: FIELD_ID.to_owned(),
-          value: command.journal_id.to_string(),
-        })?;
-      };
+    let journal = if let Some(journal) = JournalService::find_by_id(conn, operator, command.journal_id).await? {
+      journal
+    } else {
+      return Err(Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.journal_id.to_string(),
+      })?;
+    };
 
     let account = account::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
@@ -386,7 +388,7 @@ impl AccountService {
 
   pub async fn update(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: AccountCommandUpdate,
   ) -> anyhow::Result<account::Model> {
     let account = Account::find_by_id(command.target_id)
@@ -398,7 +400,7 @@ impl AccountService {
         value: command.target_id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &account).await?;
+    Self::check_writeable(conn, operator, &account).await?;
 
     if command.is_empty() {
       return Ok(account);
@@ -466,7 +468,7 @@ impl AccountService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
     let account = Account::find_by_id(id)
       .one(conn)
       .await?
@@ -476,7 +478,7 @@ impl AccountService {
         value: id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &account).await?;
+    Self::check_writeable(conn, operator, &account).await?;
 
     let model = account::ActiveModel {
       id: Set(id),
@@ -507,21 +509,21 @@ impl AbstractWriteService for AccountService {
 
   async fn handle(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>> {
-    if let AuthUser::User(operator) = operator {
+    if let AuthUser::User(user) = operator {
       match command {
         AccountCommand::Create(command) => {
           let result = Self::create(conn, operator, command).await?;
           Ok(Some(result))
         }
         AccountCommand::Update(command) => {
-          let result = Self::update(conn, operator, command).await?;
+          let result = Self::update(conn, user, command).await?;
           Ok(Some(result))
         }
         AccountCommand::Delete(id) => {
-          Self::delete(conn, operator, id).await?;
+          Self::delete(conn, user, id).await?;
           Ok(None)
         }
       }

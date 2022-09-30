@@ -23,7 +23,7 @@ where
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindPageInput<Q>
 where
-  Q: Sized + IntoCondition,
+  Q: Sized + IntoCondition + Clone,
 {
   pub query: Option<Q>,
   pub pagination: Option<Pagination>,
@@ -252,11 +252,11 @@ pub trait AbstractReadService {
 
   async fn find_by_id(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     id: uuid::Uuid,
   ) -> anyhow::Result<Option<Self::Model>> {
     if let Some(model) = Self::Entity::find_by_id(id).one(conn).await? {
-      if Self::is_readable(conn, &operator, &model).await {
+      if Self::is_readable(conn, operator, &model).await {
         return Ok(Some(model));
       }
     }
@@ -265,7 +265,7 @@ pub trait AbstractReadService {
 
   async fn find_all(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     input: FindAllInput<Self::Query>,
   ) -> anyhow::Result<Vec<Self::Model>> {
     let condition = input
@@ -279,7 +279,7 @@ pub trait AbstractReadService {
     Ok(
       Self::do_find_all(
         conn,
-        &operator,
+        operator,
         condition,
         &external_queries,
         input.sort,
@@ -291,7 +291,7 @@ pub trait AbstractReadService {
 
   async fn find_page(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     input: FindPageInput<Self::Query>,
   ) -> anyhow::Result<Page<Self::Model>> {
     let mut condition = input
@@ -365,7 +365,7 @@ pub trait AbstractReadService {
       }
     }
 
-    let mut result = Self::do_find_all(conn, &operator, condition, &external_queries, Some(sort), size + 1).await?;
+    let mut result = Self::do_find_all(conn, operator, condition, &external_queries, Some(sort), size + 1).await?;
     let has_next = result.len() > size;
     let has_previous = (is_reversed && before_model.is_some()) || (!is_reversed && after_model.is_some());
 
@@ -391,251 +391,5 @@ pub trait AbstractReadService {
       },
       items: result,
     })
-  }
-}
-
-#[cfg(test)]
-mod tests {
-
-  use crate::models::{user, User};
-  use crate::services::read_service::{AbstractReadService, FindPageInput, Order, Pagination, Sort};
-  use crate::services::user::UserService;
-  use crate::services::AuthUser;
-  use crate::{run, services::read_service::FullTextQuery};
-
-  use super::{IdQuery, RangeQuery, TextQuery};
-  use chrono::{TimeZone, Utc};
-  use migration::{MigratorTrait, TestMigrator};
-  use sea_orm::{EntityTrait, Set};
-  use serde_json::json;
-
-  #[tokio::test]
-  async fn test_full_text_query() -> anyhow::Result<()> {
-    dotenv::from_filename(".test.env")?;
-    let _ = env_logger::try_init();
-
-    let db = run().await?;
-    TestMigrator::up(&db, Some(1)).await?;
-
-    let user_ids = vec![
-      uuid::Uuid::new_v4(),
-      uuid::Uuid::new_v4(),
-      uuid::Uuid::new_v4(),
-      uuid::Uuid::new_v4(),
-      uuid::Uuid::new_v4(),
-    ];
-
-    let users = (0..5)
-      .map(|idx| user::ActiveModel {
-        id: Set(user_ids[idx]),
-        name: Set(format!("User {}", idx)),
-        role: Set(match idx % 3 {
-          0 => user::Role::Admin,
-          1 => user::Role::User,
-          _ => user::Role::Owner,
-        }),
-      })
-      .collect::<Vec<_>>();
-
-    let _ = User::insert_many(users).exec(&db).await?;
-    let users = User::find().all(&db).await?;
-    log::info!("Users: {:#?}", users);
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Asc,
-        },
-        pagination: Some(Pagination {
-          size: Some(3),
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 1: {:#?}", page);
-    assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, user_ids[0]);
-    assert_eq!(page.items[2].item.id, user_ids[2]);
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Asc,
-        },
-        pagination: Some(Pagination {
-          size: Some(3),
-          after: page.info.end_cursor,
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 2: {:#?}", page);
-    assert_eq!(page.items.len(), 2);
-    assert_eq!(page.items[0].item.id, user_ids[3]);
-    assert_eq!(page.items[1].item.id, user_ids[4]);
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Asc,
-        },
-        pagination: Some(Pagination {
-          size: Some(3),
-          before: page.info.start_cursor,
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 3: {:#?}", page);
-    assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, user_ids[0]);
-    assert_eq!(page.items[2].item.id, user_ids[2]);
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Desc,
-        },
-        pagination: Some(Pagination {
-          size: Some(3),
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 4: {:#?}", page);
-    assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, user_ids[4]);
-    assert_eq!(page.items[2].item.id, user_ids[2]);
-    assert!(page.info.end_cursor.is_some());
-    assert!(page.info.start_cursor.is_some());
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Desc,
-        },
-        pagination: Some(Pagination {
-          size: Some(3),
-          after: page.info.end_cursor,
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 5: {:#?}", page);
-    assert_eq!(page.items.len(), 2);
-    assert_eq!(page.items[0].item.id, user_ids[1]);
-    assert_eq!(page.items[1].item.id, user_ids[0]);
-
-    let page = UserService::find_page(
-      &db,
-      AuthUser::Id(("Provider".to_owned(), "Value".to_owned())),
-      FindPageInput {
-        sort: Sort {
-          field: "name".to_owned(),
-          order: Order::Desc,
-        },
-        pagination: Some(Pagination {
-          size: Some(4),
-          before: page.info.start_cursor,
-          ..Default::default()
-        }),
-        query: None,
-      },
-    )
-    .await?;
-    log::info!("page 6: {:#?}", page);
-    assert_eq!(page.items.len(), 3);
-    assert_eq!(page.items[0].item.id, user_ids[4]);
-    assert_eq!(page.items[2].item.id, user_ids[2]);
-    assert!(page.info.end_cursor.is_some());
-    assert!(page.info.start_cursor.is_some());
-
-    TestMigrator::down(&db, None).await?;
-    Ok(())
-  }
-
-  #[test]
-  fn test_serde() -> anyhow::Result<()> {
-    dotenv::from_filename(".test.env")?;
-    let _ = env_logger::try_init();
-
-    let id = uuid::Uuid::new_v4();
-    let query = IdQuery::Single(id);
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!(id));
-    assert_eq!(query, serde_json::from_value::<IdQuery>(json)?);
-
-    let id = uuid::Uuid::new_v4();
-    let query = IdQuery::Multiple(vec![id]);
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!([id]));
-    assert_eq!(query, serde_json::from_value::<IdQuery>(json)?);
-
-    let query = TextQuery::Value("String".to_owned());
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!("String"));
-    assert_eq!(query, serde_json::from_value::<TextQuery>(json)?);
-
-    let query = FullTextQuery {
-      value: "FullText".to_owned(),
-      fields: Some(vec!["field1".to_owned(), "field2".to_owned()]),
-    };
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!({ "value": "FullText", "fields": ["field1", "field2"] }));
-    assert_eq!(query, serde_json::from_value::<FullTextQuery>(json)?);
-
-    let query = RangeQuery {
-      gt: Some(Utc.ymd(2022, 1, 1).and_hms(0, 0, 0)),
-      lt: Some(Utc.ymd(2023, 1, 1).and_hms(0, 0, 0)),
-    };
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(
-      json,
-      json!({ "__gt": "2022-01-01T00:00:00Z", "__lt": "2023-01-01T00:00:00Z" })
-    );
-    assert_eq!(query, serde_json::from_value::<RangeQuery<_>>(json)?);
-
-    let query = RangeQuery {
-      gt: Some(10),
-      lt: Some(42),
-    };
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!({ "__gt": 10, "__lt": 42 }));
-    assert_eq!(query, serde_json::from_value::<RangeQuery<_>>(json)?);
-
-    let query = RangeQuery {
-      gt: Some(10.1),
-      lt: None,
-    };
-    let json = serde_json::to_value(query.clone())?;
-    assert_eq!(json, json!({ "__gt": 10.1 }));
-    assert_eq!(query, serde_json::from_value::<RangeQuery<_>>(json)?);
-
-    Ok(())
   }
 }

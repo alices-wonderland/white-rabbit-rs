@@ -1,14 +1,23 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-pub mod account;
-pub mod group;
-pub mod journal;
-pub mod read_service;
-pub mod record;
-pub mod user;
-pub mod write_service;
+mod account;
+mod group;
+mod journal;
+mod read_service;
+mod record;
+mod user;
+mod write_service;
 
+pub use account::*;
+pub use group::*;
+pub use journal::*;
+pub use read_service::*;
+pub use record::*;
+pub use user::*;
+pub use write_service::*;
+
+pub const FIELD_AUTH_IDS: &str = "auth_ids";
 pub const FIELD_ADMINS: &str = "admins";
 pub const FIELD_MEMBERS: &str = "members";
 pub const FIELD_NAME: &str = "name";
@@ -19,6 +28,8 @@ pub const FIELD_TAG_ITEM: &str = "tag.item";
 pub const FIELD_UNIT: &str = "unit";
 pub const FIELD_RECORD_ITEMS: &str = "items";
 
+pub const MIN_AUTH_IDS: usize = 1;
+pub const MAX_AUTH_IDS: usize = 3;
 pub const MIN_NAME: usize = 4;
 pub const MAX_NAME: usize = 128;
 pub const MAX_DESCRIPTION: usize = 1024;
@@ -58,9 +69,3 @@ impl AuthUser {
     }
   }
 }
-
-pub use account::AccountService;
-pub use group::GroupService;
-pub use journal::JournalService;
-pub use record::RecordService;
-pub use user::UserService;

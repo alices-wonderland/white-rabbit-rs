@@ -181,12 +181,14 @@ impl AbstractReadService for GroupService {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GroupCommand {
   Create(GroupCommandCreate),
   Update(GroupCommandUpdate),
   Delete(uuid::Uuid),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GroupCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
@@ -195,6 +197,7 @@ pub struct GroupCommandCreate {
   pub members: Vec<uuid::Uuid>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GroupCommandUpdate {
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
@@ -328,7 +331,7 @@ impl GroupService {
 
   pub async fn create(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: GroupCommandCreate,
   ) -> anyhow::Result<group::Model> {
     if Group::find()
@@ -382,7 +385,7 @@ impl GroupService {
 
   pub async fn update(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: GroupCommandUpdate,
   ) -> anyhow::Result<group::Model> {
     let group = Group::find_by_id(command.target_id)
@@ -394,7 +397,7 @@ impl GroupService {
         value: command.target_id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &group).await?;
+    Self::check_writeable(conn, operator, &group).await?;
 
     if command.is_empty() {
       return Ok(group);
@@ -476,14 +479,14 @@ impl GroupService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
     let group = Group::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
       entity: group::TYPE.to_owned(),
       field: FIELD_ID.to_owned(),
       value: id.to_string(),
     })?;
 
-    Self::check_writeable(conn, &operator, &group).await?;
+    Self::check_writeable(conn, operator, &group).await?;
 
     let model = group::ActiveModel {
       id: Set(id),
@@ -517,7 +520,7 @@ impl AbstractWriteService for GroupService {
 
   async fn handle(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>> {
     if let AuthUser::User(operator) = operator {

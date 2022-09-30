@@ -496,19 +496,18 @@ impl RecordService {
 
   pub async fn create(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &AuthUser,
     command: RecordCommandCreate,
   ) -> anyhow::Result<record::Model> {
-    let journal =
-      if let Some(journal) = JournalService::find_by_id(conn, AuthUser::User(operator), command.journal_id).await? {
-        journal
-      } else {
-        return Err(Error::NotFound {
-          entity: journal::TYPE.to_owned(),
-          field: FIELD_ID.to_owned(),
-          value: command.journal_id.to_string(),
-        })?;
-      };
+    let journal = if let Some(journal) = JournalService::find_by_id(conn, operator, command.journal_id).await? {
+      journal
+    } else {
+      return Err(Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: command.journal_id.to_string(),
+      })?;
+    };
 
     let record = record::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
@@ -562,7 +561,7 @@ impl RecordService {
 
   pub async fn update(
     conn: &impl ConnectionTrait,
-    operator: user::Model,
+    operator: &user::Model,
     command: RecordCommandUpdate,
   ) -> anyhow::Result<record::Model> {
     let record = Record::find_by_id(command.target_id)
@@ -574,7 +573,7 @@ impl RecordService {
         value: command.target_id.to_string(),
       })?;
 
-    Self::check_writeable(conn, &operator, &record).await?;
+    Self::check_writeable(conn, operator, &record).await?;
 
     if command.is_empty() {
       return Ok(record);
@@ -657,14 +656,14 @@ impl RecordService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
     let account = Record::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
       entity: record::TYPE.to_owned(),
       field: FIELD_ID.to_owned(),
       value: id.to_string(),
     })?;
 
-    Self::check_writeable(conn, &operator, &account).await?;
+    Self::check_writeable(conn, operator, &account).await?;
 
     let model = record::ActiveModel {
       id: Set(id),
@@ -695,21 +694,21 @@ impl AbstractWriteService for RecordService {
 
   async fn handle(
     conn: &impl ConnectionTrait,
-    operator: AuthUser,
+    operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>> {
-    if let AuthUser::User(operator) = operator {
+    if let AuthUser::User(user) = operator {
       match command {
         RecordCommand::Create(command) => {
           let result = Self::create(conn, operator, command).await?;
           Ok(Some(result))
         }
         RecordCommand::Update(command) => {
-          let result = Self::update(conn, operator, command).await?;
+          let result = Self::update(conn, user, command).await?;
           Ok(Some(result))
         }
         RecordCommand::Delete(id) => {
-          Self::delete(conn, operator, id).await?;
+          Self::delete(conn, user, id).await?;
           Ok(None)
         }
       }

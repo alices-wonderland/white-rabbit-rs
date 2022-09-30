@@ -5,7 +5,6 @@ use backend_shared::models::{
   record_item, record_tag, user, Account, AccountTag, AuthId, Group, GroupUser, Journal, JournalGroup, JournalTag,
   JournalUser, Record, RecordItem, RecordTag, User,
 };
-use backend_shared::services::RecordService;
 
 use fake::{
   faker::{
@@ -22,7 +21,7 @@ use rand::{seq::SliceRandom, thread_rng, Rng};
 
 use sea_orm_migration::{
   prelude::*,
-  sea_orm::{EntityTrait, Iterable, ModelTrait, Set, TransactionTrait},
+  sea_orm::{EntityTrait, Iterable, Set, TransactionTrait},
 };
 use uuid::Uuid;
 
@@ -282,13 +281,11 @@ impl MigrationTrait for Migration {
     let _ = User::insert_many(users).exec(&txn).await?;
     let _ = AuthId::insert_many(auth_ids).exec(&txn).await?;
     let mut users: Vec<user::Model> = User::find().all(&txn).await?;
-    log::info!("{:#?} users found", users);
 
     let (groups, group_users) = create_groups(13, &mut users);
     let _ = Group::insert_many(groups).exec(&txn).await?;
     let _ = GroupUser::insert_many(group_users).exec(&txn).await?;
     let mut groups: Vec<group::Model> = Group::find().all(&txn).await?;
-    log::info!("{:#?} groups found", groups);
 
     let (journals, journal_tags, journal_users, journal_groups) = create_journals(13, &mut users, &mut groups);
     let _ = Journal::insert_many(journals).exec(&txn).await?;
@@ -296,76 +293,32 @@ impl MigrationTrait for Migration {
     let _ = JournalUser::insert_many(journal_users).exec(&txn).await?;
     let _ = JournalGroup::insert_many(journal_groups).exec(&txn).await?;
     let journals: Vec<journal::Model> = Journal::find().all(&txn).await?;
-    log::info!("{:#?} journals found", journals);
 
     let (accounts, account_tags) = create_accounts(8, &journals);
     let _ = Account::insert_many(accounts).exec(&txn).await?;
     let _ = AccountTag::insert_many(account_tags).exec(&txn).await?;
     let accounts: Vec<account::Model> = Account::find().all(&txn).await?;
-    log::info!("{:#?} accounts found", accounts);
 
     let (records, record_items, record_tags) = create_records(8, &accounts);
     let _ = Record::insert_many(records).exec(&txn).await?;
     let _ = RecordTag::insert_many(record_tags).exec(&txn).await?;
     let _ = RecordItem::insert_many(record_items).exec(&txn).await?;
-    let records: Vec<record::Model> = Record::find().all(&txn).await?;
-    log::info!("{:#?} records found", records);
-    let record_tags = records[0].find_related(RecordTag).all(&txn).await?;
-    log::info!("{:#?} record_tags found", record_tags);
-    let record_items = records[0].find_related(RecordItem).all(&txn).await?;
-    log::info!("{:#?} record_items found", record_items);
-    let mut valid_record_count = 0;
-    let mut valid_check_count = 0;
-    let mut record_count = 0;
-    let mut check_count = 0;
-    for record in &records {
-      if record.typ == record::Type::Record {
-        record_count += 1;
-      } else {
-        check_count += 1;
-      }
-      match RecordService::state(&txn, record).await.unwrap() {
-        record::RecordState::Record(true) => valid_record_count += 1,
-        record::RecordState::Check(results) => {
-          let mut valid = true;
-          for (_account_id, result) in results {
-            valid = valid && result == record::CheckRecordState::Valid;
-          }
-          if valid {
-            valid_check_count += 1;
-          }
-        }
-        _ => {}
-      }
-    }
-    log::info!("There are {record_count} records, {valid_record_count} of them are valid");
-    log::info!("There are {check_count} checks, {valid_check_count} of them are valid");
 
     txn.commit().await?;
     Ok(())
   }
 
-  async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
-    Ok(())
-  }
-}
+  async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    let db = manager.get_connection();
+    let txn = db.begin().await?;
 
-#[cfg(test)]
-mod tests {
-  use std::env;
+    let _ = Record::delete_many().exec(&txn).await?;
+    let _ = Account::delete_many().exec(&txn).await?;
+    let _ = Journal::delete_many().exec(&txn).await?;
+    let _ = Group::delete_many().exec(&txn).await?;
+    let _ = User::delete_many().exec(&txn).await?;
 
-  use sea_orm_migration::{sea_orm::Database, MigratorTrait};
-
-  use crate::TestMigrator;
-
-  #[tokio::test]
-  async fn test_seed_data() -> anyhow::Result<()> {
-    dotenv::from_filename(".test.env")?;
-    let _ = env_logger::try_init();
-
-    let db = Database::connect(env::var("WHITE_RABBIT_DATABASE_URL")?).await?;
-    TestMigrator::up(&db, None).await?;
-
+    txn.commit().await?;
     Ok(())
   }
 }
