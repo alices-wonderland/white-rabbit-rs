@@ -142,6 +142,7 @@ pub struct RecordService {}
 impl AbstractReadService for RecordService {
   type Model = record::Model;
   type Entity = Record;
+  type Presentation = record::Presentation;
   type PrimaryKey = record::PrimaryKey;
   type Query = RecordQuery;
 

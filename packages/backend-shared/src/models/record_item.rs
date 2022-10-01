@@ -1,7 +1,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, DeriveEntityModel)]
+use super::{account, record, Account, Record};
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "record_items")]
 pub struct Model {
   #[sea_orm(primary_key)]
@@ -12,13 +13,13 @@ pub struct Model {
   pub price: Option<Decimal>,
 }
 
-impl Related<super::Record> for Entity {
+impl Related<Record> for Entity {
   fn to() -> RelationDef {
     Relation::Record.def()
   }
 }
 
-impl Related<super::Account> for Entity {
+impl Related<Account> for Entity {
   fn to() -> RelationDef {
     Relation::Account.def()
   }
@@ -27,18 +28,18 @@ impl Related<super::Account> for Entity {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(
-    belongs_to = "super::Record",
+    belongs_to = "Record",
     from = "Column::RecordId",
-    to = "super::record::Column::Id",
+    to = "record::Column::Id",
     on_update = "Cascade",
     on_delete = "Cascade"
   )]
   Record,
 
   #[sea_orm(
-    belongs_to = "super::Account",
+    belongs_to = "Account",
     from = "Column::AccountId",
-    to = "super::account::Column::Id",
+    to = "account::Column::Id",
     on_update = "Cascade",
     on_delete = "Cascade"
   )]
@@ -46,3 +47,28 @@ pub enum Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct Presentation {
+  #[serde(rename = "accountId")]
+  pub account_id: uuid::Uuid,
+  pub amount: Option<Decimal>,
+  pub price: Option<Decimal>,
+}
+
+impl From<Model> for Presentation {
+  fn from(
+    Model {
+      account_id,
+      amount,
+      price,
+      ..
+    }: Model,
+  ) -> Self {
+    Self {
+      account_id,
+      amount,
+      price,
+    }
+  }
+}

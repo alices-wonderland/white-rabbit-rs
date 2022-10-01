@@ -140,6 +140,7 @@ pub struct AccountService {}
 impl AbstractReadService for AccountService {
   type Model = account::Model;
   type Entity = Account;
+  type Presentation = account::Presentation;
   type PrimaryKey = account::PrimaryKey;
   type Query = AccountQuery;
 

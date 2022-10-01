@@ -12,6 +12,7 @@ pub mod record_item;
 pub mod record_tag;
 pub mod user;
 
+use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 
 pub use account::Entity as Account;
@@ -32,4 +33,11 @@ pub use user::Entity as User;
 pub enum AccessItemType {
   User,
   Group,
+}
+
+#[async_trait::async_trait]
+pub trait IntoPresentation: sea_orm::ModelTrait {
+  type Presentation;
+
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation>;
 }

@@ -1,10 +1,14 @@
-use sea_orm::entity::prelude::*;
+use std::collections::HashSet;
+
+use sea_orm::{entity::prelude::*, ConnectionTrait};
 use serde::{Deserialize, Serialize};
+
+use super::{AuthId, IntoPresentation};
 
 pub const TYPE: &str = "user";
 pub const MULTIPLE: &str = "users";
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize, DeriveEntityModel)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
@@ -29,7 +33,7 @@ impl Default for Role {
   }
 }
 
-impl Related<super::AuthId> for Entity {
+impl Related<AuthId> for Entity {
   fn to() -> RelationDef {
     Relation::AuthId.def()
   }
@@ -37,8 +41,45 @@ impl Related<super::AuthId> for Entity {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-  #[sea_orm(has_many = "super::AuthId")]
+  #[sea_orm(has_many = "AuthId")]
   AuthId,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Presentation {
+  pub id: uuid::Uuid,
+  pub name: String,
+  pub role: Role,
+  #[serde(rename = "authIds")]
+  pub auth_ids: HashSet<(String, String)>,
+}
+
+#[async_trait::async_trait]
+impl IntoPresentation for Model {
+  type Presentation = Presentation;
+
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation> {
+    let auth_ids = self
+      .find_related(AuthId)
+      .all(conn)
+      .await?
+      .into_iter()
+      .map(|item| (item.provider, item.value))
+      .collect();
+    let Model { id, name, role } = self;
+    Ok(Presentation {
+      id,
+      name,
+      role,
+      auth_ids,
+    })
+  }
+}
+
+impl From<Presentation> for Model {
+  fn from(Presentation { id, name, role, .. }: Presentation) -> Self {
+    Self { id, name, role }
+  }
+}

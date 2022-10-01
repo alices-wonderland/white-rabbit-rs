@@ -35,10 +35,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
       - run: |
+          cargo install grcov
           cargo install cargo-sort
-          yarn
-          yarn build:app-desktop:vue
+          yarn && yarn build:app-desktop:vue
           yarn lint && yarn test
-        name: Lint and test
+        name: Test and coverage
+      - uses: codecov/codecov-action@v3
+        if: matrix.platform == 'ubuntu-latest'
+        with:
+          files: target/debug/coverage/lcov.info
+          flags: unittests,backend
+        name: Push coverage to Codecov
+      - name: Push coverage to Codacy
+        if: matrix.platform == 'ubuntu-latest'
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: target/debug/coverage/lcov.info
+      - name: SonarCloud Scan
+        if: matrix.platform == 'ubuntu-latest'
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - run: yarn build
         name: Build release

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use sea_orm::ConnectionTrait;
 
-use crate::models::user;
+use crate::models::{user, IntoPresentation};
 
 use super::{AbstractReadService, AuthUser};
 
@@ -33,9 +33,9 @@ pub trait AbstractWriteService: AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     commands: Vec<Self::Command>,
-  ) -> anyhow::Result<Vec<Option<Self::Model>>> {
+  ) -> anyhow::Result<Vec<Option<Self::Presentation>>> {
     let mut id_map = HashMap::<uuid::Uuid, uuid::Uuid>::new();
-    let mut results = Vec::<Option<Self::Model>>::new();
+    let mut results = Vec::new();
 
     for mut command in commands {
       let target_id: Option<uuid::Uuid> = command.target_id();
@@ -47,12 +47,15 @@ pub trait AbstractWriteService: AbstractReadService {
       }
 
       let result = Self::handle(conn, operator, command).await?;
-      if let Some(ref result) = result {
+      if let Some(result) = result {
         if let Some(target_id) = target_id {
-          id_map.insert(target_id, Self::primary_value(result));
+          id_map.insert(target_id, Self::primary_value(&result));
         }
+        let result = result.into_presentation(conn).await?;
+        results.push(Some(result));
+      } else {
+        results.push(None);
       }
-      results.push(result);
     }
 
     Ok(results)

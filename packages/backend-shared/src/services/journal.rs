@@ -220,6 +220,7 @@ pub struct JournalService {}
 impl AbstractReadService for JournalService {
   type Model = journal::Model;
   type Entity = Journal;
+  type Presentation = journal::Presentation;
   type PrimaryKey = journal::PrimaryKey;
   type Query = JournalQuery;
 

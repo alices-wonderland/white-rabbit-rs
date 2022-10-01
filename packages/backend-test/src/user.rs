@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use lazy_static::lazy_static;
@@ -11,7 +12,7 @@ use backend_shared::services::{
 use itertools::Itertools;
 
 lazy_static! {
-  pub static ref TASKS: Vec<Task<user::Model, UserQuery, UserCommand>> = vec![
+  pub static ref TASKS: Vec<Task<user::Model, UserQuery, UserCommand, user::Presentation>> = vec![
     Task::FindById(Input {
       name: "Find User By Id".to_owned(),
       auth_user: AuthUserInput::Id(("Provider".to_owned(), "Value".to_owned())),
@@ -59,7 +60,7 @@ lazy_static! {
           target_id: None,
           name: "new user name".to_owned(),
           role: user::Role::User,
-          auth_ids: Vec::default(),
+          auth_ids: HashSet::default(),
         }))
       }))),
       checker: Arc::new(Box::new(|(conn, auth_user, input, output)| Box::pin(async move {
@@ -93,10 +94,10 @@ lazy_static! {
             target_id: Some(lid),
             name: "new user name".to_owned(),
             role: user::Role::User,
-            auth_ids: vec![
+            auth_ids: HashSet::from_iter(vec![
               ("Provider 1".to_owned(), "Value 1".to_owned()),
               ("Provider 2".to_owned(), "Value 2".to_owned()),
-            ],
+            ]),
           }),
           UserCommand::Update(UserCommandUpdate {
             target_id: lid,
@@ -113,14 +114,19 @@ lazy_static! {
             &[UserCommand::Create(ref create), UserCommand::Update(ref update), UserCommand::Delete(_)],
             &[Some(ref create_result), Some(ref update_result), None],
           ) => {
-            // After the transaction, all auth_ids are deleted
-            assert!(create_result.find_related(AuthId).all(&*conn).await?.is_empty());
-
             assert_eq!(create.name, create_result.name);
             assert_eq!(create.role, create_result.role);
+            assert_eq!(create.auth_ids, create_result.auth_ids);
 
             assert_eq!(update.name.as_ref(), Some(&update_result.name));
             assert_eq!(create.role, update_result.role);
+            assert_eq!(create.auth_ids, update_result.auth_ids);
+
+            let tags: Vec<_> = user::Model::from(update_result.clone())
+              .find_related(AuthId)
+              .all(&*conn)
+              .await?;
+            assert!(tags.is_empty());
 
             Ok(())
           }

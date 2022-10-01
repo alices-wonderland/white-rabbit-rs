@@ -1,14 +1,16 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::NaiveDate;
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, ConnectionTrait};
 
 use serde::{Deserialize, Serialize};
+
+use super::{record_item, IntoPresentation, Journal, RecordItem, RecordTag};
 
 pub const TYPE: &str = "record";
 pub const MULTIPLE: &str = "records";
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, DeriveEntityModel)]
+#[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "records")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
@@ -28,19 +30,19 @@ pub enum Type {
   Check = 1,
 }
 
-impl Related<super::Journal> for Entity {
+impl Related<Journal> for Entity {
   fn to() -> RelationDef {
     Relation::Journal.def()
   }
 }
 
-impl Related<super::RecordTag> for Entity {
+impl Related<RecordTag> for Entity {
   fn to() -> RelationDef {
     Relation::Tag.def()
   }
 }
 
-impl Related<super::RecordItem> for Entity {
+impl Related<RecordItem> for Entity {
   fn to() -> RelationDef {
     Relation::Item.def()
   }
@@ -72,4 +74,76 @@ pub enum RecordState {
 pub enum CheckRecordState {
   Valid,
   Invalid { expected: Decimal, actual: Decimal },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Presentation {
+  pub id: uuid::Uuid,
+  #[serde(rename = "journalId")]
+  pub journal_id: uuid::Uuid,
+  pub description: String,
+  pub typ: Type,
+  pub date: NaiveDate,
+  pub tags: HashSet<String>,
+  pub items: HashSet<record_item::Presentation>,
+}
+
+#[async_trait::async_trait]
+impl IntoPresentation for Model {
+  type Presentation = Presentation;
+
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation> {
+    let tags = self
+      .find_related(RecordTag)
+      .all(conn)
+      .await?
+      .into_iter()
+      .map(|item| item.tag)
+      .collect();
+    let items = self
+      .find_related(RecordItem)
+      .all(conn)
+      .await?
+      .into_iter()
+      .map(|item| item.into())
+      .collect();
+
+    let Model {
+      id,
+      journal_id,
+      description,
+      typ,
+      date,
+    } = self;
+    Ok(Presentation {
+      id,
+      journal_id,
+      description,
+      typ,
+      date,
+      tags,
+      items,
+    })
+  }
+}
+
+impl From<Presentation> for Model {
+  fn from(
+    Presentation {
+      id,
+      journal_id,
+      description,
+      typ,
+      date,
+      ..
+    }: Presentation,
+  ) -> Self {
+    Self {
+      id,
+      journal_id,
+      description,
+      typ,
+      date,
+    }
+  }
 }

@@ -15,7 +15,10 @@
     "build:endpoint-graphql": "cargo build -p endpoint-graphql --bin endpoint-graphql --release",
     "build:app-desktop": "yarn workspace @white-rabbit/app-desktop run build",
     "build:app-desktop:vue": "yarn workspace @white-rabbit/app-desktop run build:vue",
-    "test": "cargo test",
+    "test": "rimraf target/debug/coverage; yarn test:test && yarn test:coverage -t html -o target/debug/coverage/ && yarn test:coverage -t lcov -o target/debug/coverage/lcov.info && yarn test:clean",
+    "test:test": "RUSTFLAGS='-Cinstrument-coverage' LLVM_PROFILE_FILE='coverage-%p-%m.profraw' cargo test",
+    "test:coverage": "grcov . -s . --binary-path target/debug/ --branch --ignore-not-existing",
+    "test:clean": "rimraf *.profraw; rimraf packages/**/*.profraw",
     "lint": "cargo fmt --check && cargo clippy",
     "lint:fix": "cargo sort -w && cargo fmt && cargo clippy --fix --allow-dirty --allow-staged",
     "upgrade": "yarn upgrade-interactive && cargo update && cargo upgrade --incompatible --pinned"
@@ -24,8 +27,10 @@
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
     "commitizen": "^4.2.5",
+    "cross-env": "^7.0.3",
     "cz-conventional-changelog": "3.3.0",
-    "husky": "^8.0.1"
+    "husky": "^8.0.1",
+    "rimraf": "^3.0.2"
   },
   "config": {
     "commitizen": {

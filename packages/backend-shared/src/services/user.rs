@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sea_orm::sea_query::{Condition, IntoCondition, JoinType};
 use sea_orm::{
   ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect,
@@ -26,7 +28,7 @@ pub struct UserQuery {
   pub role: Option<user::Role>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
-  pub auth_id_providers: Option<Vec<String>>,
+  pub auth_id_providers: Option<HashSet<String>>,
 }
 
 impl IntoCondition for UserQuery {
@@ -77,6 +79,7 @@ pub struct UserService {}
 impl AbstractReadService for UserService {
   type Model = user::Model;
   type Entity = User;
+  type Presentation = user::Presentation;
   type PrimaryKey = user::PrimaryKey;
   type Query = UserQuery;
 
@@ -128,7 +131,7 @@ pub struct UserCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
   pub role: user::Role,
-  pub auth_ids: Vec<(String, String)>,
+  pub auth_ids: HashSet<(String, String)>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -136,7 +139,7 @@ pub struct UserCommandUpdate {
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub role: Option<user::Role>,
-  pub auth_ids: Option<Vec<(String, String)>>,
+  pub auth_ids: Option<HashSet<(String, String)>>,
 }
 
 impl UserCommandUpdate {
@@ -170,7 +173,7 @@ impl AbstractCommand for UserCommand {
 }
 
 impl UserService {
-  fn validate(model: &user::ActiveModel, auth_ids: Option<&Vec<(String, String)>>) -> anyhow::Result<()> {
+  fn validate(model: &user::ActiveModel, auth_ids: Option<&HashSet<(String, String)>>) -> anyhow::Result<()> {
     let mut errors = Vec::<Error>::new();
 
     match &model.name {
@@ -222,7 +225,7 @@ impl UserService {
 
     let auth_ids = match operator {
       AuthUser::User(user) if user.role != user::Role::User && user.role > command.role => command.auth_ids,
-      AuthUser::Id(auth_id) if command.role == user::Role::User => vec![auth_id.clone()],
+      AuthUser::Id(auth_id) if command.role == user::Role::User => HashSet::from_iter(vec![auth_id.clone()]),
       _ => {
         return Err(Error::InvalidPermission {
           user: operator.get_id(),

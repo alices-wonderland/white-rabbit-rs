@@ -1,10 +1,12 @@
-use futures::stream::{self, StreamExt};
+use futures::stream::{self, StreamExt, TryStreamExt};
 use sea_orm::sea_query::{IntoCondition, Value};
 use sea_orm::{
   ColumnTrait, Condition, ConnectionTrait, EntityTrait, FromQueryResult, ModelTrait, PrimaryKeyToColumn,
   PrimaryKeyTrait, QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use serde::{Deserialize, Serialize};
+
+use crate::models::IntoPresentation;
 
 use super::AuthUser;
 
@@ -140,9 +142,15 @@ pub struct RangeQuery<E: Sized> {
 
 #[async_trait::async_trait]
 pub trait AbstractReadService {
-  type Model: ModelTrait<Entity = Self::Entity> + FromQueryResult + Sync + Send;
+  type Model: ModelTrait<Entity = Self::Entity>
+    + IntoPresentation<Presentation = Self::Presentation>
+    + FromQueryResult
+    + Sync
+    + Send;
 
   type Entity: EntityTrait<Model = Self::Model, PrimaryKey = Self::PrimaryKey>;
+
+  type Presentation: Send + Sync;
 
   type PrimaryKey: PrimaryKeyTrait<ValueType = uuid::Uuid> + PrimaryKeyToColumn;
 
@@ -293,7 +301,7 @@ pub trait AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     input: FindPageInput<Self::Query>,
-  ) -> anyhow::Result<Page<Self::Model>> {
+  ) -> anyhow::Result<Page<Self::Presentation>> {
     let mut condition = input
       .query
       .as_ref()
@@ -373,14 +381,14 @@ pub trait AbstractReadService {
       result.reverse();
     }
 
-    let result: Vec<_> = result
-      .into_iter()
+    let result: Vec<PageItem<Self::Presentation>> = stream::iter(result)
       .take(size)
-      .map(|item| PageItem {
-        cursor: Self::encode_cursor(&item),
-        item,
+      .then(|item| async move {
+        let cursor = Self::encode_cursor(&item);
+        item.into_presentation(conn).await.map(|item| PageItem { cursor, item })
       })
-      .collect();
+      .try_collect()
+      .await?;
 
     Ok(Page {
       info: PageInfo {

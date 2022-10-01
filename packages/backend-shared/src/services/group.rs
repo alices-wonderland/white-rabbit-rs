@@ -124,6 +124,7 @@ pub struct GroupService {}
 impl AbstractReadService for GroupService {
   type Model = group::Model;
   type Entity = Group;
+  type Presentation = group::Presentation;
   type PrimaryKey = group::PrimaryKey;
   type Query = GroupQuery;
 

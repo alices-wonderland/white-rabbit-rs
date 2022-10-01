@@ -17,7 +17,7 @@ mod tests {
   use sea_orm_migration::sea_orm::{Database, EntityTrait, QueryFilter, TransactionTrait};
   use sea_orm_migration::MigratorTrait;
 
-  pub(crate) async fn run_test<S>(tasks: &[Task<S::Model, S::Query, S::Command>]) -> anyhow::Result<()>
+  pub(crate) async fn run_test<S>(tasks: &[Task<S::Model, S::Query, S::Command, S::Presentation>]) -> anyhow::Result<()>
   where
     S: AbstractReadService + AbstractWriteService + Sync + Send,
   {

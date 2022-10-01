@@ -30,21 +30,23 @@ where
 }
 
 #[derive(Clone)]
-pub enum Task<M, Q, C>
+pub enum Task<M, Q, C, P>
 where
   M: Send + Sync,
   Q: Sized + IntoCondition + Clone,
+  P: Send + Sync,
 {
   FindById(Input<uuid::Uuid, Option<M>>),
-  FindPage(Input<FindPageInput<Q>, Page<M>>),
+  FindPage(Input<FindPageInput<Q>, Page<P>>),
   Handle(Input<C, Option<M>>),
-  HandleAll(Input<Vec<C>, Vec<Option<M>>>),
+  HandleAll(Input<Vec<C>, Vec<Option<P>>>),
 }
 
-impl<M, Q, C> Task<M, Q, C>
+impl<M, Q, C, P> Task<M, Q, C, P>
 where
   M: Send + Sync,
   Q: Sized + IntoCondition + Clone,
+  P: Send + Sync,
 {
   pub fn name(&self) -> &str {
     match self {
