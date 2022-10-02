@@ -332,7 +332,6 @@ dependencies = [
  "itertools",
  "log",
  "rust_decimal",
- "rust_decimal_macros",
  "sea-orm",
  "serde",
  "serde_json",
@@ -3030,16 +3029,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_decimal_macros"
-version = "1.26.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4903d8db81d2321699ca8318035d6ff805c548868df435813968795a802171b2"
-dependencies = [
- "quote",
- "rust_decimal",
-]
-
-[[package]]
 name = "rustc_version"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3537,9 +3526,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
+checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
 name = "socket2"

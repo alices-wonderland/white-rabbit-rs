@@ -35,6 +35,31 @@ pub enum AccessItemType {
   Group,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct AccessItem {
+  pub id: uuid::Uuid,
+  #[serde(rename = "type")]
+  pub typ: AccessItemType,
+}
+
+impl From<user::Model> for AccessItem {
+  fn from(user: user::Model) -> Self {
+    Self {
+      id: user.id,
+      typ: AccessItemType::User,
+    }
+  }
+}
+
+impl From<group::Model> for AccessItem {
+  fn from(group: group::Model) -> Self {
+    Self {
+      id: group.id,
+      typ: AccessItemType::Group,
+    }
+  }
+}
+
 #[async_trait::async_trait]
 pub trait IntoPresentation: sea_orm::ModelTrait {
   type Presentation;

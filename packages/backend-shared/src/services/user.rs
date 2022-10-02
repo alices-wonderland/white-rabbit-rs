@@ -228,7 +228,7 @@ impl UserService {
       AuthUser::Id(auth_id) if command.role == user::Role::User => HashSet::from_iter(vec![auth_id.clone()]),
       _ => {
         return Err(Error::InvalidPermission {
-          user: operator.get_id(),
+          user: operator.id(),
           entity: user::TYPE.to_owned(),
           id: None,
           permission: Permission::Write,
@@ -369,7 +369,7 @@ impl AbstractWriteService for UserService {
       }
       _ => {
         return Err(Error::InvalidPermission {
-          user: operator.get_id(),
+          user: operator.id(),
           entity: user::TYPE.to_owned(),
           id: target_id,
           permission: Permission::Write,

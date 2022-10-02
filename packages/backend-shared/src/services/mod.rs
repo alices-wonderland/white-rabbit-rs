@@ -34,6 +34,7 @@ pub const MIN_NAME: usize = 4;
 pub const MAX_NAME: usize = 128;
 pub const MAX_DESCRIPTION: usize = 1024;
 pub const MAX_ACCESS_ITEM: usize = 8;
+pub const MIN_ADMIN: usize = 1;
 pub const MAX_TAG: usize = 16;
 pub const MAX_TAG_ITEM: usize = 16;
 pub const MAX_UNIT: usize = 16;
@@ -62,7 +63,7 @@ impl From<AuthUser> for models::user::Model {
 }
 
 impl AuthUser {
-  pub fn get_id(&self) -> String {
+  pub fn id(&self) -> String {
     match self {
       AuthUser::Id((_, id)) => id.clone(),
       AuthUser::User(models::user::Model { id, .. }) => id.to_string(),

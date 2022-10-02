@@ -22,13 +22,17 @@ pub struct Model {
 
 impl Related<User> for Entity {
   fn to() -> RelationDef {
-    Relation::User.def()
+    group_user::Relation::User.def()
+  }
+
+  fn via() -> Option<RelationDef> {
+    Some(group_user::Relation::Group.def().rev())
   }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-  #[sea_orm(has_many = "GroupUser")]
+  #[sea_orm(has_many = "User")]
   User,
 }
 

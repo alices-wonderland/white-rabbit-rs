@@ -38,7 +38,7 @@ jobs:
           cargo install grcov
           cargo install cargo-sort
           yarn && yarn build:app-desktop:vue
-          yarn lint && yarn test
+          yarn lint && yarn test:coverage
         name: Test and coverage
       - uses: codecov/codecov-action@v3
         if: matrix.platform == 'ubuntu-latest'

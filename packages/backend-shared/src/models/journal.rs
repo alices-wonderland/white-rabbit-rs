@@ -6,8 +6,8 @@ use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 
 use super::{
-  group, journal_group, journal_user, user, AccessItemType, Account, Group, IntoPresentation, JournalGroup, JournalTag,
-  JournalUser, User,
+  journal_group, journal_user, AccessItem, Account, Group, IntoPresentation, JournalGroup, JournalTag, JournalUser,
+  Record, User,
 };
 
 pub const TYPE: &str = "journal";
@@ -38,28 +38,9 @@ impl Related<Account> for Entity {
   }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct AccessItem {
-  pub id: uuid::Uuid,
-  #[serde(rename = "type")]
-  pub typ: AccessItemType,
-}
-
-impl From<user::Model> for AccessItem {
-  fn from(user: user::Model) -> Self {
-    Self {
-      id: user.id,
-      typ: AccessItemType::User,
-    }
-  }
-}
-
-impl From<group::Model> for AccessItem {
-  fn from(group: group::Model) -> Self {
-    Self {
-      id: group.id,
-      typ: AccessItemType::Group,
-    }
+impl Related<Record> for Entity {
+  fn to() -> RelationDef {
+    Relation::Record.def()
   }
 }
 
@@ -69,6 +50,8 @@ pub enum Relation {
   Tag,
   #[sea_orm(has_many = "Account")]
   Account,
+  #[sea_orm(has_many = "Record")]
+  Record,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

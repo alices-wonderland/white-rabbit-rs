@@ -16,7 +16,7 @@ use super::{
   read_service::{AbstractReadService, ContainingUserQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
   AuthUser, Permission, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_ID, FIELD_MEMBERS, FIELD_NAME, MAX_ACCESS_ITEM,
-  MAX_DESCRIPTION, MAX_NAME, MIN_NAME,
+  MAX_DESCRIPTION, MAX_NAME, MIN_ADMIN, MIN_NAME,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -130,7 +130,10 @@ impl AbstractReadService for GroupService {
 
   async fn is_readable(conn: &impl ConnectionTrait, operator: &AuthUser, model: &Self::Model) -> bool {
     if let AuthUser::User(operator) = operator {
-      (operator.role > user::Role::User) || Self::contain_user(conn, model, operator, None).await.unwrap_or(false)
+      (operator.role > user::Role::User)
+        || Self::contain_user(conn, model, operator.id, None)
+          .await
+          .unwrap_or(false)
     } else {
       false
     }
@@ -194,8 +197,8 @@ pub struct GroupCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
   pub description: String,
-  pub admins: Vec<uuid::Uuid>,
-  pub members: Vec<uuid::Uuid>,
+  pub admins: HashSet<uuid::Uuid>,
+  pub members: HashSet<uuid::Uuid>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -203,8 +206,8 @@ pub struct GroupCommandUpdate {
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub description: Option<String>,
-  pub admins: Option<Vec<uuid::Uuid>>,
-  pub members: Option<Vec<uuid::Uuid>>,
+  pub admins: Option<HashSet<uuid::Uuid>>,
+  pub members: Option<HashSet<uuid::Uuid>>,
 }
 
 impl GroupCommandUpdate {
@@ -263,11 +266,12 @@ impl GroupService {
       _ => (),
     }
 
-    if admins.len() > MAX_ACCESS_ITEM {
-      errors.push(Error::MaxLength {
+    if admins.len() < MIN_ADMIN || admins.len() > MAX_ACCESS_ITEM {
+      errors.push(Error::LengthRange {
         entity: group::TYPE.to_owned(),
         field: FIELD_ADMINS.to_owned(),
-        value: MAX_ACCESS_ITEM,
+        min: MIN_ADMIN,
+        max: MAX_ACCESS_ITEM,
       });
     }
 
@@ -312,7 +316,7 @@ impl GroupService {
   pub async fn contain_user(
     conn: &impl ConnectionTrait,
     model: &group::Model,
-    user: &user::Model,
+    user: uuid::Uuid,
     fields: Option<Vec<&str>>,
   ) -> anyhow::Result<bool> {
     for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS, FIELD_MEMBERS]) {
@@ -321,7 +325,7 @@ impl GroupService {
         FIELD_MEMBERS => Some(model.find_linked(group::GroupMember)),
         _ => None,
       } {
-        if query.all(conn).await?.contains(user) {
+        if query.all(conn).await?.iter().any(|item| item.id == user) {
           return Ok(true);
         }
       }
@@ -355,7 +359,11 @@ impl GroupService {
       description: Set(command.description),
     };
 
-    let admins: HashSet<_> = vec![command.admins, vec![operator.id]].into_iter().flatten().collect();
+    let admins: HashSet<_> = if command.admins.is_empty() {
+      HashSet::from_iter(vec![operator.id])
+    } else {
+      command.admins
+    };
     let admins = Self::load_access_items(conn, admins).await?;
     let members = Self::load_access_items(conn, command.members).await?;
     Self::validate(&model, &admins, &members)?;
@@ -379,7 +387,10 @@ impl GroupService {
 
     let model = model.insert(conn).await?;
     let users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
-    let _ = GroupUser::insert_many(users).exec(conn).await?;
+
+    if !users.is_empty() {
+      let _ = GroupUser::insert_many(users).exec(conn).await?;
+    }
 
     Ok(model)
   }
@@ -475,8 +486,9 @@ impl GroupService {
       .exec(conn)
       .await?;
     let users: Vec<_> = vec![admins, members].into_iter().flatten().collect();
-    let _ = GroupUser::insert_many(users).exec(conn).await?;
-
+    if !users.is_empty() {
+      let _ = GroupUser::insert_many(users).exec(conn).await?;
+    }
     Ok(model.update(conn).await?)
   }
 
@@ -507,7 +519,7 @@ impl AbstractWriteService for GroupService {
       return Ok(());
     }
 
-    if !Self::contain_user(conn, model, user, Some(vec![FIELD_ADMINS])).await? {
+    if !Self::contain_user(conn, model, user.id, Some(vec![FIELD_ADMINS])).await? {
       return Err(Error::InvalidPermission {
         user: user.id.to_string(),
         entity: group::TYPE.to_owned(),
@@ -541,7 +553,7 @@ impl AbstractWriteService for GroupService {
       }
     } else {
       Err(Error::InvalidPermission {
-        user: operator.get_id(),
+        user: operator.id(),
         entity: group::TYPE.to_owned(),
         id: command.target_id(),
         permission: Permission::Write,

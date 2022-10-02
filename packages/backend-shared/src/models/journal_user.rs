@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::{journal, AccessItemType};
+use super::{AccessItem, AccessItemType};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, DeriveEntityModel)]
 #[sea_orm(table_name = "journals_users")]
@@ -14,7 +14,7 @@ pub struct Model {
   pub is_admin: bool,
 }
 
-impl From<Model> for journal::AccessItem {
+impl From<Model> for AccessItem {
   fn from(val: Model) -> Self {
     Self {
       id: val.user_id,

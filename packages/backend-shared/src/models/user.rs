@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use sea_orm::{entity::prelude::*, ConnectionTrait};
 use serde::{Deserialize, Serialize};
 
-use super::{AuthId, IntoPresentation};
+use super::{group_user, AuthId, Group, IntoPresentation};
 
 pub const TYPE: &str = "user";
 pub const MULTIPLE: &str = "users";
@@ -36,6 +36,16 @@ impl Default for Role {
 impl Related<AuthId> for Entity {
   fn to() -> RelationDef {
     Relation::AuthId.def()
+  }
+}
+
+impl Related<Group> for Entity {
+  fn to() -> RelationDef {
+    group_user::Relation::Group.def()
+  }
+
+  fn via() -> Option<RelationDef> {
+    Some(group_user::Relation::User.def().rev())
   }
 }
 

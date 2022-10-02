@@ -232,13 +232,6 @@ pub enum RecordCommand {
   Delete(uuid::Uuid),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct RecordItemValue {
-  pub account_id: uuid::Uuid,
-  pub amount: Option<Decimal>,
-  pub price: Option<Decimal>,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordCommandCreate {
   pub target_id: Option<uuid::Uuid>,
@@ -247,7 +240,7 @@ pub struct RecordCommandCreate {
   pub typ: Type,
   pub date: NaiveDate,
   pub tags: HashSet<String>,
-  pub items: HashSet<RecordItemValue>,
+  pub items: HashSet<record_item::Presentation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -257,7 +250,7 @@ pub struct RecordCommandUpdate {
   pub typ: Option<Type>,
   pub date: Option<NaiveDate>,
   pub tags: Option<HashSet<String>>,
-  pub items: Option<HashSet<RecordItemValue>>,
+  pub items: Option<HashSet<record_item::Presentation>>,
 }
 
 impl RecordCommandUpdate {
@@ -298,7 +291,11 @@ impl RecordService {
   fn validate(
     model: &record::ActiveModel,
     tags: Option<&HashSet<String>>,
-    unit_items_accounts: Option<(String, &HashSet<RecordItemValue>, HashMap<uuid::Uuid, account::Model>)>,
+    unit_items_accounts: Option<(
+      String,
+      &HashSet<record_item::Presentation>,
+      HashMap<uuid::Uuid, account::Model>,
+    )>,
   ) -> anyhow::Result<()> {
     let mut errors = Vec::<Error>::new();
 
@@ -543,7 +540,9 @@ impl RecordService {
         tag: Set(tag),
       })
       .collect();
-    let _ = RecordTag::insert_many(tags).exec(conn).await?;
+    if !tags.is_empty() {
+      let _ = RecordTag::insert_many(tags).exec(conn).await?;
+    }
 
     let items: Vec<_> = command
       .items
@@ -555,8 +554,9 @@ impl RecordService {
         price: Set(item.price),
       })
       .collect();
-    let _ = RecordItem::insert_many(items).exec(conn).await?;
-
+    if !items.is_empty() {
+      let _ = RecordItem::insert_many(items).exec(conn).await?;
+    }
     Ok(record)
   }
 
@@ -634,7 +634,9 @@ impl RecordService {
         .filter(record_tag::Column::RecordId.eq(command.target_id))
         .exec(conn)
         .await?;
-      let _ = RecordTag::insert_many(tags).exec(conn).await?;
+      if !tags.is_empty() {
+        let _ = RecordTag::insert_many(tags).exec(conn).await?;
+      }
     }
 
     if let Some(items) = command.items {
@@ -651,7 +653,9 @@ impl RecordService {
         .filter(record_item::Column::RecordId.eq(record.id))
         .exec(conn)
         .await?;
-      let _ = RecordItem::insert_many(items).exec(conn).await?;
+      if !items.is_empty() {
+        let _ = RecordItem::insert_many(items).exec(conn).await?;
+      }
     }
 
     Ok(model.update(conn).await?)
@@ -715,7 +719,7 @@ impl AbstractWriteService for RecordService {
       }
     } else {
       Err(Error::InvalidPermission {
-        user: operator.get_id(),
+        user: operator.id(),
         entity: record::TYPE.to_owned(),
         id: command.target_id(),
         permission: Permission::Write,

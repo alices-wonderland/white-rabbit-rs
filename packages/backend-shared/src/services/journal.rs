@@ -3,10 +3,8 @@ use std::collections::HashSet;
 use crate::{
   errors::Error,
   models::{
-    group,
-    journal::{self, AccessItem},
-    journal_group, journal_tag, journal_user, user, AccessItemType, Group, Journal, JournalGroup, JournalTag,
-    JournalUser, User,
+    group, journal, journal_group, journal_tag, journal_user, user, AccessItem, AccessItemType, Group, Journal,
+    JournalGroup, JournalTag, JournalUser, User,
   },
 };
 use futures::{stream, StreamExt};
@@ -23,7 +21,7 @@ use super::{
   user::UserService,
   write_service::{AbstractCommand, AbstractWriteService},
   AuthUser, Permission, FIELD_ADMINS, FIELD_DESCRIPTION, FIELD_ID, FIELD_MEMBERS, FIELD_NAME, FIELD_TAG,
-  MAX_ACCESS_ITEM, MAX_DESCRIPTION, MAX_NAME, MIN_NAME,
+  MAX_ACCESS_ITEM, MAX_DESCRIPTION, MAX_NAME, MIN_ADMIN, MIN_NAME,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -53,10 +51,10 @@ pub struct JournalQuery {
   pub tag: Option<TextQuery>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
-  pub admins: Option<Vec<journal::AccessItem>>,
+  pub admins: Option<Vec<AccessItem>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
-  pub members: Option<Vec<journal::AccessItem>>,
+  pub members: Option<Vec<AccessItem>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub include_archived: Option<bool>,
@@ -185,6 +183,10 @@ impl From<JournalQuery> for Vec<ExternalQuery> {
   fn from(value: JournalQuery) -> Self {
     let mut result = Vec::new();
 
+    if let Some(value) = value.containing_user {
+      result.push(ExternalQuery::ContainingUser(value));
+    }
+
     if let Some(value) = value.full_text {
       result.push(ExternalQuery::FullText(value));
     }
@@ -226,7 +228,10 @@ impl AbstractReadService for JournalService {
 
   async fn is_readable(conn: &impl ConnectionTrait, operator: &AuthUser, model: &Self::Model) -> bool {
     if let AuthUser::User(operator) = operator {
-      (operator.role > user::Role::User) || Self::contain_user(conn, model, operator, None).await.unwrap_or(false)
+      (operator.role > user::Role::User)
+        || Self::contain_user(conn, model, operator.id, None)
+          .await
+          .unwrap_or(false)
     } else {
       false
     }
@@ -267,7 +272,18 @@ impl AbstractReadService for JournalService {
             }
             None
           }
-          _ => None,
+          ExternalQuery::ContainingUser(query) => Self::contain_user(
+            conn,
+            &item,
+            query.id(),
+            match query {
+              ContainingUserQuery::Object { fields, .. } => fields.clone(),
+              _ => None,
+            },
+          )
+          .await
+          .ok()
+          .and_then(|containing| if containing { Some(item) } else { None }),
         }
       })
       .collect()
@@ -395,11 +411,13 @@ impl JournalService {
       _ => (),
     }
 
-    if admin_users.len() + admin_groups.len() > MAX_ACCESS_ITEM {
-      errors.push(Error::MaxLength {
+    let admin_count = admin_users.len() + admin_groups.len();
+    if !(MIN_ADMIN..=MAX_ACCESS_ITEM).contains(&admin_count) {
+      errors.push(Error::LengthRange {
         entity: journal::TYPE.to_owned(),
         field: FIELD_ADMINS.to_owned(),
-        value: MAX_ACCESS_ITEM,
+        min: MIN_ADMIN,
+        max: MAX_ACCESS_ITEM,
       });
     }
 
@@ -443,11 +461,11 @@ impl JournalService {
   pub async fn contain_user(
     conn: &impl ConnectionTrait,
     model: &journal::Model,
-    user: &user::Model,
-    fields: Option<Vec<&str>>,
+    user: uuid::Uuid,
+    fields: Option<Vec<String>>,
   ) -> anyhow::Result<bool> {
-    for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS, FIELD_MEMBERS]) {
-      if let Some((user_query, group_query)) = match field {
+    for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS.to_owned(), FIELD_MEMBERS.to_owned()]) {
+      if let Some((user_query, group_query)) = match field.as_str() {
         FIELD_ADMINS => Some((
           model.find_linked(journal::JournalUserAdmin),
           model.find_linked(journal::JournalGroupAdmin),
@@ -458,7 +476,8 @@ impl JournalService {
         )),
         _ => None,
       } {
-        if user_query.all(conn).await?.contains(user) {
+        let users = user_query.all(conn).await?;
+        if users.iter().any(|item| item.id == user) {
           return Ok(true);
         }
 
@@ -566,7 +585,15 @@ impl JournalService {
       is_archived: Set(false),
     };
 
-    let (admin_users, admin_groups) = Self::load_access_items(conn, operator, command.admins).await?;
+    let admins: HashSet<_> = if command.admins.is_empty() {
+      HashSet::from_iter(vec![AccessItem {
+        typ: AccessItemType::User,
+        id: operator.id,
+      }])
+    } else {
+      command.admins
+    };
+    let (admin_users, admin_groups) = Self::load_access_items(conn, operator, admins).await?;
     let (member_users, member_groups) = Self::load_access_items(conn, operator, command.members).await?;
 
     Self::validate(
@@ -590,9 +617,15 @@ impl JournalService {
     let (users, groups) = Self::create_access_items(id, admin_users, member_users, admin_groups, member_groups);
 
     let journal = journal.insert(conn).await?;
-    let _ = JournalTag::insert_many(tags).exec(conn).await?;
-    let _ = JournalUser::insert_many(users).exec(conn).await?;
-    let _ = JournalGroup::insert_many(groups).exec(conn).await?;
+    if !tags.is_empty() {
+      let _ = JournalTag::insert_many(tags).exec(conn).await?;
+    }
+    if !users.is_empty() {
+      let _ = JournalUser::insert_many(users).exec(conn).await?;
+    }
+    if !groups.is_empty() {
+      let _ = JournalGroup::insert_many(groups).exec(conn).await?;
+    }
 
     Ok(journal)
   }
@@ -710,7 +743,9 @@ impl JournalService {
         .filter(journal_tag::Column::JournalId.eq(command.target_id))
         .exec(conn)
         .await?;
-      let _ = JournalTag::insert_many(tags).exec(conn).await?;
+      if !tags.is_empty() {
+        let _ = JournalTag::insert_many(tags).exec(conn).await?;
+      }
     }
 
     let (users, groups) = Self::create_access_items(
@@ -720,9 +755,20 @@ impl JournalService {
       admin_groups,
       member_groups,
     );
-    let _ = JournalUser::insert_many(users).exec(conn).await?;
-    let _ = JournalGroup::insert_many(groups).exec(conn).await?;
-
+    if !users.is_empty() {
+      let _ = JournalUser::delete_many()
+        .filter(journal_user::Column::JournalId.eq(command.target_id))
+        .exec(conn)
+        .await?;
+      let _ = JournalUser::insert_many(users).exec(conn).await?;
+    }
+    if !groups.is_empty() {
+      let _ = JournalGroup::delete_many()
+        .filter(journal_group::Column::JournalId.eq(command.target_id))
+        .exec(conn)
+        .await?;
+      let _ = JournalGroup::insert_many(groups).exec(conn).await?;
+    }
     Ok(model.update(conn).await?)
   }
 
@@ -756,7 +802,7 @@ impl AbstractWriteService for JournalService {
       return Ok(());
     }
 
-    if !Self::contain_user(conn, model, user, Some(vec![FIELD_ADMINS])).await? {
+    if !Self::contain_user(conn, model, user.id, Some(vec![FIELD_ADMINS.to_owned()])).await? {
       return Err(Error::InvalidPermission {
         user: user.id.to_string(),
         entity: journal::TYPE.to_owned(),
@@ -790,7 +836,7 @@ impl AbstractWriteService for JournalService {
       }
     } else {
       return Err(Error::InvalidPermission {
-        user: operator.get_id(),
+        user: operator.id(),
         entity: journal::TYPE.to_owned(),
         id: command.target_id(),
         permission: Permission::Write,

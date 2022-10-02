@@ -335,7 +335,7 @@ impl AccountService {
 
   pub async fn create(
     conn: &impl ConnectionTrait,
-    operator: &AuthUser,
+    operator: &user::Model,
     command: AccountCommandCreate,
   ) -> anyhow::Result<account::Model> {
     if Account::find()
@@ -351,7 +351,9 @@ impl AccountService {
       })?;
     }
 
-    let journal = if let Some(journal) = JournalService::find_by_id(conn, operator, command.journal_id).await? {
+    let journal = if let Some(journal) =
+      JournalService::find_by_id(conn, &AuthUser::User(operator.clone()), command.journal_id).await?
+    {
       journal
     } else {
       return Err(Error::NotFound {
@@ -360,6 +362,7 @@ impl AccountService {
         value: command.journal_id.to_string(),
       })?;
     };
+    JournalService::check_writeable(conn, operator, &journal).await?;
 
     let account = account::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
@@ -382,8 +385,9 @@ impl AccountService {
         tag: Set(tag),
       })
       .collect();
-    let _ = AccountTag::insert_many(tags).exec(conn).await?;
-
+    if !tags.is_empty() {
+      let _ = AccountTag::insert_many(tags).exec(conn).await?;
+    }
     Ok(account)
   }
 
@@ -463,7 +467,9 @@ impl AccountService {
         .filter(account_tag::Column::AccountId.eq(account.id))
         .exec(conn)
         .await?;
-      let _ = AccountTag::insert_many(tags).exec(conn).await?;
+      if !tags.is_empty() {
+        let _ = AccountTag::insert_many(tags).exec(conn).await?;
+      }
     }
 
     Ok(model.update(conn).await?)
@@ -513,24 +519,24 @@ impl AbstractWriteService for AccountService {
     operator: &AuthUser,
     command: Self::Command,
   ) -> anyhow::Result<Option<Self::Model>> {
-    if let AuthUser::User(user) = operator {
+    if let AuthUser::User(operator) = operator {
       match command {
         AccountCommand::Create(command) => {
           let result = Self::create(conn, operator, command).await?;
           Ok(Some(result))
         }
         AccountCommand::Update(command) => {
-          let result = Self::update(conn, user, command).await?;
+          let result = Self::update(conn, operator, command).await?;
           Ok(Some(result))
         }
         AccountCommand::Delete(id) => {
-          Self::delete(conn, user, id).await?;
+          Self::delete(conn, operator, id).await?;
           Ok(None)
         }
       }
     } else {
       return Err(Error::InvalidPermission {
-        user: operator.get_id(),
+        user: operator.id(),
         entity: account::TYPE.to_owned(),
         id: command.target_id(),
         permission: Permission::Write,

@@ -4,19 +4,21 @@ use std::sync::Arc;
 use lazy_static::lazy_static;
 use sea_orm_migration::sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 
-use crate::task::{AuthUserInput, Input, Task};
+use crate::task::{Input, ServiceTask, Task};
 use backend_shared::models::{auth_id, user, AuthId, User};
 use backend_shared::services::{
-  AuthUser, FindPageInput, Order, Sort, UserCommand, UserCommandCreate, UserCommandUpdate, UserQuery,
+  AuthUser, FindPageInput, Order, Sort, UserCommand, UserCommandCreate, UserCommandUpdate, UserService,
 };
 use itertools::Itertools;
 
 lazy_static! {
-  pub static ref TASKS: Vec<Task<user::Model, UserQuery, UserCommand, user::Presentation>> = vec![
+  pub static ref TASKS: Vec<ServiceTask<UserService>> = vec![
     Task::FindById(Input {
       name: "Find User By Id".to_owned(),
-      auth_user: AuthUserInput::Id(("Provider".to_owned(), "Value".to_owned())),
-      input: Arc::new(Box::new(|conn| Box::pin(async move {
+      auth_user: Arc::new(Box::new(|_| Box::pin(async move {
+        Ok(AuthUser::Id(("Provider".to_owned(), "Value".to_owned())))
+      }))),
+      input: Arc::new(Box::new(|(conn, _)| Box::pin(async move {
         Ok(
           User::find()
             .filter(user::Column::Role.eq(user::Role::Admin))
@@ -34,7 +36,9 @@ lazy_static! {
     }),
     Task::FindPage(Input {
       name: "Find User Page".to_owned(),
-      auth_user: AuthUserInput::Id(("Provider".to_owned(), "Value".to_owned())),
+      auth_user: Arc::new(Box::new(|_| Box::pin(async move {
+        Ok(AuthUser::Id(("Provider".to_owned(), "Value".to_owned())))
+      }))),
       input: Arc::new(Box::new(|_| Box::pin(async move {
         Ok(FindPageInput {
           query: None,
@@ -54,7 +58,9 @@ lazy_static! {
     }),
     Task::Handle(Input {
       name: "Create User".to_owned(),
-      auth_user: AuthUserInput::Id(("Provider".to_owned(), "Value".to_owned())),
+      auth_user: Arc::new(Box::new(|_| Box::pin(async move {
+        Ok(AuthUser::Id(("Provider".to_owned(), "Value".to_owned())))
+      }))),
       input: Arc::new(Box::new(|_| Box::pin(async move {
         Ok(UserCommand::Create(UserCommandCreate {
           target_id: None,
@@ -86,7 +92,15 @@ lazy_static! {
     }),
     Task::HandleAll(Input {
       name: "Create, Update and Delete".to_owned(),
-      auth_user: AuthUserInput::User(user::Column::Role.eq(user::Role::Admin)),
+      auth_user: Arc::new(Box::new(|conn| Box::pin(async move {
+        Ok(AuthUser::User(
+          User::find()
+            .filter(user::Column::Role.eq(user::Role::Admin))
+            .one(&*conn)
+            .await?
+            .unwrap(),
+        ))
+      }))),
       input: Arc::new(Box::new(|_| Box::pin(async move {
         let lid = uuid::Uuid::new_v4();
         Ok(vec![
@@ -133,7 +147,7 @@ lazy_static! {
           _ => unreachable!(),
         }
       }))),
-    })
+    }),
   ];
 }
 
