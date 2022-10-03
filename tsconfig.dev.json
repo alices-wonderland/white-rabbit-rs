@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    ".eslintrc.backend.js",
+    ".eslintrc.js",
+    ".eslintrc.vue.js",
+    "commitlint.config.js",
+    "esbuild.config.ts",
+    "jest.config.ts",
+    "vitest.setup.ts",
+    "postcss.base.js",
+    "tailwind.base.js"
+  ],
+  "exclude": [],
+  "compilerOptions": {
+    "baseUrl": "."
+  }
+}

@@ -1,7 +1,31 @@
 {
   "name": "@white-rabbit/app-web",
   "packageManager": "yarn@3.2.3",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite --port 3100 --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --port 3100 --host 127.0.0.1",
+    "test": "vitest run --coverage",
+    "lint": "vue-tsc --noEmit && eslint . --ext .vue,.js,.ts --ignore-path ../../.eslintignore",
+    "lint:fix": "yarn lint --fix"
+  },
   "dependencies": {
-    "@white-rabbit/frontend-shared": "workspace:^"
+    "@ag-grid-community/client-side-row-model": "^28.1.1",
+    "@ag-grid-community/core": "^28.1.1",
+    "@ag-grid-community/infinite-row-model": "^28.1.1",
+    "@ag-grid-community/styles": "^28.1.1",
+    "@ag-grid-community/vue3": "^28.1.1",
+    "@ag-grid-enterprise/clipboard": "^28.1.1",
+    "@ag-grid-enterprise/core": "^28.1.1",
+    "@ag-grid-enterprise/range-selection": "^28.1.1",
+    "@white-rabbit/frontend-shared": "workspace:^",
+    "vue": "^3.2.40",
+    "vuetify": "^3.0.0-beta.11"
+  },
+  "devDependencies": {
+    "vite": "^3.1.4",
+    "vitest": "^0.23.4",
+    "vue-tsc": "^0.40.13"
   }
 }
