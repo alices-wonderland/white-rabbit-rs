@@ -292,7 +292,7 @@ impl AbstractCommand for AccountCommand {
 }
 
 impl AccountService {
-  fn validate(model: &account::ActiveModel, tags: Option<&HashSet<String>>) -> anyhow::Result<()> {
+  fn validate(model: &account::ActiveModel, tags: Option<&HashSet<String>>) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
     match &model.name {
       ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
@@ -337,7 +337,7 @@ impl AccountService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: AccountCommandCreate,
-  ) -> anyhow::Result<account::Model> {
+  ) -> crate::Result<account::Model> {
     if Account::find()
       .filter(account::Column::Name.eq(command.name.clone()))
       .count(conn)
@@ -395,7 +395,7 @@ impl AccountService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: AccountCommandUpdate,
-  ) -> anyhow::Result<account::Model> {
+  ) -> crate::Result<account::Model> {
     let account = Account::find_by_id(command.target_id)
       .one(conn)
       .await?
@@ -475,7 +475,7 @@ impl AccountService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> crate::Result<()> {
     let account = Account::find_by_id(id)
       .one(conn)
       .await?
@@ -500,7 +500,7 @@ impl AccountService {
 impl AbstractWriteService for AccountService {
   type Command = AccountCommand;
 
-  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> crate::Result<()> {
     if user.role > user::Role::Admin {
       Ok(())
     } else if let Some(journal) = Journal::find_by_id(model.journal_id).one(conn).await? {
@@ -518,7 +518,7 @@ impl AbstractWriteService for AccountService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     if let AuthUser::User(operator) = operator {
       match command {
         AccountCommand::Create(command) => {

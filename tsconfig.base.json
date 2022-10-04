@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ESNext",
     "moduleResolution": "Node",
     "target": "ESNext",
     "strict": true,
+    "jsx": "preserve",
+    "useDefineForClassFields": true,
+    "isolatedModules": true,
     "strictPropertyInitialization": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -16,7 +19,9 @@
     "sourceMap": true,
     "downlevelIteration": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "lib": ["ESNext", "DOM"],
+    "types": ["vite/client"]
   },
   "exclude": ["node_modules"]
 }

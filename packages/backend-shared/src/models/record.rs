@@ -92,7 +92,7 @@ pub struct Presentation {
 impl IntoPresentation for Model {
   type Presentation = Presentation;
 
-  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation> {
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> crate::Result<Self::Presentation> {
     let tags = self
       .find_related(RecordTag)
       .all(conn)

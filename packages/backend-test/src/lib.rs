@@ -21,14 +21,14 @@ mod tests {
   use sea_orm_migration::sea_orm::{Database, TransactionTrait};
   use sea_orm_migration::MigratorTrait;
 
-  pub(crate) async fn run_test<S>(tasks: &[ServiceTask<S>]) -> anyhow::Result<()>
+  pub(crate) async fn run_test<S>(tasks: &[ServiceTask<S>]) -> backend_shared::Result<()>
   where
     S: AbstractReadService + AbstractWriteService + Sync + Send,
   {
-    dotenv::from_filename(".test.env")?;
+    dotenv::from_filename(".test.env").unwrap();
     let _ = env_logger::try_init();
 
-    let db = Database::connect(env::var("WHITE_RABBIT_DATABASE_URL")?).await?;
+    let db = Database::connect(env::var("WHITE_RABBIT_DATABASE_URL").unwrap()).await?;
     Migrator::up(&db, None).await?;
 
     for task in tasks.iter() {

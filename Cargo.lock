@@ -321,7 +321,6 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 name = "backend-shared"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "backend-test",
  "base64",
@@ -346,7 +345,6 @@ dependencies = [
 name = "backend-test"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "backend-shared",
  "chrono",
@@ -1016,8 +1014,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "backend-shared",
+ "backend-test",
  "dotenv",
  "env_logger",
+ "futures",
  "log",
  "sea-orm",
  "serde",
@@ -1993,7 +1993,7 @@ dependencies = [
  "dirs-next",
  "objc-foundation",
  "objc_id",
- "time 0.3.14",
+ "time 0.3.15",
 ]
 
 [[package]]
@@ -2677,7 +2677,7 @@ dependencies = [
  "indexmap",
  "line-wrap",
  "serde",
- "time 0.3.14",
+ "time 0.3.15",
  "xml-rs",
 ]
 
@@ -2749,7 +2749,7 @@ dependencies = [
  "postgres-protocol",
  "serde",
  "serde_json",
- "time 0.3.14",
+ "time 0.3.15",
  "uuid 1.1.2",
 ]
 
@@ -3147,7 +3147,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "time 0.3.14",
+ "time 0.3.15",
  "tracing",
  "url",
  "uuid 1.1.2",
@@ -3211,7 +3211,7 @@ dependencies = [
  "sea-query-derive",
  "sea-query-driver",
  "serde_json",
- "time 0.3.14",
+ "time 0.3.15",
  "uuid 1.1.2",
 ]
 
@@ -3657,7 +3657,7 @@ dependencies = [
  "sqlx-rt",
  "stringprep",
  "thiserror",
- "time 0.3.14",
+ "time 0.3.15",
  "tokio-stream",
  "url",
  "uuid 1.1.2",
@@ -3983,7 +3983,7 @@ dependencies = [
  "sha2",
  "tauri-utils",
  "thiserror",
- "time 0.3.14",
+ "time 0.3.15",
  "uuid 1.1.2",
  "walkdir",
 ]
@@ -4169,9 +4169,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.14"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c3f9a28b618c3a6b9251b6908e9c99e04b9e5c02e6581ccbb67d59c34ef7f9b"
+checksum = "d634a985c4d4238ec39cacaed2e7ae552fbd3c476b552c1deac3021b7d7eaf0c"
 dependencies = [
  "itoa 1.0.3",
  "libc",

@@ -2,7 +2,7 @@
   "build": {
     "beforeDevCommand": "yarn workspace @white-rabbit/app-desktop run dev:vue",
     "beforeBuildCommand": "yarn build:app-desktop:vue",
-    "devPath": "http://127.0.0.1:1420/",
+    "devPath": "http://localhost:1420/",
     "distDir": "../dist"
   },
   "package": {

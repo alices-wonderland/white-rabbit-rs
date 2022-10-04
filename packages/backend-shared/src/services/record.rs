@@ -10,12 +10,12 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  errors::Error,
   models::{
     account, journal,
     record::{self, Type},
     record_item, record_tag, user, Account, Journal, Record, RecordItem, RecordTag,
   },
+  Error,
 };
 
 use super::{
@@ -296,7 +296,7 @@ impl RecordService {
       &HashSet<record_item::Presentation>,
       HashMap<uuid::Uuid, account::Model>,
     )>,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
 
     match &model.description {
@@ -382,7 +382,7 @@ impl RecordService {
     journal: journal::Model,
     items: Vec<record_item::Model>,
     accounts: HashMap<uuid::Uuid, account::Model>,
-  ) -> anyhow::Result<record::RecordState> {
+  ) -> crate::Result<record::RecordState> {
     let mut sum = Decimal::ZERO;
     let mut blanks = 0;
     for item in items {
@@ -424,7 +424,7 @@ impl RecordService {
     model: &record::Model,
     items: Vec<record_item::Model>,
     accounts: HashSet<uuid::Uuid>,
-  ) -> anyhow::Result<record::RecordState> {
+  ) -> crate::Result<record::RecordState> {
     let record_items: HashMap<uuid::Uuid, Decimal> = RecordItem::find()
       .left_join(Record)
       .left_join(Account)
@@ -464,7 +464,7 @@ impl RecordService {
     ))
   }
 
-  pub async fn state(conn: &impl ConnectionTrait, model: &record::Model) -> anyhow::Result<record::RecordState> {
+  pub async fn state(conn: &impl ConnectionTrait, model: &record::Model) -> crate::Result<record::RecordState> {
     let journal = model
       .find_related(Journal)
       .one(conn)
@@ -496,7 +496,7 @@ impl RecordService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: RecordCommandCreate,
-  ) -> anyhow::Result<record::Model> {
+  ) -> crate::Result<record::Model> {
     let journal = if let Some(journal) = JournalService::find_by_id(conn, operator, command.journal_id).await? {
       journal
     } else {
@@ -564,7 +564,7 @@ impl RecordService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: RecordCommandUpdate,
-  ) -> anyhow::Result<record::Model> {
+  ) -> crate::Result<record::Model> {
     let record = Record::find_by_id(command.target_id)
       .one(conn)
       .await?
@@ -661,7 +661,7 @@ impl RecordService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> crate::Result<()> {
     let account = Record::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
       entity: record::TYPE.to_owned(),
       field: FIELD_ID.to_owned(),
@@ -683,7 +683,7 @@ impl RecordService {
 impl AbstractWriteService for RecordService {
   type Command = RecordCommand;
 
-  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> crate::Result<()> {
     if user.role > user::Role::Admin {
       Ok(())
     } else if let Some(journal) = Journal::find_by_id(model.journal_id).one(conn).await? {
@@ -701,7 +701,7 @@ impl AbstractWriteService for RecordService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     if let AuthUser::User(user) = operator {
       match command {
         RecordCommand::Create(command) => {

@@ -14,6 +14,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use rust_decimal::Decimal;
 use sea_orm_migration::sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
+
 use std::collections::HashSet;
 use std::str::FromStr;
 
@@ -79,12 +80,12 @@ lazy_static! {
     Task::Handle(Input {
       name: "Create Record".to_owned(),
       auth_user: Arc::new(Box::new(|conn| Box::pin(async move {
-        let user = User::find()
-          .filter(user::Column::Role.eq(user::Role::User))
+        let (_, user) = Journal::find()
+          .find_also_linked(journal::JournalUserAdmin)
           .one(&*conn)
           .await?
           .unwrap();
-        Ok(AuthUser::User(user))
+        Ok(AuthUser::User(user.unwrap()))
       }))),
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
         let journals = JournalService::find_all(
@@ -148,12 +149,12 @@ lazy_static! {
     Task::HandleAll(Input {
       name: "Create, Update and Delete".to_owned(),
       auth_user: Arc::new(Box::new(|conn| Box::pin(async move {
-        let user = User::find()
-          .filter(user::Column::Role.eq(user::Role::User))
+        let (_, user) = Journal::find()
+          .find_also_linked(journal::JournalUserAdmin)
           .one(&*conn)
           .await?
           .unwrap();
-        Ok(AuthUser::User(user))
+        Ok(AuthUser::User(user.unwrap()))
       }))),
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
         let journals = JournalService::find_all(
@@ -254,7 +255,7 @@ mod tests {
   use backend_shared::services::RecordService;
 
   #[tokio::test]
-  async fn test_tasks() -> anyhow::Result<()> {
+  async fn test_tasks() -> backend_shared::Result<()> {
     crate::tests::run_test::<RecordService>(&TASKS).await
   }
 }

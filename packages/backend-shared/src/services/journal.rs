@@ -390,7 +390,7 @@ impl JournalService {
     admin_groups: &HashSet<group::Model>,
     member_groups: &HashSet<group::Model>,
     tags: Option<&HashSet<String>>,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
     match &model.name {
       ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
@@ -463,7 +463,7 @@ impl JournalService {
     model: &journal::Model,
     user: uuid::Uuid,
     fields: Option<Vec<String>>,
-  ) -> anyhow::Result<bool> {
+  ) -> crate::Result<bool> {
     for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS.to_owned(), FIELD_MEMBERS.to_owned()]) {
       if let Some((user_query, group_query)) = match field.as_str() {
         FIELD_ADMINS => Some((
@@ -496,7 +496,7 @@ impl JournalService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     items: impl IntoIterator<Item = AccessItem>,
-  ) -> anyhow::Result<(HashSet<user::Model>, HashSet<group::Model>)> {
+  ) -> crate::Result<(HashSet<user::Model>, HashSet<group::Model>)> {
     let (users, groups): (Vec<_>, Vec<_>) = items.into_iter().partition(|item| item.typ == AccessItemType::User);
 
     let users: Vec<_> = users.iter().map(|item| item.id).collect();
@@ -562,7 +562,7 @@ impl JournalService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: JournalCommandCreate,
-  ) -> anyhow::Result<journal::Model> {
+  ) -> crate::Result<journal::Model> {
     if Journal::find()
       .filter(journal::Column::Name.eq(command.name.clone()))
       .count(conn)
@@ -634,7 +634,7 @@ impl JournalService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: JournalCommandUpdate,
-  ) -> anyhow::Result<journal::Model> {
+  ) -> crate::Result<journal::Model> {
     let journal = Journal::find_by_id(command.target_id)
       .one(conn)
       .await?
@@ -772,7 +772,7 @@ impl JournalService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> crate::Result<()> {
     let journal = Journal::find_by_id(id)
       .one(conn)
       .await?
@@ -797,7 +797,7 @@ impl JournalService {
 impl AbstractWriteService for JournalService {
   type Command = JournalCommand;
 
-  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> crate::Result<()> {
     if user.role > user::Role::Admin {
       return Ok(());
     }
@@ -818,7 +818,7 @@ impl AbstractWriteService for JournalService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     if let AuthUser::User(operator) = operator {
       match command {
         JournalCommand::Create(command) => {

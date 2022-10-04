@@ -4,10 +4,10 @@ use sea_orm_migration::{sea_orm::DatabaseTransaction, sea_query::IntoCondition};
 
 use backend_shared::services::{AbstractReadService, AbstractWriteService, AuthUser, FindPageInput, Page};
 
-type AsyncFn<I, O> = Arc<Box<dyn Send + Sync + Fn(I) -> Pin<Box<dyn Future<Output = anyhow::Result<O>>>>>>;
+type AsyncFn<I, O> = Arc<Box<dyn Send + Sync + Fn(I) -> Pin<Box<dyn Future<Output = backend_shared::Result<O>>>>>>;
 type AuthUserFn = AsyncFn<Arc<DatabaseTransaction>, AuthUser>;
 type InputFn<I> = AsyncFn<(Arc<DatabaseTransaction>, Arc<AuthUser>), I>;
-type CheckerFn<I, O> = AsyncFn<(Arc<DatabaseTransaction>, Arc<AuthUser>, I, anyhow::Result<O>), ()>;
+type CheckerFn<I, O> = AsyncFn<(Arc<DatabaseTransaction>, Arc<AuthUser>, I, backend_shared::Result<O>), ()>;
 
 pub type ServiceTask<S> = Task<
   <S as AbstractReadService>::Model,

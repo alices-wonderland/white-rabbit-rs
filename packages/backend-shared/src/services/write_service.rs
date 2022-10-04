@@ -19,7 +19,7 @@ pub trait AbstractWriteService: AbstractReadService {
     _conn: &impl ConnectionTrait,
     _user: &user::Model,
     _model: &Self::Model,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     Ok(())
   }
 
@@ -27,13 +27,13 @@ pub trait AbstractWriteService: AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>>;
+  ) -> crate::Result<Option<Self::Model>>;
 
   async fn handle_all(
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     commands: Vec<Self::Command>,
-  ) -> anyhow::Result<Vec<Option<Self::Presentation>>> {
+  ) -> crate::Result<Vec<Option<Self::Presentation>>> {
     let mut id_map = HashMap::<uuid::Uuid, uuid::Uuid>::new();
     let mut results = Vec::new();
 

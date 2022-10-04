@@ -5,7 +5,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = "1.0"
 async-trait = "0.1"
 backend-shared = { path = "../backend-shared" }
 chrono = { version = "0.4", features = [ "serde" ] }

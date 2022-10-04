@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{
   models::AccessItemType,
   services::{Permission, FIELD_TAG, FIELD_TAG_ITEM, MAX_TAG, MAX_TAG_ITEM},
 };
 
-#[derive(thiserror::Error, Clone, Debug, Serialize, Deserialize)]
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(thiserror::Error, Clone, Debug, Serialize)]
 pub enum Error {
   #[error("User[{user}] does not have Permission[{permission}] on Entity[{entity}, id={id:?}]")]
   InvalidPermission {
@@ -60,6 +62,31 @@ pub enum Error {
   ArchivedAccount { id: uuid::Uuid },
   #[error("Multiple errors found")]
   Errors(Vec<Error>),
+
+  #[error("Database Error: {}", 0)]
+  Database(
+    #[from]
+    #[serde(skip_serializing)]
+    sea_orm::DbErr,
+  ),
+  #[error("Base64 Error: {}", 0)]
+  Base64(
+    #[from]
+    #[serde(skip_serializing)]
+    base64::DecodeError,
+  ),
+  #[error("UTF8 Error: {}", 0)]
+  Utf8(
+    #[from]
+    #[serde(skip_serializing)]
+    std::string::FromUtf8Error,
+  ),
+  #[error("UUID Error: {}", 0)]
+  Uuid(
+    #[from]
+    #[serde(skip_serializing)]
+    uuid::Error,
+  ),
 }
 
 impl Error {
