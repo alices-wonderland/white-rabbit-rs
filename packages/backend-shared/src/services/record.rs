@@ -42,6 +42,7 @@ pub struct RecordQuery {
   pub description: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
+  #[serde(rename = "type")]
   pub typ: Option<record::Type>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
@@ -98,8 +99,11 @@ impl IntoCondition for RecordQuery {
       cond = cond.add(sub_query);
     }
 
-    if let Some(TextQuery::Value(tag)) = self.tag {
-      cond = cond.add(record_tag::Column::Tag.eq(tag));
+    match self.tag {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(record_tag::Column::Tag.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(account) = self.account {
@@ -125,11 +129,14 @@ impl From<RecordQuery> for Vec<ExternalQuery> {
       }));
     }
 
-    if let Some(TextQuery::FullText(value)) = value.tag {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_TAG.to_owned()]),
-        value,
-      }));
+    match value.tag {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_TAG.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     result
@@ -234,9 +241,12 @@ pub enum RecordCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordCommandCreate {
+  #[serde(rename = "targetId")]
   pub target_id: Option<uuid::Uuid>,
+  #[serde(rename = "journalId")]
   pub journal_id: uuid::Uuid,
   pub description: String,
+  #[serde(rename = "type")]
   pub typ: Type,
   pub date: NaiveDate,
   pub tags: HashSet<String>,
@@ -245,8 +255,10 @@ pub struct RecordCommandCreate {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordCommandUpdate {
+  #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
   pub description: Option<String>,
+  #[serde(rename = "type")]
   pub typ: Option<Type>,
   pub date: Option<NaiveDate>,
   pub tags: Option<HashSet<String>>,

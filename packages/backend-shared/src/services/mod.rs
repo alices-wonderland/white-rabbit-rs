@@ -62,6 +62,12 @@ impl From<AuthUser> for models::user::Model {
   }
 }
 
+impl From<models::user::Model> for AuthUser {
+  fn from(user: models::user::Model) -> Self {
+    AuthUser::User(user)
+  }
+}
+
 impl AuthUser {
   pub fn id(&self) -> String {
     match self {

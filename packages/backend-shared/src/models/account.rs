@@ -73,6 +73,7 @@ pub struct Presentation {
   pub journal_id: uuid::Uuid,
   pub name: String,
   pub description: String,
+  #[serde(rename = "type")]
   pub typ: Type,
   pub strategy: Strategy,
   pub unit: String,

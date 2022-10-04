@@ -82,6 +82,7 @@ pub struct Presentation {
   #[serde(rename = "journalId")]
   pub journal_id: uuid::Uuid,
   pub description: String,
+  #[serde(rename = "type")]
   pub typ: Type,
   pub date: NaiveDate,
   pub tags: HashSet<String>,

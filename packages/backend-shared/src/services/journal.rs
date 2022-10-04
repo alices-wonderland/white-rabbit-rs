@@ -57,6 +57,7 @@ pub struct JournalQuery {
   pub members: Option<Vec<AccessItem>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
+  #[serde(rename = "includeArchived")]
   pub include_archived: Option<bool>,
 }
 
@@ -71,16 +72,22 @@ impl IntoCondition for JournalQuery {
       }
     }
 
-    if let Some(TextQuery::Value(name)) = self.name {
-      cond = cond.add(journal::Column::Name.eq(name));
+    match self.name {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(journal::Column::Name.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(unit) = self.unit {
       cond = cond.add(journal::Column::Unit.eq(unit));
     }
 
-    if let Some(TextQuery::Value(tag)) = self.tag {
-      cond = cond.add(journal_tag::Column::Tag.eq(tag));
+    match self.tag {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(journal_tag::Column::Tag.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(admins) = self.admins {
@@ -191,11 +198,14 @@ impl From<JournalQuery> for Vec<ExternalQuery> {
       result.push(ExternalQuery::FullText(value));
     }
 
-    if let Some(TextQuery::FullText(value)) = value.name {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_NAME.to_owned()]),
-        value,
-      }));
+    match value.name {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_NAME.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     if let Some(value) = value.description {
@@ -205,11 +215,14 @@ impl From<JournalQuery> for Vec<ExternalQuery> {
       }));
     }
 
-    if let Some(TextQuery::FullText(value)) = value.tag {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_TAG.to_owned()]),
-        value,
-      }));
+    match value.tag {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_TAG.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     result
@@ -326,6 +339,7 @@ pub enum JournalCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalCommandCreate {
+  #[serde(rename = "targetId")]
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
   pub description: String,
@@ -337,10 +351,12 @@ pub struct JournalCommandCreate {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalCommandUpdate {
+  #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub description: Option<String>,
   pub unit: Option<String>,
+  #[serde(rename = "isArchived")]
   pub is_archived: Option<bool>,
   pub tags: Option<HashSet<String>>,
   pub admins: Option<HashSet<AccessItem>>,

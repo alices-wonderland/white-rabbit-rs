@@ -28,6 +28,7 @@ pub struct UserQuery {
   pub role: Option<user::Role>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
+  #[serde(rename = "authIdProviders")]
   pub auth_id_providers: Option<HashSet<String>>,
 }
 
@@ -42,8 +43,11 @@ impl IntoCondition for UserQuery {
       }
     }
 
-    if let Some(TextQuery::Value(name)) = self.name {
-      cond = cond.add(user::Column::Name.eq(name));
+    match self.name {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(user::Column::Name.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(role) = self.role {
@@ -62,11 +66,14 @@ impl From<UserQuery> for Vec<ExternalQuery> {
   fn from(value: UserQuery) -> Self {
     let mut result = Vec::new();
 
-    if let Some(TextQuery::FullText(value)) = value.name {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_NAME.to_owned()]),
-        value,
-      }));
+    match value.name {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_NAME.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     result
@@ -128,17 +135,21 @@ pub enum UserCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserCommandCreate {
+  #[serde(rename = "targetId")]
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
   pub role: user::Role,
+  #[serde(rename = "authIds")]
   pub auth_ids: HashSet<(String, String)>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserCommandUpdate {
+  #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub role: Option<user::Role>,
+  #[serde(rename = "authIds")]
   pub auth_ids: Option<HashSet<(String, String)>>,
 }
 

@@ -43,6 +43,7 @@ pub struct AccountQuery {
   pub description: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
+  #[serde(rename = "type")]
   pub typ: Option<account::Type>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
@@ -55,6 +56,7 @@ pub struct AccountQuery {
   pub tag: Option<TextQuery>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
+  #[serde(rename = "includeArchived")]
   pub include_archived: Option<bool>,
 }
 
@@ -73,8 +75,11 @@ impl IntoCondition for AccountQuery {
       cond = cond.add(account::Column::JournalId.eq(journal));
     }
 
-    if let Some(TextQuery::Value(name)) = self.name {
-      cond = cond.add(account::Column::Name.eq(name));
+    match self.name {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(account::Column::Name.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(typ) = self.typ {
@@ -89,8 +94,11 @@ impl IntoCondition for AccountQuery {
       cond = cond.add(account::Column::Unit.eq(unit));
     }
 
-    if let Some(TextQuery::Value(tag)) = self.tag {
-      cond = cond.add(account_tag::Column::Tag.eq(tag));
+    match self.tag {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(account_tag::Column::Tag.eq(value));
+      }
+      _ => (),
     }
 
     if !self.include_archived.unwrap_or(false) {
@@ -109,11 +117,14 @@ impl From<AccountQuery> for Vec<ExternalQuery> {
       result.push(ExternalQuery::FullText(value));
     }
 
-    if let Some(TextQuery::FullText(value)) = value.name {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_NAME.to_owned()]),
-        value,
-      }));
+    match value.name {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_NAME.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     if let Some(value) = value.description {
@@ -123,11 +134,14 @@ impl From<AccountQuery> for Vec<ExternalQuery> {
       }));
     }
 
-    if let Some(TextQuery::FullText(value)) = value.tag {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_TAG.to_owned()]),
-        value,
-      }));
+    match value.tag {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_TAG.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     result
@@ -235,10 +249,13 @@ pub enum AccountCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccountCommandCreate {
+  #[serde(rename = "targetId")]
   pub target_id: Option<uuid::Uuid>,
+  #[serde(rename = "journalId")]
   pub journal_id: uuid::Uuid,
   pub name: String,
   pub description: String,
+  #[serde(rename = "type")]
   pub typ: Type,
   pub strategy: Strategy,
   pub unit: String,
@@ -247,13 +264,16 @@ pub struct AccountCommandCreate {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccountCommandUpdate {
+  #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub description: Option<String>,
+  #[serde(rename = "type")]
   pub typ: Option<Type>,
   pub strategy: Option<Strategy>,
   pub unit: Option<String>,
   pub tags: Option<HashSet<String>>,
+  #[serde(rename = "isArchived")]
   pub is_archived: Option<bool>,
 }
 

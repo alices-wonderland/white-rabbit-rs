@@ -40,9 +40,13 @@ pub struct Page<M> {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PageInfo {
+  #[serde(rename = "hasPrevious")]
   pub has_previous: bool,
+  #[serde(rename = "hasNext")]
   pub has_next: bool,
+  #[serde(rename = "startCursor")]
   pub start_cursor: Option<String>,
+  #[serde(rename = "endCursor")]
   pub end_cursor: Option<String>,
 }
 
@@ -79,10 +83,10 @@ pub enum IdQuery {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TextQuery {
-  Value(String),
-  FullText(String),
+pub struct TextQuery {
+  pub value: String,
+  #[serde(rename = "__fullText")]
+  pub full_text: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,10 +119,25 @@ impl ContainingUserQuery {
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ComparableQuery<V: Ord + PartialOrd> {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  #[serde(rename = "__eq")]
   pub eq: Option<V>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  #[serde(rename = "__gt")]
   pub gt: Option<V>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  #[serde(rename = "__lt")]
   pub lt: Option<V>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  #[serde(rename = "__gte")]
   pub gte: Option<V>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  #[serde(rename = "__lte")]
   pub lte: Option<V>,
 }
 
@@ -126,18 +145,6 @@ pub struct ComparableQuery<V: Ord + PartialOrd> {
 pub enum ExternalQuery {
   ContainingUser(ContainingUserQuery),
   FullText(FullTextQuery),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RangeQuery<E: Sized> {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(default)]
-  #[serde(rename = "__gt")]
-  pub gt: Option<E>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(default)]
-  #[serde(rename = "__lt")]
-  pub lt: Option<E>,
 }
 
 #[async_trait::async_trait]

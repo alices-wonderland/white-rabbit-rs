@@ -53,8 +53,11 @@ impl IntoCondition for GroupQuery {
       }
     }
 
-    if let Some(TextQuery::Value(name)) = self.name {
-      cond = cond.add(group::Column::Name.eq(name));
+    match self.name {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(group::Column::Name.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(containing_user) = self.containing_user {
@@ -100,11 +103,14 @@ impl From<GroupQuery> for Vec<ExternalQuery> {
   fn from(value: GroupQuery) -> Self {
     let mut result = Vec::new();
 
-    if let Some(TextQuery::FullText(value)) = value.name {
-      result.push(ExternalQuery::FullText(FullTextQuery {
-        fields: Some(vec![FIELD_NAME.to_owned()]),
-        value,
-      }));
+    match value.name {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_NAME.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     if let Some(value) = value.description {
@@ -194,6 +200,7 @@ pub enum GroupCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GroupCommandCreate {
+  #[serde(rename = "targetId")]
   pub target_id: Option<uuid::Uuid>,
   pub name: String,
   pub description: String,
@@ -203,6 +210,7 @@ pub struct GroupCommandCreate {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GroupCommandUpdate {
+  #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
   pub name: Option<String>,
   pub description: Option<String>,
