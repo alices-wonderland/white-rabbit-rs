@@ -64,5 +64,5 @@ impl From<group::Model> for AccessItem {
 pub trait IntoPresentation: sea_orm::ModelTrait {
   type Presentation;
 
-  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation>;
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> crate::Result<Self::Presentation>;
 }

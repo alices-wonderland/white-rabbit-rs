@@ -87,7 +87,7 @@ pub struct Presentation {
 impl IntoPresentation for Model {
   type Presentation = Presentation;
 
-  async fn into_presentation(self, conn: &impl ConnectionTrait) -> anyhow::Result<Self::Presentation> {
+  async fn into_presentation(self, conn: &impl ConnectionTrait) -> crate::Result<Self::Presentation> {
     let (admins, members): (Vec<_>, Vec<_>) = GroupUser::find()
       .filter(group_user::Column::GroupId.eq(self.id))
       .all(conn)

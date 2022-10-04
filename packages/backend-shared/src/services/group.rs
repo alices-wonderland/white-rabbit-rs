@@ -245,7 +245,7 @@ impl GroupService {
     model: &group::ActiveModel,
     admins: &HashSet<user::Model>,
     members: &HashSet<user::Model>,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
     match &model.name {
       ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
@@ -302,7 +302,7 @@ impl GroupService {
   async fn load_access_items(
     conn: &impl ConnectionTrait,
     users: impl IntoIterator<Item = uuid::Uuid>,
-  ) -> anyhow::Result<HashSet<user::Model>> {
+  ) -> crate::Result<HashSet<user::Model>> {
     Ok(
       User::find()
         .filter(user::Column::Id.is_in(users))
@@ -318,7 +318,7 @@ impl GroupService {
     model: &group::Model,
     user: uuid::Uuid,
     fields: Option<Vec<&str>>,
-  ) -> anyhow::Result<bool> {
+  ) -> crate::Result<bool> {
     for field in fields.unwrap_or_else(|| vec![FIELD_ADMINS, FIELD_MEMBERS]) {
       if let Some(query) = match field {
         FIELD_ADMINS => Some(model.find_linked(group::GroupAdmin)),
@@ -338,7 +338,7 @@ impl GroupService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: GroupCommandCreate,
-  ) -> anyhow::Result<group::Model> {
+  ) -> crate::Result<group::Model> {
     if Group::find()
       .filter(group::Column::Name.eq(command.name.clone()))
       .count(conn)
@@ -399,7 +399,7 @@ impl GroupService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: GroupCommandUpdate,
-  ) -> anyhow::Result<group::Model> {
+  ) -> crate::Result<group::Model> {
     let group = Group::find_by_id(command.target_id)
       .one(conn)
       .await?
@@ -492,7 +492,7 @@ impl GroupService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> crate::Result<()> {
     let group = Group::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
       entity: group::TYPE.to_owned(),
       field: FIELD_ID.to_owned(),
@@ -514,7 +514,7 @@ impl GroupService {
 impl AbstractWriteService for GroupService {
   type Command = GroupCommand;
 
-  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> anyhow::Result<()> {
+  async fn check_writeable(conn: &impl ConnectionTrait, user: &user::Model, model: &Self::Model) -> crate::Result<()> {
     if user.role > user::Role::User {
       return Ok(());
     }
@@ -535,7 +535,7 @@ impl AbstractWriteService for GroupService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     if let AuthUser::User(operator) = operator {
       match command {
         GroupCommand::Create(command) => {

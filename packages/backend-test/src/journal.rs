@@ -191,7 +191,7 @@ mod tests {
   use backend_shared::services::JournalService;
 
   #[tokio::test]
-  async fn test_tasks() -> anyhow::Result<()> {
+  async fn test_tasks() -> backend_shared::Result<()> {
     crate::tests::run_test::<JournalService>(&TASKS).await
   }
 }

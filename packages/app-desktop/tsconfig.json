@@ -1,18 +1,23 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
+    "jsx": "preserve",
+    "rootDir": "src/",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "strict": true,
-    "jsx": "preserve",
-    "sourceMap": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
-    "esModuleInterop": true,
-    "lib": ["ESNext", "DOM"],
-    "skipLibCheck": true
+    "lib": ["esnext", "dom"],
+    "outDir": "dist",
+    "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "vueCompilerOptions": {
+    "experimentalDisableTemplateSupport": true
+  },
+  "include": ["src/"],
+  "exclude": ["src/**/*.spec.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.dev.json"
+    }
+  ]
 }

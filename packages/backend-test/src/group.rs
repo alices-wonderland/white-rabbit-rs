@@ -169,7 +169,7 @@ mod tests {
   use backend_shared::services::GroupService;
 
   #[tokio::test]
-  async fn test_tasks() -> anyhow::Result<()> {
+  async fn test_tasks() -> backend_shared::Result<()> {
     crate::tests::run_test::<GroupService>(&TASKS).await
   }
 }

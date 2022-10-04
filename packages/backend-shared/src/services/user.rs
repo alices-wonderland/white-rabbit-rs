@@ -173,7 +173,7 @@ impl AbstractCommand for UserCommand {
 }
 
 impl UserService {
-  fn validate(model: &user::ActiveModel, auth_ids: Option<&HashSet<(String, String)>>) -> anyhow::Result<()> {
+  fn validate(model: &user::ActiveModel, auth_ids: Option<&HashSet<(String, String)>>) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
 
     match &model.name {
@@ -209,7 +209,7 @@ impl UserService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: UserCommandCreate,
-  ) -> anyhow::Result<user::Model> {
+  ) -> crate::Result<user::Model> {
     if User::find()
       .filter(user::Column::Name.eq(command.name.clone()))
       .count(conn)
@@ -261,7 +261,7 @@ impl UserService {
     conn: &impl ConnectionTrait,
     operator: &user::Model,
     command: UserCommandUpdate,
-  ) -> anyhow::Result<user::Model> {
+  ) -> crate::Result<user::Model> {
     let user = User::find_by_id(command.target_id)
       .one(conn)
       .await?
@@ -321,7 +321,7 @@ impl UserService {
     Ok(model.update(conn).await?)
   }
 
-  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> anyhow::Result<()> {
+  pub async fn delete(conn: &impl ConnectionTrait, operator: &user::Model, id: uuid::Uuid) -> crate::Result<()> {
     let user = User::find_by_id(id).one(conn).await?.ok_or_else(|| Error::NotFound {
       entity: user::TYPE.to_owned(),
       field: FIELD_ID.to_owned(),
@@ -352,7 +352,7 @@ impl AbstractWriteService for UserService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     command: Self::Command,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     let target_id = command.target_id();
     match (command, operator) {
       (UserCommand::Create(command), _) => {

@@ -178,7 +178,7 @@ pub trait AbstractReadService {
     Self::sortable_field(field).map(|col| model.get(col))
   }
 
-  async fn find_by_cursor(conn: &impl ConnectionTrait, cursor: Option<String>) -> anyhow::Result<Option<Self::Model>> {
+  async fn find_by_cursor(conn: &impl ConnectionTrait, cursor: Option<String>) -> crate::Result<Option<Self::Model>> {
     if let Some(cursor) = cursor {
       let id: uuid::Uuid = String::from_utf8(base64::decode(&cursor)?)?.parse()?;
       Ok(Self::Entity::find_by_id(id).one(conn).await?)
@@ -262,7 +262,7 @@ pub trait AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     id: uuid::Uuid,
-  ) -> anyhow::Result<Option<Self::Model>> {
+  ) -> crate::Result<Option<Self::Model>> {
     if let Some(model) = Self::Entity::find_by_id(id).one(conn).await? {
       if Self::is_readable(conn, operator, &model).await {
         return Ok(Some(model));
@@ -275,7 +275,7 @@ pub trait AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     input: FindAllInput<Self::Query>,
-  ) -> anyhow::Result<Vec<Self::Model>> {
+  ) -> crate::Result<Vec<Self::Model>> {
     let condition = input
       .query
       .as_ref()
@@ -301,7 +301,7 @@ pub trait AbstractReadService {
     conn: &impl ConnectionTrait,
     operator: &AuthUser,
     input: FindPageInput<Self::Query>,
-  ) -> anyhow::Result<Page<Self::Presentation>> {
+  ) -> crate::Result<Page<Self::Presentation>> {
     let mut condition = input
       .query
       .as_ref()
