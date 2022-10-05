@@ -9,7 +9,7 @@ pub struct Model {
   pub record_id: uuid::Uuid,
   #[sea_orm(primary_key)]
   pub account_id: uuid::Uuid,
-  pub amount: Option<Decimal>,
+  pub amount: Decimal,
   pub price: Option<Decimal>,
 }
 
@@ -52,7 +52,7 @@ impl ActiveModelBehavior for ActiveModel {}
 pub struct Presentation {
   #[serde(rename = "accountId")]
   pub account_id: uuid::Uuid,
-  pub amount: Option<Decimal>,
+  pub amount: Decimal,
   pub price: Option<Decimal>,
 }
 

@@ -1,8 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": "."
+    "composite": true
   },
   // We cannot reference /src here since race condition: two tsc will generate one .d.ts
   // https://forum.vuejs.org/t/unable-to-use-vite-plugin-referenced-type-in-main-vuejs-app/129983

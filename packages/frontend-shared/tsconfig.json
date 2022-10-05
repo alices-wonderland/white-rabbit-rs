@@ -1,15 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist"
-    //    "compilerOptions": {
-    //      "paths": {
-    //        "@/*": ["./src/*"]
-    //      }
-    //    }
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/*"]
+    }
   },
-  "include": ["src/"],
-  "exclude": ["src/**/*.spec.ts"],
+  "exclude": ["dist", "src/**/*.spec.ts", "**/*.js"],
   "references": [
     {
       "path": "./tsconfig.dev.json"

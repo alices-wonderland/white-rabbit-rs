@@ -8,7 +8,7 @@ use backend_shared::models::{
 
 use fake::{
   faker::{
-    address::en::{CountryCode, CountryName},
+    address::en::{CityName, CountryCode, CountryName},
     boolean::en::Boolean,
     chrono::en::Date,
     company::en::{Bs, BsNoun, Buzzword, CompanyName, Industry},
@@ -217,12 +217,14 @@ fn create_records(
       } else {
         record::Type::Record
       };
+      let date = Date().fake();
       let record = record::ActiveModel {
         id: Set(Faker.fake::<Uuid>()),
         journal_id: Set(journal_id),
+        name: Set(format!("{} - {}", date, CityName().fake::<String>())),
         description: Set(Paragraph(1..3).fake()),
         typ: Set(typ.clone()),
-        date: Set(Date().fake()),
+        date: Set(date),
       };
       let record_id = record.id.clone();
       records.push(record);
@@ -232,15 +234,10 @@ fn create_records(
         .map(|account| record_item::ActiveModel {
           record_id: record_id.clone(),
           account_id: Set(account.id),
-          amount: Set(Some(rng.gen_range(10..100).into())),
+          amount: Set(rng.gen_range(10..100).into()),
           price: Set(Some(rng.gen_range(10..100).into())),
         })
         .collect();
-      // 1/4 of the records are valid, by the feature "default amount"
-      if typ == record::Type::Record && !items.is_empty() && rng.gen_ratio(1, 4) {
-        items[0].amount = Set(None);
-        items[0].price = Set(None);
-      }
       record_items.append(&mut items);
 
       let mut tags: Vec<_> = (0..5)

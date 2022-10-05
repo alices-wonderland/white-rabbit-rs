@@ -1,14 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src/",
-    "outDir": "dist"
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@shared/*": ["../frontend-shared/src/*"]
+    }
   },
   "vueCompilerOptions": {
     "experimentalDisableTemplateSupport": true
   },
-  "include": ["src/"],
-  "exclude": ["src/**/*.spec.ts"],
+  "exclude": ["dist", "src/**/*.spec.ts", "**/*.js"],
   "references": [
     {
       "path": "./tsconfig.dev.json"

@@ -1,57 +1,41 @@
 <template>
-  <RecordViewTable></RecordViewTable>
-  <div>
-    <h3>User List</h3>
-    <label>
-      Input
-      <input v-model="allInput" />
-    </label>
-    <code v-if="getAllState">
-      <pre>{{ JSON.stringify(getAllState, null, "  ") }}</pre>
-    </code>
-  </div>
-
-  <div>
-    <h3>User Page</h3>
-    <label>
-      Input
-      <input v-model="pageInput" />
-    </label>
-    <code v-if="getUserPageState">
-      <pre>{{ JSON.stringify(getUserPageState, null, "  ") }}</pre>
-    </code>
-  </div>
+  <RecordTable
+    v-if="records"
+    style="width: 100%; height: 500px"
+    :records="records"
+    :editable="false"
+  ></RecordTable>
+  <div v-else>Loading...</div>
 </template>
 
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api/tauri";
 import { computedAsync } from "@vueuse/core";
-import { RecordViewTable } from "@white-rabbit/frontend-shared";
-import { ref } from "vue";
+import { RecordTable } from "@shared/components";
+import { Record_ } from "@shared/models";
 
-const allInput = ref<string>("");
-const getAllState = computedAsync<unknown[]>(
-  () =>
-    invoke("get_users", {
-      operator: "a0152c9d-11b0-d91b-f6cf-fed7925a6622",
+const records = computedAsync<Record_[]>(
+  async () => {
+    const users = await invoke<any[]>("get_users", {
       input: {
-        query: { name: { value: allInput.value, __fullText: true } },
-        sort: { field: "name", order: "Desc" },
+        query: { role: "Owner" },
+        sort: { field: "date", order: "Desc" },
       },
-    }),
-  []
-);
+    });
 
-const pageInput = ref<string>("");
-const getUserPageState = computedAsync<unknown[]>(
-  () =>
-    invoke("get_user_page", {
-      operator: "a0152c9d-11b0-d91b-f6cf-fed7925a6622",
+    return invoke("get_records", {
+      operator: users[0].id,
       input: {
-        query: { name: { value: pageInput.value, __fullText: true } },
-        sort: { field: "name", order: "Asc" },
+        query: {},
+        sort: { field: "date", order: "Desc" },
       },
-    }),
-  []
+    });
+  },
+  undefined,
+  {
+    onError(e) {
+      console.error("Error when loading records: " + e);
+    },
+  }
 );
 </script>

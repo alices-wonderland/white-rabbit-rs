@@ -5,6 +5,8 @@ use sea_orm::{entity::prelude::*, ConnectionTrait};
 
 use serde::{Deserialize, Serialize};
 
+use crate::services::RecordService;
+
 use super::{record_item, IntoPresentation, Journal, RecordItem, RecordTag};
 
 pub const TYPE: &str = "record";
@@ -17,6 +19,8 @@ pub struct Model {
   pub id: uuid::Uuid,
   #[sea_orm(indexed)]
   pub journal_id: uuid::Uuid,
+  #[sea_orm(unique, indexed)]
+  pub name: String,
   pub description: String,
   #[sea_orm(column_name = "type")]
   pub typ: Type,
@@ -65,15 +69,17 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum RecordState {
-  Record(bool),
-  Check(HashMap<uuid::Uuid, CheckRecordState>),
+  Record(RecordStateItem),
+  Check(HashMap<uuid::Uuid, RecordStateItem>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CheckRecordState {
-  Valid,
-  Invalid { expected: Decimal, actual: Decimal },
+#[serde(untagged)]
+pub enum RecordStateItem {
+  Valid(Decimal),
+  Invalid(Decimal, Decimal),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -81,12 +87,14 @@ pub struct Presentation {
   pub id: uuid::Uuid,
   #[serde(rename = "journalId")]
   pub journal_id: uuid::Uuid,
+  pub name: String,
   pub description: String,
   #[serde(rename = "type")]
   pub typ: Type,
   pub date: NaiveDate,
   pub tags: HashSet<String>,
   pub items: HashSet<record_item::Presentation>,
+  pub state: RecordState,
 }
 
 #[async_trait::async_trait]
@@ -94,6 +102,7 @@ impl IntoPresentation for Model {
   type Presentation = Presentation;
 
   async fn into_presentation(self, conn: &impl ConnectionTrait) -> crate::Result<Self::Presentation> {
+    let state = RecordService::state(conn, &self).await?;
     let tags = self
       .find_related(RecordTag)
       .all(conn)
@@ -112,6 +121,7 @@ impl IntoPresentation for Model {
     let Model {
       id,
       journal_id,
+      name,
       description,
       typ,
       date,
@@ -119,11 +129,13 @@ impl IntoPresentation for Model {
     Ok(Presentation {
       id,
       journal_id,
+      name,
       description,
       typ,
       date,
       tags,
       items,
+      state,
     })
   }
 }
@@ -133,6 +145,7 @@ impl From<Presentation> for Model {
     Presentation {
       id,
       journal_id,
+      name,
       description,
       typ,
       date,
@@ -142,6 +155,7 @@ impl From<Presentation> for Model {
     Self {
       id,
       journal_id,
+      name,
       description,
       typ,
       date,

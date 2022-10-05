@@ -7,15 +7,18 @@
     "lint:fix": "yarn lint --fix"
   },
   "dependencies": {
-    "@ag-grid-community/client-side-row-model": "^28.1.1",
-    "@ag-grid-community/core": "^28.1.1",
-    "@ag-grid-community/infinite-row-model": "^28.1.1",
-    "@ag-grid-community/styles": "^28.1.1",
-    "@ag-grid-community/vue3": "^28.1.1",
-    "@ag-grid-enterprise/clipboard": "^28.1.1",
-    "@ag-grid-enterprise/core": "^28.1.1",
-    "@ag-grid-enterprise/range-selection": "^28.1.1",
+    "@ag-grid-community/client-side-row-model": "^28.2.0",
+    "@ag-grid-community/core": "^28.2.0",
+    "@ag-grid-community/infinite-row-model": "^28.2.0",
+    "@ag-grid-community/styles": "^28.2.0",
+    "@ag-grid-community/vue3": "^28.2.0",
+    "@ag-grid-enterprise/clipboard": "^28.2.0",
+    "@ag-grid-enterprise/column-tool-panel": "^28.2.0",
+    "@ag-grid-enterprise/core": "^28.2.0",
+    "@ag-grid-enterprise/menu": "^28.2.0",
+    "@ag-grid-enterprise/range-selection": "^28.2.0",
+    "@ag-grid-enterprise/row-grouping": "^28.2.0",
     "vue": "^3.2.40",
-    "vuetify": "^3.0.0-beta.11"
+    "vuetify": "^3.0.0-beta.13"
   }
 }

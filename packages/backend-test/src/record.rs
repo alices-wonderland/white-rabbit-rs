@@ -112,6 +112,7 @@ lazy_static! {
         Ok(RecordCommand::Create(RecordCommandCreate {
           target_id: None,
           journal_id: journals[0].id,
+          name: "new record name".to_owned(),
           description: "new record description".to_owned(),
           typ: record::Type::Record,
           date: Date().fake(),
@@ -119,12 +120,12 @@ lazy_static! {
           items: HashSet::from_iter(vec![
             record_item::Presentation {
               account_id: accounts[0].id,
-              amount: Some(Decimal::from_str("10").unwrap()),
+              amount: Decimal::from_str("10").unwrap(),
               price: Some(Decimal::from_str("20").unwrap()),
             },
             record_item::Presentation {
               account_id: accounts[1].id,
-              amount: Some(Decimal::from_str("100").unwrap()),
+              amount: Decimal::from_str("100").unwrap(),
               price: Some(Decimal::from_str("2").unwrap()),
             },
           ]),
@@ -135,6 +136,7 @@ lazy_static! {
           (AuthUser::User(_), RecordCommand::Create(input)) => {
             let record = output?.unwrap().into_presentation(&*conn).await?;
             assert_eq!(input.journal_id, record.journal_id);
+            assert_eq!(input.name, record.name);
             assert_eq!(input.description, record.description);
             assert_eq!(input.typ, record.typ);
             assert_eq!(input.date, record.date);
@@ -183,6 +185,7 @@ lazy_static! {
           RecordCommand::Create(RecordCommandCreate {
             target_id: Some(lid),
             journal_id: journals[0].id,
+            name: "new record name".to_owned(),
             description: "new record description".to_owned(),
             typ: record::Type::Record,
             date: Date().fake(),
@@ -190,18 +193,19 @@ lazy_static! {
             items: HashSet::from_iter(vec![
               record_item::Presentation {
                 account_id: accounts[0].id,
-                amount: Some(Decimal::from_str("10").unwrap()),
+                amount: Decimal::from_str("10").unwrap(),
                 price: Some(Decimal::from_str("20").unwrap()),
               },
               record_item::Presentation {
                 account_id: accounts[1].id,
-                amount: Some(Decimal::from_str("100").unwrap()),
+                amount: Decimal::from_str("100").unwrap(),
                 price: Some(Decimal::from_str("2").unwrap()),
               },
             ]),
           }),
           RecordCommand::Update(RecordCommandUpdate {
             target_id: lid,
+            name: None,
             description: Some("new new description".to_owned()),
             typ: None,
             date: Some(Date().fake()),
@@ -209,12 +213,12 @@ lazy_static! {
             items: Some(HashSet::from_iter(vec![
               record_item::Presentation {
                 account_id: accounts[2].id,
-                amount: Some(Decimal::from_str("5").unwrap()),
+                amount: Decimal::from_str("5").unwrap(),
                 price: Some(Decimal::from_str("10").unwrap()),
               },
               record_item::Presentation {
                 account_id: accounts[3].id,
-                amount: Some(Decimal::from_str("25").unwrap()),
+                amount: Decimal::from_str("25").unwrap(),
                 price: Some(Decimal::from_str("4").unwrap()),
               },
             ])),
@@ -228,12 +232,14 @@ lazy_static! {
             &[RecordCommand::Create(ref create), RecordCommand::Update(ref update), RecordCommand::Delete(_)],
             &[Some(ref create_result), Some(ref update_result), None],
           ) => {
+            assert_eq!(create.name, create_result.name);
             assert_eq!(create.description, create_result.description);
             assert_eq!(create.typ, create_result.typ);
             assert_eq!(create.date, create_result.date);
             assert_eq!(create.tags, create_result.tags);
             assert_eq!(create.items, create_result.items);
 
+            assert_eq!(create.name, update_result.name);
             assert_eq!(update.description.as_ref().unwrap(), &update_result.description);
             assert_eq!(create.typ, update_result.typ);
             assert_eq!(update.date.as_ref().unwrap(), &update_result.date);

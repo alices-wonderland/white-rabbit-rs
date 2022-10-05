@@ -10,7 +10,7 @@ use crate::models::IntoPresentation;
 
 use super::AuthUser;
 
-const DEFAULT_SIZE: usize = 100;
+const DEFAULT_SIZE: usize = 10_000;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindAllInput<Q>

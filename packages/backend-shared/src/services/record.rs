@@ -5,14 +5,14 @@ use futures::{stream, StreamExt};
 use rust_decimal::Decimal;
 use sea_orm::{
   sea_query::IntoCondition, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
-  JoinType, ModelTrait, QueryFilter, QuerySelect, RelationTrait, Select, Set,
+  JoinType, ModelTrait, PaginatorTrait, QueryFilter, QuerySelect, RelationTrait, Select, Set,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
   models::{
     account, journal,
-    record::{self, Type},
+    record::{self, RecordStateItem, Type},
     record_item, record_tag, user, Account, Journal, Record, RecordItem, RecordTag,
   },
   Error,
@@ -22,7 +22,7 @@ use super::{
   read_service::{AbstractReadService, ComparableQuery, ExternalQuery, FullTextQuery, IdQuery, TextQuery},
   write_service::{AbstractCommand, AbstractWriteService},
   AuthUser, JournalService, Permission, FIELD_DESCRIPTION, FIELD_ID, FIELD_NAME, FIELD_RECORD_ITEMS, FIELD_TAG,
-  MAX_DESCRIPTION, MAX_RECORD_ITEMS, MIN_RECORD_ITEMS,
+  MAX_DESCRIPTION, MAX_NAME, MAX_RECORD_ITEMS, MIN_NAME, MIN_RECORD_ITEMS,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -37,6 +37,9 @@ pub struct RecordQuery {
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub journal: Option<uuid::Uuid>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
+  pub name: Option<TextQuery>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(default)]
   pub description: Option<String>,
@@ -68,6 +71,13 @@ impl IntoCondition for RecordQuery {
 
     if let Some(journal) = self.journal {
       cond = cond.add(record::Column::JournalId.eq(journal));
+    }
+
+    match self.name {
+      Some(TextQuery { value, full_text }) if !full_text => {
+        cond = cond.add(record::Column::Name.eq(value));
+      }
+      _ => (),
     }
 
     if let Some(typ) = self.typ {
@@ -120,6 +130,16 @@ impl From<RecordQuery> for Vec<ExternalQuery> {
 
     if let Some(value) = value.full_text {
       result.push(ExternalQuery::FullText(value));
+    }
+
+    match value.name {
+      Some(TextQuery { value, full_text }) if full_text => {
+        result.push(ExternalQuery::FullText(FullTextQuery {
+          fields: Some(vec![FIELD_NAME.to_owned()]),
+          value,
+        }));
+      }
+      _ => (),
     }
 
     if let Some(value) = value.description {
@@ -185,6 +205,7 @@ impl AbstractReadService for RecordService {
 
             for field in fields {
               if match field.as_str() {
+                FIELD_NAME => item.name.contains(value),
                 FIELD_DESCRIPTION => item.description.contains(value),
                 FIELD_TAG => item
                   .find_related(RecordTag)
@@ -225,6 +246,7 @@ impl AbstractReadService for RecordService {
   fn sortable_field(field: &str) -> Option<record::Column> {
     match field {
       "journal" => Some(record::Column::JournalId),
+      "name" => Some(record::Column::Name),
       "typ" => Some(record::Column::Typ),
       "date" => Some(record::Column::Date),
       _ => None,
@@ -245,6 +267,7 @@ pub struct RecordCommandCreate {
   pub target_id: Option<uuid::Uuid>,
   #[serde(rename = "journalId")]
   pub journal_id: uuid::Uuid,
+  pub name: String,
   pub description: String,
   #[serde(rename = "type")]
   pub typ: Type,
@@ -257,6 +280,7 @@ pub struct RecordCommandCreate {
 pub struct RecordCommandUpdate {
   #[serde(rename = "targetId")]
   pub target_id: uuid::Uuid,
+  pub name: Option<String>,
   pub description: Option<String>,
   #[serde(rename = "type")]
   pub typ: Option<Type>,
@@ -311,6 +335,16 @@ impl RecordService {
   ) -> crate::Result<()> {
     let mut errors = Vec::<Error>::new();
 
+    match &model.name {
+      ActiveValue::Set(name) if name.len() < MIN_NAME || name.len() > MAX_NAME => errors.push(Error::LengthRange {
+        entity: record::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        min: MIN_NAME,
+        max: MAX_NAME,
+      }),
+      _ => (),
+    }
+
     match &model.description {
       ActiveValue::Set(description) if description.len() > MAX_DESCRIPTION => errors.push(Error::MaxLength {
         entity: record::TYPE.to_owned(),
@@ -333,13 +367,8 @@ impl RecordService {
           max: MAX_RECORD_ITEMS,
         })
       }
-      let mut empty_count = 0;
       let mut used_accounts = HashSet::<uuid::Uuid>::new();
       for item in items {
-        if item.amount.is_none() && item.price.is_none() {
-          empty_count += 1;
-        }
-
         if let Some(account) = accounts.get(&item.account_id) {
           if account.is_archived {
             errors.push(Error::ArchivedAccount { id: account.id })
@@ -354,18 +383,25 @@ impl RecordService {
             used_accounts.insert(account.id);
           }
 
-          if account.unit.as_str() != unit && item.price.is_none() {
-            errors.push(Error::RecordItemMustContainPrice {
+          // 1. If type == Record,
+          //   1. If item.account.unit == journal.unit,
+          //     1. item.amount is REQUIRED, item.price is FORBIDDEN
+          //   2. If NOT,
+          //     1. item.amount is REQUIRED, item.price is REQUIRED
+          // 2. If type == Check,
+          //   .1 item.amount is REQUIRED, item.price is FORBIDDEN
+          if model.typ.clone().unwrap() == record::Type::Record && account.unit.as_str() != unit {
+            if item.price.is_none() {
+              errors.push(Error::RecordItemMustContainPrice {
+                id: model.id.clone().unwrap(),
+                account: account.id,
+              });
+            }
+          } else if item.price.is_some() {
+            errors.push(Error::RecordItemForbidPrice {
               id: model.id.clone().unwrap(),
               account: account.id,
-            })
-          }
-
-          if item.price.is_some() && item.amount.is_none() {
-            errors.push(Error::RecordItemOnlyPriceExist {
-              id: model.id.clone().unwrap(),
-              account: account.id,
-            })
+            });
           }
         } else {
           errors.push(Error::NotFound {
@@ -374,12 +410,6 @@ impl RecordService {
             value: item.account_id.to_string(),
           })
         }
-      }
-
-      if empty_count > 1 {
-        errors.push(Error::RecordAtMostOneEmptyItem {
-          id: model.id.clone().unwrap(),
-        });
       }
     }
 
@@ -395,29 +425,24 @@ impl RecordService {
     items: Vec<record_item::Model>,
     accounts: HashMap<uuid::Uuid, account::Model>,
   ) -> crate::Result<record::RecordState> {
-    let mut sum = Decimal::ZERO;
-    let mut blanks = 0;
+    let mut left = Decimal::ZERO;
+    let mut right = Decimal::ZERO;
     for item in items {
       if let Some(account) = accounts.get(&item.account_id) {
-        if let Some(amount) = item.amount {
-          let assign = match account.typ {
-            account::Type::Asset | account::Type::Expense => Decimal::ONE,
-            _ => Decimal::NEGATIVE_ONE,
-          };
-          let price = if journal.unit == account.unit {
-            Decimal::ONE
-          } else if let Some(price) = item.price {
-            price
-          } else {
-            return Err(Error::RecordItemMustContainPrice {
-              id: journal.id,
-              account: account.id,
-            })?;
-          };
-          sum += amount * price * assign;
+        let price = if journal.unit == account.unit {
+          Decimal::ONE
+        } else if let Some(price) = item.price {
+          price
         } else {
-          blanks += 1;
-        }
+          return Err(Error::RecordItemMustContainPrice {
+            id: journal.id,
+            account: account.id,
+          })?;
+        };
+        match account.typ {
+          account::Type::Asset | account::Type::Expense => left += item.amount * price,
+          _ => right += item.amount * price,
+        };
       } else {
         return Err(Error::NotFound {
           entity: account::TYPE.to_owned(),
@@ -426,9 +451,11 @@ impl RecordService {
         })?;
       }
     }
-    Ok(record::RecordState::Record(
-      (blanks == 0 && sum == Decimal::ZERO) || blanks == 1,
-    ))
+    Ok(record::RecordState::Record(if left != right {
+      RecordStateItem::Invalid(left, right)
+    } else {
+      RecordStateItem::Valid(left)
+    }))
   }
 
   async fn check_state(
@@ -451,7 +478,7 @@ impl RecordService {
       .into_iter()
       .fold(HashMap::new(), |mut acc, item| {
         let key = item.account_id;
-        let value = acc.get(&key).cloned().unwrap_or_default() + item.amount.unwrap_or_default();
+        let value = acc.get(&key).cloned().unwrap_or_default() + item.amount;
         acc.insert(key, value);
         acc
       });
@@ -461,14 +488,14 @@ impl RecordService {
         .into_iter()
         .map(|item| {
           let account_id = item.account_id;
-          let expected = item.amount.unwrap_or_default();
+          let expected = item.amount;
           let actual = record_items.get(&account_id).cloned().unwrap_or_default();
           (
             account_id,
             if expected == actual {
-              record::CheckRecordState::Valid
+              RecordStateItem::Valid(expected)
             } else {
-              record::CheckRecordState::Invalid { expected, actual }
+              RecordStateItem::Invalid(expected, actual)
             },
           )
         })
@@ -519,16 +546,32 @@ impl RecordService {
       })?;
     };
 
+    if journal
+      .find_related(Record)
+      .filter(record::Column::Name.eq(command.name.clone()))
+      .count(conn)
+      .await?
+      > 0
+    {
+      return Err(Error::AlreadyExists {
+        entity: record::TYPE.to_owned(),
+        field: FIELD_NAME.to_owned(),
+        value: command.name,
+      })?;
+    }
+
     let record = record::ActiveModel {
       id: Set(uuid::Uuid::new_v4()),
       journal_id: Set(journal.id),
+      name: Set(command.name.clone()),
       description: Set(command.description.clone()),
       typ: Set(command.typ.clone()),
       date: Set(command.date),
     };
 
     let accounts: HashSet<_> = command.items.iter().map(|item| item.account_id).collect();
-    let accounts: HashMap<_, _> = Account::find()
+    let accounts: HashMap<_, _> = journal
+      .find_related(Account)
       .filter(account::Column::Id.is_in(accounts))
       .all(conn)
       .await?
@@ -585,6 +628,15 @@ impl RecordService {
         field: FIELD_ID.to_owned(),
         value: command.target_id.to_string(),
       })?;
+    let journal = record
+      .find_related(Journal)
+      .one(conn)
+      .await?
+      .ok_or_else(|| Error::NotFound {
+        entity: journal::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: record.journal_id.to_string(),
+      })?;
 
     Self::check_writeable(conn, operator, &record).await?;
 
@@ -594,8 +646,26 @@ impl RecordService {
 
     let mut model = record::ActiveModel {
       id: Set(command.target_id),
+      typ: Set(record.typ),
       ..Default::default()
     };
+
+    if let Some(name) = command.name {
+      if journal
+        .find_related(Record)
+        .filter(record::Column::Name.eq(name.clone()))
+        .count(conn)
+        .await?
+        > 0
+      {
+        return Err(Error::AlreadyExists {
+          entity: record::TYPE.to_owned(),
+          field: FIELD_NAME.to_owned(),
+          value: name,
+        })?;
+      }
+      model.name = Set(name);
+    }
 
     if let Some(description) = command.description {
       model.description = Set(description);
@@ -610,17 +680,9 @@ impl RecordService {
     }
 
     let unit_items_accounts = if let Some(ref items) = command.items {
-      let journal = record
-        .find_related(Journal)
-        .one(conn)
-        .await?
-        .ok_or_else(|| Error::NotFound {
-          entity: journal::TYPE.to_owned(),
-          field: FIELD_ID.to_owned(),
-          value: record.journal_id.to_string(),
-        })?;
       let accounts: HashSet<_> = items.iter().map(|item| item.account_id).collect();
-      let accounts: HashMap<_, _> = Account::find()
+      let accounts: HashMap<_, _> = journal
+        .find_related(Account)
         .filter(account::Column::Id.is_in(accounts))
         .all(conn)
         .await?

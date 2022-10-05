@@ -54,6 +54,8 @@ pub enum Error {
   RecordAtMostOneEmptyItem { id: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] must contain price")]
   RecordItemMustContainPrice { id: uuid::Uuid, account: uuid::Uuid },
+  #[error("Item with Account[{account}] in Record[{id}] forbids the price")]
+  RecordItemForbidPrice { id: uuid::Uuid, account: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] cannot only exist price without amount")]
   RecordItemOnlyPriceExist { id: uuid::Uuid, account: uuid::Uuid },
   #[error("Account[{account}] exists multiple times in Record[{id}]")]

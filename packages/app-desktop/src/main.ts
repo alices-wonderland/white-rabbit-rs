@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import App from "./App.vue";
-import { agGridPlugin, vuetifyPlugin } from "@white-rabbit/frontend-shared";
+import { agGridPlugin, vuetifyPlugin } from "@shared/plugins";
+import "./style.scss";
 
 const app = createApp(App);
 
