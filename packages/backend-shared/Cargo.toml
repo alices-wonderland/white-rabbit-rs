@@ -21,7 +21,7 @@ strum = "0.24"
 strum_macros = "0.24"
 thiserror = "1.0"
 tokio = { version = "1.21", features = ["rt", "macros"] }
-uuid = { version = "1.1", features = ["serde", "v4"] }
+uuid = { version = "1.2", features = ["serde", "v4"] }
 
 [dev-dependencies]
 backend-test = { path = "../backend-test" }

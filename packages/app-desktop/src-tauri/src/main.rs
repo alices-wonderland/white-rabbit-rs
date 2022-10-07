@@ -1,14 +1,44 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use backend_shared::{
-  models::{account, record, user, IntoPresentation, User},
+  models::{account, journal, record, user, IntoPresentation, User},
   services::{
-    AbstractReadService, AccountQuery, AccountService, AuthUser, FindAllInput, FindPageInput, Page, RecordQuery,
-    RecordService, UserQuery, UserService, FIELD_ID,
+    AbstractReadService, AccountQuery, AccountService, AuthUser, FindAllInput, FindPageInput, JournalQuery,
+    JournalService, Page, RecordQuery, RecordService, UserQuery, UserService, FIELD_ID,
   },
 };
 use futures::{stream, StreamExt, TryStreamExt};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, TransactionTrait};
+
+#[tauri::command]
+async fn get_journals(
+  state: tauri::State<'_, DatabaseConnection>,
+  operator: Option<uuid::Uuid>,
+  input: FindAllInput<JournalQuery>,
+) -> Result<Vec<journal::Presentation>, backend_shared::Error> {
+  let txn = state.inner().begin().await?;
+  let operator: AuthUser = if let Some(operator) = operator {
+    User::find_by_id(operator)
+      .one(&txn)
+      .await?
+      .ok_or_else(|| backend_shared::Error::NotFound {
+        entity: user::TYPE.to_owned(),
+        field: FIELD_ID.to_owned(),
+        value: operator.to_string(),
+      })?
+      .into()
+  } else {
+    AuthUser::Id(("Provider".to_owned(), "Value".to_owned()))
+  };
+
+  let result = JournalService::find_all(&txn, &operator, input).await?;
+  let result = stream::iter(result)
+    .then(|item| item.into_presentation(&txn))
+    .try_collect()
+    .await?;
+  txn.commit().await?;
+  Ok(result)
+}
 
 #[tauri::command]
 async fn get_users(
@@ -149,6 +179,7 @@ async fn main() -> Result<(), anyhow::Error> {
   tauri::Builder::default()
     .manage(Database::connect(std::env::var("WHITE_RABBIT_DATABASE_URL")?).await?)
     .invoke_handler(tauri::generate_handler![
+      get_journals,
       get_users,
       get_user_page,
       get_records,

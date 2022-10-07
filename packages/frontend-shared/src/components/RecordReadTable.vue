@@ -7,6 +7,7 @@
     :tree-data="true"
     :get-data-path="getDataPath"
     :auto-group-column-def="autoGroupColumnDef"
+    @first-data-rendered="onFirstDataRendered"
   >
   </ag-grid-vue>
 </template>
@@ -15,19 +16,18 @@
 import { ref } from "vue";
 import { AgGridVue } from "@ag-grid-community/vue3";
 import { Record_, RecordStateItem, RecordType } from "@shared/models";
-import { ColDef } from "@ag-grid-community/core";
-import {
-  RecordTableGroupCell,
-  RecordTableStateCell,
-  RecordTableTagCell,
-} from "@shared/components";
+import { ColDef, FirstDataRenderedEvent } from "@ag-grid-community/core";
 import { computedAsync } from "@vueuse/core";
 import { invoke } from "@tauri-apps/api/tauri";
+import RecordReadTableTagCell from "./RecordReadTableTagCell.vue";
+import RecordTableGroupCell from "./RecordTableGroupCell.vue";
+import RecordReadTableStateCell from "./RecordReadTableStateCell.vue";
 
 type RowData = {
   hierarchy: string[];
   name?: string;
   type?: RecordType;
+  journal?: string;
   date?: Date;
   tags?: Set<string>;
   account?: string;
@@ -42,6 +42,7 @@ const props = defineProps<{
 
 const rows = computedAsync<RowData[]>(
   async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const users = await invoke<any[]>("get_users", {
       input: {
         query: { role: "Owner" },
@@ -50,24 +51,41 @@ const rows = computedAsync<RowData[]>(
     });
 
     console.log("props.records: ", props.records);
-    const query = {
-      id: [
-        ...new Set(
-          props.records.flatMap((record) =>
-            [...record.items].map((item) => item.accountId)
-          )
-        ),
-      ],
-      includeArchived: true,
-    };
-    console.log("account query: ", query);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accounts: any[] = await invoke("get_accounts", {
       operator: users[0].id,
-      input: { query },
+      input: {
+        query: {
+          id: [
+            ...new Set(
+              props.records.flatMap((record) =>
+                [...record.items].map((item) => item.accountId)
+              )
+            ),
+          ],
+          includeArchived: true,
+        },
+      },
     });
 
     const accountTypes = Object.fromEntries(
       accounts.map((account) => [account.id, account.type])
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const journals: any[] = await invoke("get_journals", {
+      operator: users[0].id,
+      input: {
+        query: {
+          id: [...new Set(props.records.map((record) => record.journalId))],
+          includeArchived: true,
+        },
+      },
+    });
+
+    const journalNames = Object.fromEntries(
+      journals.map((journal) => [journal.id, journal.name])
     );
 
     return props.records.flatMap((record) => {
@@ -75,6 +93,7 @@ const rows = computedAsync<RowData[]>(
         hierarchy: [record.id],
         name: record.name,
         type: record.type,
+        journal: journalNames[record.journalId],
         date: record.date,
         tags: record.tags,
         state: record.state instanceof Array ? record.state : undefined,
@@ -101,8 +120,9 @@ const rows = computedAsync<RowData[]>(
 const columnDefs = ref<ColDef[]>([
   { field: "type" },
   { field: "date" },
-  { field: "tags", cellRenderer: RecordTableTagCell },
-  { field: "state", cellRenderer: RecordTableStateCell },
+  { field: "journal" },
+  { field: "tags", cellRenderer: RecordReadTableTagCell },
+  { field: "state", cellRenderer: RecordReadTableStateCell },
   { field: "description" },
 ]);
 
@@ -122,16 +142,8 @@ const autoGroupColumnDef: ColDef = {
 };
 
 const getDataPath = (data: RowData) => data.hierarchy;
-</script>
 
-<style lang="scss">
-@use "@ag-grid-community/styles" as ag;
-@include ag.grid-styles(
-  (
-    themes: (
-      alpine,
-      alpine-dark,
-    ),
-  )
-);
-</style>
+const onFirstDataRendered = (event: FirstDataRenderedEvent) => {
+  event.columnApi.autoSizeAllColumns();
+};
+</script>

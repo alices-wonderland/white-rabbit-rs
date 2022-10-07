@@ -6,6 +6,7 @@ import { InfiniteRowModelModule } from "@ag-grid-community/infinite-row-model";
 import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { MenuModule } from "@ag-grid-enterprise/menu";
 import { ColumnsToolPanelModule } from "@ag-grid-enterprise/column-tool-panel";
+import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
 
 export default function (): void {
   ModuleRegistry.registerModules([
@@ -16,5 +17,6 @@ export default function (): void {
     RowGroupingModule,
     MenuModule,
     ColumnsToolPanelModule,
+    RichSelectModule,
   ]);
 }

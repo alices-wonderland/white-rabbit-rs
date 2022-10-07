@@ -1,9 +1,9 @@
 <template>
   <v-slide-group class="h-full" show-arrows disabled>
     <div class="flex gap-x-1 items-center">
-      <v-slide-group-item v-for="tag in tags" :key="tag">
-        <v-chip @click="onTagClicked">{{ tag }}</v-chip>
-      </v-slide-group-item>
+      <v-chip v-for="tag in tags" :key="tag" size="small" @click="onTagClicked">
+        {{ tag }}
+      </v-chip>
     </div>
   </v-slide-group>
 </template>
@@ -18,5 +18,5 @@ const props = defineProps<{
 
 const tags = computed(() => props.params.data.tags);
 
-const onTagClicked = (params: any) => console.log("onTagClicked: ", params);
+const onTagClicked = (params: unknown) => console.log("onTagClicked: ", params);
 </script>

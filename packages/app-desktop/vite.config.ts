@@ -8,7 +8,13 @@ import vuetify from "vite-plugin-vuetify";
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
-    plugins: [vue(), visualizer(), vuetify({ autoImport: true })],
+    plugins: [
+      vue(),
+      visualizer(),
+      vuetify({
+        autoImport: true,
+      }),
+    ],
     // prevent vite from obscuring rust errors
     clearScreen: false,
     // Tauri expects a fixed port, fail if that port is not available
@@ -37,8 +43,7 @@ export default defineConfig(() => {
       },
     },
     build: {
-      // Tauri supports es2021
-      target: ["es2021", "chrome100", "safari13"],
+      target: ["esnext"],
       // don't minify for debug builds
       minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
       // produce sourcemaps for debug builds
@@ -48,6 +53,8 @@ export default defineConfig(() => {
           manualChunks: (id): string | null => {
             if (id.includes("@ag-grid-community/core")) {
               return "ag-grid-community-core";
+            } else if (id.includes("@ag-grid")) {
+              return "ag-grid";
             }
             return null;
           },

@@ -3,12 +3,11 @@ import {
   type ThemeDefinition,
   type VuetifyOptions,
 } from "vuetify";
-import "vuetify/styles";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 // Waiting for https://github.com/vuetifyjs/vuetify/issues/14875
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import { createVueI18nAdapter } from "vuetify/locale/adapters/vue-i18n";
+// import { createVueI18nAdapter } from "vuetify/locale/adapters/vue-i18n";
 
 const light: ThemeDefinition = {
   dark: false,

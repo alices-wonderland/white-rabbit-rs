@@ -15,7 +15,7 @@ use fake::{
     lorem::en::Paragraph,
     name::en::Name,
   },
-  Fake, Faker,
+  Fake,
 };
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
@@ -29,7 +29,7 @@ fn create_users(size: usize, role: user::Role) -> (Vec<user::ActiveModel>, Vec<a
   let users: Vec<_> = (0..size)
     .into_iter()
     .map(|_| user::ActiveModel {
-      id: Set(Faker.fake::<Uuid>()),
+      id: Set(Uuid::new_v4()),
       name: Set(Name().fake()),
       role: Set(role.clone()),
     })
@@ -40,7 +40,7 @@ fn create_users(size: usize, role: user::Role) -> (Vec<user::ActiveModel>, Vec<a
     .map(|u| auth_id::ActiveModel {
       user_id: u.id.clone(),
       provider: Set(CompanyName().fake()),
-      value: Set(Faker.fake::<Uuid>().to_string()),
+      value: Set(Uuid::new_v4().to_string()),
     })
     .collect();
 
@@ -51,7 +51,7 @@ fn create_groups(size: usize, users: &mut [user::Model]) -> (Vec<group::ActiveMo
   let groups: Vec<_> = (0..size)
     .into_iter()
     .map(|idx| group::ActiveModel {
-      id: Set(Faker.fake::<Uuid>()),
+      id: Set(Uuid::new_v4()),
       name: Set(format!("{}-{}", CountryName().fake::<String>(), idx)),
       description: Set(Paragraph(1..3).fake()),
     })
@@ -99,7 +99,7 @@ fn create_journals(
   let journals: Vec<_> = (0..size)
     .into_iter()
     .map(|idx| journal::ActiveModel {
-      id: Set(Faker.fake::<Uuid>()),
+      id: Set(Uuid::new_v4()),
       name: Set(format!("{}-{}", CompanyName().fake::<String>(), idx)),
       description: Set(Paragraph(1..3).fake()),
       unit: Set(CountryCode().fake()),
@@ -163,7 +163,7 @@ fn create_accounts(
     .iter()
     .flat_map(|journal| {
       (0..size_per_journals).into_iter().map(|idx| account::ActiveModel {
-        id: Set(Faker.fake::<Uuid>()),
+        id: Set(Uuid::new_v4()),
         journal_id: Set(journal.id),
         name: Set(format!("{}-{}-{}", journal.name, Industry().fake::<String>(), idx)),
         description: Set(Paragraph(1..3).fake()),
@@ -219,7 +219,7 @@ fn create_records(
       };
       let date = Date().fake();
       let record = record::ActiveModel {
-        id: Set(Faker.fake::<Uuid>()),
+        id: Set(Uuid::new_v4()),
         journal_id: Set(journal_id),
         name: Set(format!("{} - {}", date, CityName().fake::<String>())),
         description: Set(Paragraph(1..3).fake()),

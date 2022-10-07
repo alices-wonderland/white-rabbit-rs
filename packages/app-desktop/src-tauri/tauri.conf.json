@@ -54,11 +54,9 @@
     },
     "windows": [
       {
-        "fullscreen": false,
-        "height": 600,
+        "maximized": true,
         "resizable": true,
-        "title": "Wonderland WhiteRabbit Desktop",
-        "width": 800
+        "title": "Wonderland WhiteRabbit Desktop"
       }
     ]
   }
