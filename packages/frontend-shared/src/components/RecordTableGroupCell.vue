@@ -5,7 +5,7 @@
 
 <script lang="ts" setup>
 import { ICellRendererParams } from "@ag-grid-community/core";
-import { invoke } from "@tauri-apps/api/tauri";
+import { useAccountApi } from "@shared/hooks";
 import { computedAsync } from "@vueuse/core";
 import { computed } from "vue";
 
@@ -19,27 +19,15 @@ const props = defineProps<{
 
 const isRecord = computed(() => props.params.data.hierarchy.length <= 1);
 const accountId = computed(() => props.params.data.hierarchy[1]);
+const accountApi = useAccountApi();
 
 const name = computedAsync(
   async () => {
     if (isRecord.value) {
       return props.params.data.name;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const users = await invoke<any[]>("get_users", {
-        input: {
-          query: { role: "Owner" },
-          sort: { field: "date", order: "Desc" },
-        },
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const account: any = await invoke("get_account_by_id", {
-        operator: users[0].id,
-        id: accountId.value,
-      });
-
-      return account.name;
+      const account = await accountApi.findById(accountId.value);
+      return account?.name;
     }
   },
   undefined,

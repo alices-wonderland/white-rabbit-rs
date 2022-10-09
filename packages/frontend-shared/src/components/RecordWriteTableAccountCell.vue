@@ -12,7 +12,8 @@
 
 <script lang="ts">
 import { ICellRendererParams } from "@ag-grid-community/core";
-import { invoke } from "@tauri-apps/api/tauri";
+import { useAccountApi } from "@shared/hooks";
+import { Account } from "@shared/models";
 import { computedAsync } from "@vueuse/core";
 import { defineComponent, PropType, ref, toRefs } from "vue";
 
@@ -29,15 +30,15 @@ export default defineComponent({
   },
   setup(props) {
     const { params } = toRefs(props);
+    const accountApi = useAccountApi();
+
     const journal: string | undefined =
       params.value.node?.parent?.data?.journal;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = computedAsync<any[]>(
+    const items = computedAsync<Account[]>(
       async () =>
-        await invoke("get_accounts", {
-          operator: params.value.userId,
-          input: { query: { journal } },
+        await accountApi.findAll({
+          query: { journal },
         }),
       [],
       {
@@ -55,8 +56,7 @@ export default defineComponent({
   // Composition API will remove all unused functions,
   //so for Ag Grid Cell, we must use the Options API
   methods: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getValue(): any {
+    getValue(): Account | undefined {
       return this.account;
     },
   },

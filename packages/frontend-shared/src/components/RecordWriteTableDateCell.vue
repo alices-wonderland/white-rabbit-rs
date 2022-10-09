@@ -13,15 +13,11 @@
 
 <script lang="ts">
 import { ICellRendererParams } from "@ag-grid-community/core";
-import { defineComponent, PropType } from "vue";
+import { computed, defineComponent, PropType, ref, toRefs } from "vue";
 import format from "date-fns/format";
 import isMatch from "date-fns/isMatch";
 
 const FORMAT = "yyyy-MM-dd";
-
-type Data = {
-  formatted: string;
-};
 
 export default defineComponent({
   props: {
@@ -30,20 +26,21 @@ export default defineComponent({
       required: true,
     },
   },
-  data(): Data {
-    return {
-      formatted: this.params.data.date,
-    };
-  },
-  computed: {
-    date: {
+  setup(props) {
+    const { params } = toRefs(props);
+    const formatted = ref(params.value.data.date);
+    const date = computed({
       get(): Date {
-        return new Date(this.formatted);
+        return new Date(formatted.value);
       },
       set(val: Date) {
-        this.formatted = format(val, FORMAT);
+        formatted.value = format(val, FORMAT);
       },
-    },
+    });
+    return {
+      formatted,
+      date,
+    };
   },
   // https://vuejs.org/api/sfc-script-setup.html#defineexpose
   // Composition API will remove all unused functions,

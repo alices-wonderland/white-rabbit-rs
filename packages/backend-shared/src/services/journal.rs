@@ -94,8 +94,8 @@ impl IntoCondition for JournalQuery {
       let groups: Vec<_> = admins
         .iter()
         .filter_map(|item| {
-          if item.typ == AccessItemType::Group {
-            Some(item.id)
+          if item.0 == AccessItemType::Group {
+            Some(item.1)
           } else {
             None
           }
@@ -114,8 +114,8 @@ impl IntoCondition for JournalQuery {
       let users: Vec<_> = admins
         .iter()
         .filter_map(|item| {
-          if item.typ == AccessItemType::User {
-            Some(item.id)
+          if item.0 == AccessItemType::User {
+            Some(item.1)
           } else {
             None
           }
@@ -138,8 +138,8 @@ impl IntoCondition for JournalQuery {
       let groups: Vec<_> = members
         .iter()
         .filter_map(|item| {
-          if item.typ == AccessItemType::Group {
-            Some(item.id)
+          if item.0 == AccessItemType::Group {
+            Some(item.1)
           } else {
             None
           }
@@ -158,8 +158,8 @@ impl IntoCondition for JournalQuery {
       let users: Vec<_> = members
         .iter()
         .filter_map(|item| {
-          if item.typ == AccessItemType::User {
-            Some(item.id)
+          if item.0 == AccessItemType::User {
+            Some(item.1)
           } else {
             None
           }
@@ -334,7 +334,7 @@ impl AbstractReadService for JournalService {
 pub enum JournalCommand {
   Create(JournalCommandCreate),
   Update(JournalCommandUpdate),
-  Delete(uuid::Uuid),
+  Delete(#[serde(rename = "targetId")] uuid::Uuid),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -513,9 +513,9 @@ impl JournalService {
     operator: &user::Model,
     items: impl IntoIterator<Item = AccessItem>,
   ) -> crate::Result<(HashSet<user::Model>, HashSet<group::Model>)> {
-    let (users, groups): (Vec<_>, Vec<_>) = items.into_iter().partition(|item| item.typ == AccessItemType::User);
+    let (users, groups): (Vec<_>, Vec<_>) = items.into_iter().partition(|item| item.0 == AccessItemType::User);
 
-    let users: Vec<_> = users.iter().map(|item| item.id).collect();
+    let users: Vec<_> = users.iter().map(|item| item.1).collect();
     let users: HashSet<_> = stream::iter(User::find().filter(user::Column::Id.is_in(users)).all(conn).await?)
       .filter_map(|user| async move {
         if UserService::is_readable(conn, &AuthUser::User(operator.clone()), &user).await {
@@ -527,7 +527,7 @@ impl JournalService {
       .collect()
       .await;
 
-    let groups: Vec<_> = groups.iter().map(|item| item.id).collect();
+    let groups: Vec<_> = groups.iter().map(|item| item.1).collect();
     let groups: HashSet<_> = stream::iter(Group::find().filter(group::Column::Id.is_in(groups)).all(conn).await?)
       .filter_map(|group| async move {
         if GroupService::is_readable(conn, &AuthUser::User(operator.clone()), &group).await {
@@ -602,10 +602,7 @@ impl JournalService {
     };
 
     let admins: HashSet<_> = if command.admins.is_empty() {
-      HashSet::from_iter(vec![AccessItem {
-        typ: AccessItemType::User,
-        id: operator.id,
-      }])
+      HashSet::from_iter(vec![(AccessItemType::User, operator.id)])
     } else {
       command.admins
     };

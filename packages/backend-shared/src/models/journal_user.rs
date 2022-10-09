@@ -16,10 +16,7 @@ pub struct Model {
 
 impl From<Model> for AccessItem {
   fn from(val: Model) -> Self {
-    Self {
-      id: val.user_id,
-      typ: AccessItemType::User,
-    }
+    (AccessItemType::User, val.user_id)
   }
 }
 

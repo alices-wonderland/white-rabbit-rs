@@ -195,7 +195,7 @@ impl AbstractReadService for GroupService {
 pub enum GroupCommand {
   Create(GroupCommandCreate),
   Update(GroupCommandUpdate),
-  Delete(uuid::Uuid),
+  Delete(#[serde(rename = "targetId")] uuid::Uuid),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -17,29 +17,16 @@
 </template>
 
 <script setup lang="ts">
-import { invoke } from "@tauri-apps/api/tauri";
 import { computedAsync } from "@vueuse/core";
 import { RecordReadTable, RecordWriteTable } from "@shared/components";
 import { Record_ } from "@shared/models";
+import { useRecordApi } from "@shared/hooks";
+import { Order } from "@shared/services";
+
+const recordApi = useRecordApi();
 
 const records = computedAsync<Record_[]>(
-  async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const users = await invoke<any[]>("get_users", {
-      input: {
-        query: { role: "Owner" },
-        sort: { field: "date", order: "Desc" },
-      },
-    });
-
-    return invoke("get_records", {
-      operator: users[0].id,
-      input: {
-        query: {},
-        sort: { field: "date", order: "Desc" },
-      },
-    });
-  },
+  () => recordApi.findAll({ sort: { field: "date", order: Order.DESC } }),
   undefined,
   {
     onError(e) {

@@ -127,10 +127,11 @@ impl AbstractReadService for UserService {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "__type")]
 pub enum UserCommand {
   Create(UserCommandCreate),
   Update(UserCommandUpdate),
-  Delete(uuid::Uuid),
+  Delete(#[serde(rename = "targetId")] uuid::Uuid),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

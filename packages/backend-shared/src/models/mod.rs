@@ -35,28 +35,17 @@ pub enum AccessItemType {
   Group,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct AccessItem {
-  pub id: uuid::Uuid,
-  #[serde(rename = "type")]
-  pub typ: AccessItemType,
-}
+pub type AccessItem = (AccessItemType, uuid::Uuid);
 
 impl From<user::Model> for AccessItem {
   fn from(user: user::Model) -> Self {
-    Self {
-      id: user.id,
-      typ: AccessItemType::User,
-    }
+    (AccessItemType::User, user.id)
   }
 }
 
 impl From<group::Model> for AccessItem {
   fn from(group: group::Model) -> Self {
-    Self {
-      id: group.id,
-      typ: AccessItemType::Group,
-    }
+    (AccessItemType::Group, group.id)
   }
 }
 

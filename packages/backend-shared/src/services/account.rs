@@ -244,7 +244,7 @@ impl AbstractReadService for AccountService {
 pub enum AccountCommand {
   Create(AccountCommandCreate),
   Update(AccountCommandUpdate),
-  Delete(uuid::Uuid),
+  Delete(#[serde(rename = "targetId")] uuid::Uuid),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

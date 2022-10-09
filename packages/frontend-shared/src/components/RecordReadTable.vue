@@ -15,18 +15,23 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { AgGridVue } from "@ag-grid-community/vue3";
-import { Record_, RecordStateItem, RecordType } from "@shared/models";
+import {
+  Record_,
+  RecordStateItem,
+  RecordType,
+  AccountType,
+} from "@shared/models";
 import { ColDef, FirstDataRenderedEvent } from "@ag-grid-community/core";
 import { computedAsync } from "@vueuse/core";
-import { invoke } from "@tauri-apps/api/tauri";
 import RecordReadTableTagCell from "./RecordReadTableTagCell.vue";
 import RecordTableGroupCell from "./RecordTableGroupCell.vue";
 import RecordReadTableStateCell from "./RecordReadTableStateCell.vue";
+import { useAccountApi, useJournalApi } from "@shared/hooks";
 
 type RowData = {
   hierarchy: string[];
   name?: string;
-  type?: RecordType;
+  type?: RecordType | AccountType;
   journal?: string;
   date?: Date;
   tags?: Set<string>;
@@ -40,32 +45,22 @@ const props = defineProps<{
   editable: boolean;
 }>();
 
+const accountApi = useAccountApi();
+
+const journalApi = useJournalApi();
+
 const rows = computedAsync<RowData[]>(
   async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const users = await invoke<any[]>("get_users", {
-      input: {
-        query: { role: "Owner" },
-        sort: { field: "date", order: "Desc" },
-      },
-    });
-
-    console.log("props.records: ", props.records);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const accounts: any[] = await invoke("get_accounts", {
-      operator: users[0].id,
-      input: {
-        query: {
-          id: [
-            ...new Set(
-              props.records.flatMap((record) =>
-                [...record.items].map((item) => item.accountId)
-              )
-            ),
-          ],
-          includeArchived: true,
-        },
+    const accounts = await accountApi.findAll({
+      query: {
+        id: [
+          ...new Set(
+            props.records.flatMap((record) =>
+              [...record.items].map((item) => item.accountId)
+            )
+          ),
+        ],
+        includeArchived: true,
       },
     });
 
@@ -73,14 +68,10 @@ const rows = computedAsync<RowData[]>(
       accounts.map((account) => [account.id, account.type])
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const journals: any[] = await invoke("get_journals", {
-      operator: users[0].id,
-      input: {
-        query: {
-          id: [...new Set(props.records.map((record) => record.journalId))],
-          includeArchived: true,
-        },
+    const journals = await journalApi.findAll({
+      query: {
+        id: [...new Set(props.records.map((record) => record.journalId))],
+        includeArchived: true,
       },
     });
 

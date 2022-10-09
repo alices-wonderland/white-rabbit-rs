@@ -258,7 +258,7 @@ impl AbstractReadService for RecordService {
 pub enum RecordCommand {
   Create(RecordCommandCreate),
   Update(RecordCommandUpdate),
-  Delete(uuid::Uuid),
+  Delete(#[serde(rename = "targetId")] uuid::Uuid),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -16,7 +16,7 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { AgGridVue } from "@ag-grid-community/vue3";
-import { Record_, RecordType } from "@shared/models";
+import { Record_, RecordType, AccountType } from "@shared/models";
 import {
   ColDef,
   EditableCallbackParams,
@@ -27,18 +27,18 @@ import {
   ValueFormatterParams,
 } from "@ag-grid-community/core";
 import { computedAsync } from "@vueuse/core";
-import { invoke } from "@tauri-apps/api/tauri";
 import RecordWriteTableTagCell from "./RecordWriteTableTagCell.vue";
 import RecordTableGroupCell from "./RecordTableGroupCell.vue";
 import RecordWriteTableDateCell from "./RecordWriteTableDateCell.vue";
 import RecordReadTableTagCell from "./RecordReadTableTagCell.vue";
 import RecordWriteTableNameCell from "./RecordWriteTableNameCell.vue";
 import RecordWriteTableAccountCell from "./RecordWriteTableAccountCell.vue";
+import { useAccountApi, useJournalApi } from "@shared/hooks";
 
 type RowData = {
   hierarchy: string[];
   name?: string;
-  type?: RecordType;
+  type?: RecordType | AccountType;
   journal?: string;
   date?: Date;
   tags?: Set<string>;
@@ -52,33 +52,15 @@ const props = defineProps<{
 
 const records = ref<Record_[]>(props.records);
 
-const userId = computedAsync<string>(
-  async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const users = await invoke<any[]>("get_users", {
-      input: {
-        query: { role: "Owner" },
-        sort: { field: "date", order: "Desc" },
-      },
-    });
-    return users[0].id;
-  },
-  "",
-  {
-    onError: (e) => console.error("Error when loading users: ", e),
-  }
-);
+const accountApi = useAccountApi();
+const journalApi = useJournalApi();
 
 const journalNames = computedAsync<Record<string, string>>(
   async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const journals: any[] = await invoke("get_journals", {
-      operator: userId.value,
-      input: {
-        query: {
-          id: [...new Set(records.value.map((record) => record.journalId))],
-          includeArchived: true,
-        },
+    const journals = await journalApi.findAll({
+      query: {
+        id: [...new Set(records.value.map((record) => record.journalId))],
+        includeArchived: true,
       },
     });
 
@@ -94,20 +76,16 @@ const journalNames = computedAsync<Record<string, string>>(
 
 const rows = computedAsync<RowData[]>(
   async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const accounts: any[] = await invoke("get_accounts", {
-      operator: userId.value,
-      input: {
-        query: {
-          id: [
-            ...new Set(
-              records.value.flatMap((record) =>
-                [...record.items].map((item) => item.accountId)
-              )
-            ),
-          ],
-          includeArchived: true,
-        },
+    const accounts = await accountApi.findAll({
+      query: {
+        id: [
+          ...new Set(
+            records.value.flatMap((record) =>
+              [...record.items].map((item) => item.accountId)
+            )
+          ),
+        ],
+        includeArchived: true,
       },
     });
 
@@ -254,9 +232,6 @@ const autoGroupColumnDef: ColDef = {
     if (params.data.hierarchy.length === 2) {
       return {
         component: RecordWriteTableAccountCell,
-        params: {
-          userId: userId.value,
-        },
       };
     } else {
       return {

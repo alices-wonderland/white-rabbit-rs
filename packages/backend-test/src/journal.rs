@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use sea_orm_migration::sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 
 use crate::task::{Input, ServiceTask, Task};
-use backend_shared::models::{journal, user, AccessItem, AccessItemType, IntoPresentation, Journal, User};
+use backend_shared::models::{journal, user, AccessItemType, IntoPresentation, Journal, User};
 use backend_shared::services::{
   AbstractReadService, AuthUser, FindAllInput, FindPageInput, JournalCommand, JournalCommandCreate,
   JournalCommandUpdate, JournalService, Order, Sort,
@@ -105,10 +105,7 @@ lazy_static! {
             assert_eq!(input.name, journal.name);
             assert_eq!(input.description, journal.description);
             assert_eq!(input.unit, journal.unit);
-            assert!(journal.admins.contains(&AccessItem {
-              typ: AccessItemType::User,
-              id: auth_user.id
-            }));
+            assert!(journal.admins.contains(&(AccessItemType::User, auth_user.id)));
             Ok(())
           }
           _ => unreachable!(),
@@ -162,19 +159,13 @@ lazy_static! {
             assert_eq!(create.description, create_result.description);
             assert_eq!(create.unit, create_result.unit);
             assert!(!create_result.is_archived);
-            assert!(create_result.admins.contains(&AccessItem {
-              typ: AccessItemType::User,
-              id: auth_user.id
-            }));
+            assert!(create_result.admins.contains(&(AccessItemType::User, auth_user.id)));
 
             assert_eq!(update.name.clone().unwrap(), update_result.name);
             assert_eq!(update.description.clone().unwrap(), update_result.description);
             assert_eq!(update.unit.clone().unwrap(), update_result.unit);
             assert!(!update_result.is_archived);
-            assert!(update_result.admins.contains(&AccessItem {
-              typ: AccessItemType::User,
-              id: auth_user.id
-            }));
+            assert!(update_result.admins.contains(&(AccessItemType::User, auth_user.id)));
 
             Ok(())
           }
