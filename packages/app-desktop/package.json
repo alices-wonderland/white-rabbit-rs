@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/app-desktop",
-  "packageManager": "yarn@3.2.3",
+  "packageManager": "yarn@3.2.4",
   "scripts": {
     "dev": "yarn tauri dev",
     "dev:vue": "vite",
