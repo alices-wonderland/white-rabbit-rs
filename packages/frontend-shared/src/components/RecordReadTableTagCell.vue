@@ -16,7 +16,9 @@ const props = defineProps<{
   params: ICellRendererParams;
 }>();
 
-const tags = computed(() => props.params.data.tags);
+const tags = computed(
+  () => props.params.data.tags ?? props.params.data.data.tags
+);
 
 const onTagClicked = (params: unknown) => console.log("onTagClicked: ", params);
 </script>

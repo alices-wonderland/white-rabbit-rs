@@ -38,39 +38,73 @@ abstract class TauriApiService<M, Q, C> implements ApiService<M, Q, C> {
     return authUser?.user?.id;
   }
 
+  protected modifyObject(obj: Record<string, unknown>): M {
+    return obj as M;
+  }
+
   async findById(input: string): Promise<M | null> {
-    return await invoke(this.options.findById, {
-      operator: await this.getOperator(),
-      input,
-    });
+    const result: Record<string, unknown> = await invoke(
+      this.options.findById,
+      {
+        operator: await this.getOperator(),
+        input,
+      }
+    );
+    return this.modifyObject(result);
   }
 
   async findPage(input: FindAllInput<Q>): Promise<Page<M>> {
-    return await invoke(this.options.findPage, {
-      operator: await this.getOperator(),
-      input,
-    });
+    const { info, items }: Page<Record<string, unknown>> = await invoke(
+      this.options.findPage,
+      {
+        operator: await this.getOperator(),
+        input,
+      }
+    );
+
+    return {
+      info,
+      items: items.map(({ cursor, item }) => ({
+        cursor,
+        item: this.modifyObject(item),
+      })),
+    };
   }
 
   async findAll(input: FindPageInput<Q>): Promise<M[]> {
-    return await invoke(this.options.findAll, {
-      operator: await this.getOperator(),
-      input,
-    });
+    const result: Array<Record<string, unknown>> = await invoke(
+      this.options.findAll,
+      {
+        operator: await this.getOperator(),
+        input,
+      }
+    );
+
+    return result.map((item) => this.modifyObject(item));
   }
 
   async handle(input: C): Promise<M | null> {
-    return await invoke(this.options.handle, {
-      operator: await this.getOperator(),
-      input,
-    });
+    const result: Record<string, unknown> | null = await invoke(
+      this.options.handle,
+      {
+        operator: await this.getOperator(),
+        input,
+      }
+    );
+
+    return result && this.modifyObject(result);
   }
 
-  async handleAll(input: C[]): Promise<(M | null)[]> {
-    return await invoke(this.options.handleAll, {
-      operator: await this.getOperator(),
-      input,
-    });
+  async handleAll(input: C[]): Promise<Array<M | null>> {
+    const result: Array<Record<string, unknown> | null> = await invoke(
+      this.options.handleAll,
+      {
+        operator: await this.getOperator(),
+        input,
+      }
+    );
+
+    return result.map((item) => item && this.modifyObject(item));
   }
 }
 
@@ -151,5 +185,12 @@ export class RecordApiService extends TauriApiService<
       handle: "handle_record",
       handleAll: "handle_records",
     });
+  }
+
+  protected override modifyObject(obj: Record<string, unknown>): Record_ {
+    return {
+      ...(obj as unknown as Record_),
+      date: new Date(obj.date as string),
+    };
   }
 }

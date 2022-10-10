@@ -15,26 +15,26 @@
 import { ICellRendererParams } from "@ag-grid-community/core";
 import { computed, defineComponent, PropType, ref, toRefs } from "vue";
 import format from "date-fns/format";
-import isMatch from "date-fns/isMatch";
-
-const FORMAT = "yyyy-MM-dd";
+import { RecordRow, DATE_FORMAT } from "./types";
 
 export default defineComponent({
   props: {
     params: {
-      type: Object as PropType<ICellRendererParams>,
+      type: Object as PropType<ICellRendererParams<RecordRow>>,
       required: true,
     },
   },
   setup(props) {
     const { params } = toRefs(props);
-    const formatted = ref(params.value.data.date);
+    const formatted = ref<string>(
+      format(params.value.data?.data?.date ?? new Date(), DATE_FORMAT)
+    );
     const date = computed({
       get(): Date {
         return new Date(formatted.value);
       },
       set(val: Date) {
-        formatted.value = format(val, FORMAT);
+        formatted.value = format(val, DATE_FORMAT);
       },
     });
     return {
@@ -46,12 +46,8 @@ export default defineComponent({
   // Composition API will remove all unused functions,
   //so for Ag Grid Cell, we must use the Options API
   methods: {
-    getValue(): string | undefined {
-      if (isMatch(this.formatted, FORMAT)) {
-        return this.formatted;
-      } else {
-        return undefined;
-      }
+    getValue(): Date {
+      return this.date;
     },
   },
 });

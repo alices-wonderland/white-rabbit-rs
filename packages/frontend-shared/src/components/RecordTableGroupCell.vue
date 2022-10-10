@@ -24,7 +24,7 @@ const accountApi = useAccountApi();
 const name = computedAsync(
   async () => {
     if (isRecord.value) {
-      return props.params.data.name;
+      return props.params.data.name ?? props.params.data.data.name;
     } else {
       const account = await accountApi.findById(accountId.value);
       return account?.name;

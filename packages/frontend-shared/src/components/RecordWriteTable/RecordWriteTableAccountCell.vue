@@ -11,43 +11,45 @@
 </template>
 
 <script lang="ts">
-import { ICellRendererParams } from "@ag-grid-community/core";
+import { ICellRendererParams, RowNode } from "@ag-grid-community/core";
 import { useAccountApi } from "@shared/hooks";
 import { Account } from "@shared/models";
 import { computedAsync } from "@vueuse/core";
 import { defineComponent, PropType, ref, toRefs } from "vue";
+import { RecordItemRow, RecordRow } from "./types";
 
-interface ICellParams extends ICellRendererParams {
+interface Params extends ICellRendererParams<RecordItemRow> {
   readonly userId: string;
 }
 
 export default defineComponent({
   props: {
     params: {
-      type: Object as PropType<ICellParams>,
+      type: Object as PropType<Params>,
       required: true,
     },
   },
   setup(props) {
     const { params } = toRefs(props);
+
+    const account = ref<Account | undefined>(params.value.data?.data?.account);
+
     const accountApi = useAccountApi();
 
-    const journal: string | undefined =
-      params.value.node?.parent?.data?.journal;
-
     const items = computedAsync<Account[]>(
-      async () =>
-        await accountApi.findAll({
-          query: { journal },
-        }),
+      async () => {
+        const accounts = await accountApi.findAll({
+          query: {
+            journal: (params.value.node.parent as unknown as RowNode<RecordRow>)
+              .data?.data?.journal?.id,
+          },
+        });
+        return accounts.sort((a, b) => a.name.localeCompare(b.name));
+      },
       [],
       {
         onError: (e) => console.error("Error when loading account items: ", e),
       }
-    );
-
-    const account = ref(
-      items.value.find((item) => item.id === params.value.data.hierarchy[1])
     );
 
     return { account, items };

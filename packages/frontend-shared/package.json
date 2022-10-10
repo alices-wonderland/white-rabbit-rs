@@ -28,6 +28,6 @@
   "devDependencies": {
     "@types/object-hash": "^2.2.1",
     "eslint": "^8.25.0",
-    "vue-tsc": "^1.0.1"
+    "vue-tsc": "^1.0.7"
   }
 }

@@ -1,19 +1,21 @@
 <template>
-  <div v-if="records" class="flex flex-col gap-4">
-    <RecordReadTable
-      style="width: 100%; height: 500px"
-      :records="records"
-      :editable="false"
-    >
-    </RecordReadTable>
-    <RecordWriteTable
-      style="width: 100%; height: 500px"
-      :records="records"
-      :editable="false"
-    >
-    </RecordWriteTable>
-  </div>
-  <div v-else>Loading...</div>
+  <v-app>
+    <div v-if="records" class="flex flex-col gap-4">
+      <RecordReadTable
+        style="width: 100%; height: 500px"
+        :records="records"
+        :editable="false"
+      >
+      </RecordReadTable>
+      <RecordWriteTable
+        style="width: 100%; height: 500px"
+        :records="records"
+        :editable="false"
+      >
+      </RecordWriteTable>
+    </div>
+    <div v-else>Loading...</div>
+  </v-app>
 </template>
 
 <script setup lang="ts">

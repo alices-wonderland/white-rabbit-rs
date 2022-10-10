@@ -21,12 +21,17 @@ import {
   RecordType,
   AccountType,
 } from "@shared/models";
-import { ColDef, FirstDataRenderedEvent } from "@ag-grid-community/core";
+import {
+  ColDef,
+  FirstDataRenderedEvent,
+  ValueFormatterParams,
+} from "@ag-grid-community/core";
 import { computedAsync } from "@vueuse/core";
 import RecordReadTableTagCell from "./RecordReadTableTagCell.vue";
 import RecordTableGroupCell from "./RecordTableGroupCell.vue";
 import RecordReadTableStateCell from "./RecordReadTableStateCell.vue";
 import { useAccountApi, useJournalApi } from "@shared/hooks";
+import { format } from "date-fns";
 
 type RowData = {
   hierarchy: string[];
@@ -110,7 +115,11 @@ const rows = computedAsync<RowData[]>(
 
 const columnDefs = ref<ColDef[]>([
   { field: "type" },
-  { field: "date" },
+  {
+    field: "date",
+    valueFormatter: (params: ValueFormatterParams<unknown, Date>): string =>
+      format(params.value, "yyyy-MM-dd"),
+  },
   { field: "journal" },
   { field: "tags", cellRenderer: RecordReadTableTagCell },
   { field: "state", cellRenderer: RecordReadTableStateCell },
