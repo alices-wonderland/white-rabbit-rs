@@ -1,3 +1,5 @@
+import { RowNode } from "@ag-grid-community/core";
+import { AccountNotInJournalError, SharedError } from "@shared/error";
 import {
   RecordType,
   Journal,
@@ -47,11 +49,13 @@ export class RecordRow {
   hierarchy: [string];
   data: RecordRowData;
   snapshot: RecordRowData;
+  isDeleted: boolean;
 
   constructor(record: Record_, journal: Journal) {
     this.hierarchy = [record.id];
     this.data = new RecordRowData(record, journal);
     this.snapshot = new RecordRowData(record, journal);
+    this.isDeleted = false;
   }
 
   get rowType(): RowType {
@@ -68,6 +72,14 @@ export class RecordRow {
       }
     }
     return result;
+  }
+
+  get isEditable(): boolean {
+    return !this.isDeleted;
+  }
+
+  errors(): Map<string, SharedError[]> {
+    return new Map();
   }
 }
 
@@ -93,11 +105,15 @@ export class RecordItemRow {
   hierarchy: [string, string];
   data: RecordItemRowData;
   snapshot: RecordItemRowData;
+  isDeleted: boolean;
+  isParentDeleted: boolean;
 
   constructor(item: RecordItem, record: Record_, account?: Account) {
     this.hierarchy = [record.id, item.accountId];
     this.data = new RecordItemRowData(item, account);
     this.snapshot = new RecordItemRowData(item, account);
+    this.isDeleted = false;
+    this.isParentDeleted = false;
   }
 
   get rowType(): RowType {
@@ -112,6 +128,25 @@ export class RecordItemRow {
       if (oldValue !== newValue) {
         result.set(field, [oldValue, newValue]);
       }
+    }
+    return result;
+  }
+
+  get isEditable(): boolean {
+    return !this.isDeleted && !this.isParentDeleted;
+  }
+
+  errors(node: RowNode<Row>): Map<string, SharedError[]> {
+    const result = new Map();
+    const journal = (node.parent as unknown as RowNode<RecordRow>).data?.data
+      .journal;
+    if (journal?.id !== this.data.account?.journalId) {
+      const errors: SharedError[] = result.get("account") ?? [];
+      if (errors.length === 0) {
+        result.set("account", errors);
+      }
+
+      errors.push(new AccountNotInJournalError(journal, this.data.account));
     }
     return result;
   }

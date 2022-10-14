@@ -170,7 +170,7 @@ fn create_accounts(
         typ: Set(account::Type::iter().nth(idx % 5).unwrap()),
         strategy: Set(account::Strategy::iter().nth(idx % 2).unwrap()),
         unit: Set(CountryCode().fake()),
-        is_archived: Set(Boolean(20).fake()),
+        is_archived: Set(Boolean(10).fake()),
       })
     })
     .collect();

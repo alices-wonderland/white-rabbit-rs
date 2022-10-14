@@ -5,6 +5,7 @@
     :default-col-def="defaultColDef"
     :row-data="rows"
     :tree-data="true"
+    :row-class-rules="roleClassRules"
     :get-data-path="getDataPath"
     :auto-group-column-def="autoGroupColumnDef"
     @first-data-rendered="onFirstDataRendered"
@@ -15,15 +16,18 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { AgGridVue } from "@ag-grid-community/vue3";
-import { Record_, RecordType, Journal } from "@shared/models";
+import { Record_, RecordType, Journal, Account } from "@shared/models";
 import {
   CellClassParams,
   ColDef,
   EditableCallbackParams,
   FirstDataRenderedEvent,
   ICellEditorParams,
+  RowClassParams,
+  RowClassRules,
   RowNode,
   ValueFormatterParams,
+  ValueGetterParams,
   ValueSetterParams,
 } from "@ag-grid-community/core";
 import { computedAsync } from "@vueuse/core";
@@ -36,9 +40,11 @@ import RecordWriteTableAccountCell from "./RecordWriteTableAccountCell.vue";
 import { useAccountApi, useJournalApi } from "@shared/hooks";
 import { Row, RecordRow, RecordItemRow, RowType, DATE_FORMAT } from "./types";
 import { format } from "date-fns";
+import RecordWriteTableActionsCell from "./RecordWriteTableActionsCell.vue";
 
 const EDITED_CLASS = "table-hint table-hint-edited";
 const ERROR_CLASS = "table-hint table-hint-error";
+const NOT_EDITABLE_CLASS = "table-hint table-hint-not-editable";
 
 const props = defineProps<{
   records: Record_[];
@@ -103,9 +109,16 @@ const rows = computedAsync<Row[]>(
 // TODO: For error and edited classes, should integrate the logic into row class, rather than scattered everywhere
 const columnDefs = ref<ColDef[]>([
   {
+    headerName: "Actions",
+    cellRenderer: RecordWriteTableActionsCell,
+    pinned: "left",
+    lockPinned: true,
+  },
+  {
     field: "data.type",
     headerName: "Type",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     cellEditor: "agSelectCellEditor",
     cellEditorParams: (): { values: RecordType[] } => {
@@ -127,6 +140,7 @@ const columnDefs = ref<ColDef[]>([
       params: ValueFormatterParams<RecordRow, Date | undefined>
     ): string => (params.value ? format(params.value, DATE_FORMAT) : ""),
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     cellEditor: RecordWriteTableDateCell,
     cellClass: (params: CellClassParams<RecordRow, Date>) => {
@@ -140,6 +154,7 @@ const columnDefs = ref<ColDef[]>([
     field: "data.journal",
     headerName: "Journal",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     valueFormatter: (params: ValueFormatterParams<Row, Journal | undefined>) =>
       params.value?.name ?? "",
@@ -173,6 +188,7 @@ const columnDefs = ref<ColDef[]>([
     field: "data.amount",
     headerName: "Amount",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.ITEM,
     cellClass: (params: CellClassParams<RecordItemRow, number>) => {
       if (params.value !== params.data?.snapshot?.amount) {
@@ -185,6 +201,7 @@ const columnDefs = ref<ColDef[]>([
     field: "data.price",
     headerName: "Price",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.ITEM,
     cellClass: (params: CellClassParams<RecordItemRow, number>) => {
       if (params.value !== params.data?.snapshot?.price) {
@@ -197,6 +214,7 @@ const columnDefs = ref<ColDef[]>([
     field: "data.tags",
     headerName: "Tags",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     cellRenderer: RecordReadTableTagCell,
     cellEditor: RecordWriteTableTagCell,
@@ -211,6 +229,7 @@ const columnDefs = ref<ColDef[]>([
     field: "data.description",
     headerName: "Description",
     editable: (params: EditableCallbackParams<Row>) =>
+      (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     cellEditorPopup: true,
     cellEditor: "agLargeTextCellEditor",
@@ -242,12 +261,37 @@ const autoGroupColumnDef: ColDef<Row> = {
     suppressDoubleClickExpand: true,
   },
 
-  valueSetter: (params) => {
+  valueGetter: (params: ValueGetterParams<Row>): string | undefined => {
+    if (params.data instanceof RecordRow) {
+      return params.data.data.name;
+    } else {
+      return params.data?.data.account?.id;
+    }
+  },
+  // valueSetter can handle the async result well.
+  //
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore:next-line
+  valueSetter: async (params) => {
     if (params.data instanceof RecordRow) {
       params.data.data.name = params.newValue;
     } else if (params.data instanceof RecordItemRow) {
-      params.data.hierarchy[1] = params.newValue.id;
-      params.data.data.account = params.newValue;
+      let account: Account = params.newValue;
+      if (typeof params.newValue === "string") {
+        try {
+          const result = await accountApi.findById(params.newValue);
+          if (!result) {
+            console.log("Account not found: ", params.newValue);
+            return false;
+          }
+          account = result;
+        } catch (e) {
+          console.log("Account not found: ", e);
+          return false;
+        }
+      }
+      params.data.hierarchy[1] = account.id;
+      params.data.data.account = account;
     }
 
     if (params.node) {
@@ -256,7 +300,7 @@ const autoGroupColumnDef: ColDef<Row> = {
     return true;
   },
 
-  editable: true,
+  editable: (params) => params.data?.isEditable ?? false,
   cellEditorSelector: (params: ICellEditorParams) => {
     if (params.data.hierarchy.length === 2) {
       return {
@@ -276,7 +320,8 @@ const autoGroupColumnDef: ColDef<Row> = {
     if (params.data instanceof RecordRow) {
       isEdited = params.data.data.name !== params.data.snapshot.name;
     } else if (params.data instanceof RecordItemRow) {
-      isEdited = params.data.data.account !== params.data.snapshot.account;
+      isEdited =
+        params.data.data.account?.id !== params.data.snapshot.account?.id;
     }
 
     if (isEdited) {
@@ -297,6 +342,11 @@ const autoGroupColumnDef: ColDef<Row> = {
   },
 };
 
+const roleClassRules: RowClassRules = {
+  [NOT_EDITABLE_CLASS]: (params: RowClassParams<Row>) =>
+    !params.data?.isEditable,
+};
+
 const getDataPath = (data: Row) => data.hierarchy;
 
 const onFirstDataRendered = (event: FirstDataRenderedEvent) => {
@@ -314,6 +364,10 @@ const onFirstDataRendered = (event: FirstDataRenderedEvent) => {
 
   &.table-hint-error {
     border-color: rgb(var(--v-theme-error));
+  }
+
+  &.table-hint-not-editable {
+    @apply italic bg-gray-500/20;
   }
 }
 </style>
