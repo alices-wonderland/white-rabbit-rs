@@ -36,7 +36,7 @@ lazy_static! {
         Ok(AuthUser::User(user))
       }))),
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
-        let journals = JournalService::find_all(&*conn, &*auth_user, Default::default()).await?;
+        let journals = JournalService::find_all(&*conn, &auth_user, Default::default()).await?;
         let record = journals[0].find_related(Record).one(&*conn).await?.unwrap();
         Ok(record.id)
       }))),
@@ -90,7 +90,7 @@ lazy_static! {
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
         let journals = JournalService::find_all(
           &*conn,
-          &*auth_user,
+          &auth_user,
           FindAllInput {
             query: Some(JournalQuery {
               containing_user: Some(ContainingUserQuery::Object {
@@ -161,7 +161,7 @@ lazy_static! {
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
         let journals = JournalService::find_all(
           &*conn,
-          &*auth_user,
+          &auth_user,
           FindAllInput {
             query: Some(JournalQuery {
               containing_user: Some(ContainingUserQuery::Object {

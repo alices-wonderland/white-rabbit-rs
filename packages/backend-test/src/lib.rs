@@ -42,25 +42,25 @@ mod tests {
         Task::FindById(Input { input, checker, .. }) => {
           let input = &*input.clone();
           let input = input((txn.clone(), auth_user.clone())).await?;
-          let result = S::find_by_id(&*txn, &*auth_user, input).await;
+          let result = S::find_by_id(&*txn, &auth_user, input).await;
           checker((txn, auth_user, input, result)).await?;
         }
         Task::FindPage(Input { input, checker, .. }) => {
           let input = &*input.clone();
           let input = input((txn.clone(), auth_user.clone())).await?;
-          let result = S::find_page(&*txn, &*auth_user, input.clone()).await;
+          let result = S::find_page(&*txn, &auth_user, input.clone()).await;
           checker((txn, auth_user, input, result)).await?;
         }
         Task::Handle(Input { input, checker, .. }) => {
           let input = &*input.clone();
           let input = input((txn.clone(), auth_user.clone())).await?;
-          let result = S::handle(&*txn, &*auth_user, input.clone()).await;
+          let result = S::handle(&*txn, &auth_user, input.clone()).await;
           checker((txn, auth_user, input, result)).await?;
         }
         Task::HandleAll(Input { input, checker, .. }) => {
           let input = &*input.clone();
           let input = input((txn.clone(), auth_user.clone())).await?;
-          let result = S::handle_all(&*txn, &*auth_user, input.clone()).await;
+          let result = S::handle_all(&*txn, &auth_user, input.clone()).await;
           checker((txn, auth_user, input, result)).await?;
         }
       }

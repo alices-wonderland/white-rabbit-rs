@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex gap-1 items-center">
     <v-btn
-      v-if="errors && errors.size > 0"
+      v-if="errors"
       title="Errors"
       icon
       color="error"
@@ -9,6 +9,9 @@
       variant="text"
     >
       <v-icon class="animate-pulse" :icon="mdiAlertCircleOutline"></v-icon>
+      <v-tooltip activator="parent" location="end">
+        {{ JSON.stringify([...errors], null, 2) }}
+      </v-tooltip>
     </v-btn>
     <v-btn
       v-if="!isParentDeleted && data?.isDeleted"
@@ -47,7 +50,11 @@ const props = defineProps<{ params: Params }>();
 
 const data = computed(() => props.params.data);
 
-const errors = computed(() => data.value?.errors(props.params.node));
+const errors = computed(() => {
+  const errors = data.value?.errors(props.params.node);
+  console.log("Errors: ", errors);
+  return errors;
+});
 
 const isParentDeleted = computed(
   () => data.value instanceof RecordItemRow && data.value.isParentDeleted

@@ -9,7 +9,7 @@ use crate::{
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(thiserror::Error, Clone, Debug, Serialize)]
+#[derive(thiserror::Error, Debug, Serialize)]
 pub enum Error {
   #[error("User[{user}] does not have Permission[{permission}] on Entity[{entity}, id={id:?}]")]
   InvalidPermission {
@@ -50,8 +50,6 @@ pub enum Error {
     access_item_type: AccessItemType,
     access_item_id: uuid::Uuid,
   },
-  #[error("Record[{id}] should contain at most 1 empty item")]
-  RecordAtMostOneEmptyItem { id: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] must contain price")]
   RecordItemMustContainPrice { id: uuid::Uuid, account: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] forbids the price")]

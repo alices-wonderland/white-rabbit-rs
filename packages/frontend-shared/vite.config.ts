@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -10,7 +10,7 @@ import vueI18n from "@intlify/vite-plugin-vue-i18n";
 export default defineConfig(() => ({
   plugins: [
     vue(),
-    visualizer(),
+    visualizer() as Plugin,
     vuetify({ autoImport: true }),
     vueI18n({
       include: path.resolve(__dirname, "./src/locales/**"),

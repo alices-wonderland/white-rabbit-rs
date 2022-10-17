@@ -26,7 +26,7 @@ lazy_static! {
         Ok(AuthUser::User(User::find_by_id(user_id).one(&*conn).await?.unwrap()))
       }))),
       input: Arc::new(Box::new(|(conn, auth_user)| Box::pin(async move {
-        Ok(GroupService::find_all(&*conn, &*auth_user, FindAllInput::default()).await?[0].id)
+        Ok(GroupService::find_all(&*conn, &auth_user, FindAllInput::default()).await?[0].id)
       }))),
       checker: Arc::new(Box::new(|(conn, _, input, output)| Box::pin(async move {
         let group = Group::find().filter(group::Column::Id.eq(input)).one(&*conn).await?;
