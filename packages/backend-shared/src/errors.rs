@@ -50,8 +50,6 @@ pub enum Error {
     access_item_type: AccessItemType,
     access_item_id: uuid::Uuid,
   },
-  #[error("Record[{id}] should contain at most 1 empty item")]
-  RecordAtMostOneEmptyItem { id: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] must contain price")]
   RecordItemMustContainPrice { id: uuid::Uuid, account: uuid::Uuid },
   #[error("Item with Account[{account}] in Record[{id}] forbids the price")]

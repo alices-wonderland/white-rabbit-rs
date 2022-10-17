@@ -20,3 +20,13 @@ export class AccountNotInJournalError extends SharedError {
     return "AccountNotInJournalError";
   }
 }
+
+export class DuplicateAccountsInRecord extends SharedError {
+  constructor(readonly id: string, readonly accountId: string) {
+    super(`Account[${accountId}] exists multiple times in Record[${id}]`);
+  }
+
+  get type(): string {
+    throw "DuplicateAccountsInRecord";
+  }
+}
