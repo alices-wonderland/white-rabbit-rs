@@ -1,8 +1,4 @@
-import {
-  createVuetify,
-  type ThemeDefinition,
-  type VuetifyOptions,
-} from "vuetify";
+import { createVuetify, type ThemeDefinition } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 // Waiting for https://github.com/vuetifyjs/vuetify/issues/14875
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,7 +37,7 @@ const dark: ThemeDefinition = {
   },
 };
 
-export const vuetifyOptions: VuetifyOptions = {
+export default createVuetify({
   icons: {
     defaultSet: "mdi",
     aliases,
@@ -56,6 +52,4 @@ export const vuetifyOptions: VuetifyOptions = {
       dark,
     },
   },
-};
-
-export default createVuetify(vuetifyOptions);
+});

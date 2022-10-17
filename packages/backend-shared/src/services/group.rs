@@ -300,10 +300,12 @@ impl GroupService {
       });
     }
 
-    match errors.first() {
-      Some(error) if errors.len() == 1 => Err(error.clone())?,
-      Some(_) => Err(Error::Errors(errors))?,
-      None => Ok(()),
+    if errors.len() > 1 {
+      Err(Error::Errors(errors))?
+    } else if let Some(error) = errors.into_iter().next() {
+      Err(error)?
+    } else {
+      Ok(())
     }
   }
 

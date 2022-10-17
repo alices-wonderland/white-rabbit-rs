@@ -1,27 +1,53 @@
 <template>
-  <ag-grid-vue
-    class="ag-grid-vue ag-theme-alpine"
-    :column-defs="columnDefs"
-    :default-col-def="defaultColDef"
-    :row-data="rows"
-    :tree-data="true"
-    :row-class-rules="roleClassRules"
-    :get-data-path="getDataPath"
-    :auto-group-column-def="autoGroupColumnDef"
-    @first-data-rendered="onFirstDataRendered"
-  >
-  </ag-grid-vue>
+  <div class="flex flex-col gap-2">
+    <div>
+      <v-btn
+        v-if="Object.keys(errors).length > 0"
+        icon
+        color="error"
+        size="x-small"
+        variant="text"
+      >
+        <v-icon class="animate-pulse" :icon="mdiAlertCircleOutline"></v-icon>
+        <v-tooltip activator="parent" location="end">
+          <code>
+            <pre>{{ JSON.stringify(errors, null, 2) }}</pre>
+          </code>
+        </v-tooltip>
+      </v-btn>
+      <v-btn :prepend-icon="mdiDisc" :disabled="Object.keys(errors).length > 0">
+        Save
+      </v-btn>
+    </div>
+
+    <ag-grid-vue
+      class="flex-1 ag-grid-vue ag-theme-alpine"
+      :column-defs="columnDefs"
+      :default-col-def="defaultColDef"
+      :row-data="rows"
+      :tree-data="true"
+      :row-class-rules="roleClassRules"
+      :get-data-path="getDataPath"
+      :auto-group-column-def="autoGroupColumnDef"
+      undo-redo-cell-editing
+      :undo-redo-cell-editing-limit="20"
+      @first-data-rendered="onFirstDataRendered"
+      @cell-value-changed="onCellValueChanged"
+    >
+    </ag-grid-vue>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { AgGridVue } from "@ag-grid-community/vue3";
 import { Record_, RecordType, Journal, Account } from "@shared/models";
 import {
-  CellClassParams,
+  CellValueChangedEvent,
   ColDef,
   EditableCallbackParams,
   FirstDataRenderedEvent,
+  GridApi,
   ICellEditorParams,
   RowClassParams,
   RowClassRules,
@@ -41,6 +67,8 @@ import { useAccountApi, useJournalApi } from "@shared/hooks";
 import { Row, RecordRow, RecordItemRow, RowType, DATE_FORMAT } from "./types";
 import { format } from "date-fns";
 import RecordWriteTableActionsCell from "./RecordWriteTableActionsCell.vue";
+import { SharedError } from "@shared/error";
+import { mdiDisc, mdiAlertCircleOutline } from "@mdi/js";
 
 const EDITED_CLASS = "table-hint table-hint-edited";
 const ERROR_CLASS = "table-hint table-hint-error";
@@ -54,6 +82,7 @@ const records = ref<Record_[]>(props.records);
 
 const accountApi = useAccountApi();
 const journalApi = useJournalApi();
+const gridApi = ref<GridApi>();
 
 const journals = computedAsync<Record<string, Journal>>(
   async () => {
@@ -126,11 +155,8 @@ const columnDefs = ref<ColDef[]>([
         values: [RecordType.RECORD, RecordType.CHECK],
       };
     },
-    cellClass: (params: CellClassParams<Row>) => {
-      if (params.value !== params.data?.snapshot?.type) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) => params.value !== params.data?.snapshot?.type,
     },
   },
   {
@@ -143,11 +169,8 @@ const columnDefs = ref<ColDef[]>([
       (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.RECORD,
     cellEditor: RecordWriteTableDateCell,
-    cellClass: (params: CellClassParams<RecordRow, Date>) => {
-      if (params.value !== params?.data?.snapshot?.date) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) => params.value !== params?.data?.snapshot?.date,
     },
   },
   {
@@ -177,11 +200,9 @@ const columnDefs = ref<ColDef[]>([
         formatValue: (journal: Journal) => journal.name,
       };
     },
-    cellClass: (params: CellClassParams<RecordRow, Journal | undefined>) => {
-      if (params.value?.id !== params.data?.snapshot?.journal?.id) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) =>
+        params.value?.id !== params.data?.snapshot?.journal?.id,
     },
   },
   {
@@ -190,11 +211,9 @@ const columnDefs = ref<ColDef[]>([
     editable: (params: EditableCallbackParams<Row>) =>
       (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.ITEM,
-    cellClass: (params: CellClassParams<RecordItemRow, number>) => {
-      if (params.value !== params.data?.snapshot?.amount) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) =>
+        params.value !== params.data?.snapshot?.amount,
     },
   },
   {
@@ -203,11 +222,8 @@ const columnDefs = ref<ColDef[]>([
     editable: (params: EditableCallbackParams<Row>) =>
       (params.data?.isEditable ?? false) &&
       params.data?.rowType === RowType.ITEM,
-    cellClass: (params: CellClassParams<RecordItemRow, number>) => {
-      if (params.value !== params.data?.snapshot?.price) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) => params.value !== params.data?.snapshot?.price,
     },
   },
   {
@@ -218,11 +234,8 @@ const columnDefs = ref<ColDef[]>([
       params.data?.rowType === RowType.RECORD,
     cellRenderer: RecordReadTableTagCell,
     cellEditor: RecordWriteTableTagCell,
-    cellClass: (params: CellClassParams<RecordRow, Set<string>>) => {
-      if (params.value !== params.data?.snapshot?.tags) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) => params.value !== params.data?.snapshot?.tags,
     },
   },
   {
@@ -233,11 +246,9 @@ const columnDefs = ref<ColDef[]>([
       params.data?.rowType === RowType.RECORD,
     cellEditorPopup: true,
     cellEditor: "agLargeTextCellEditor",
-    cellClass: (params: CellClassParams<RecordRow, string>) => {
-      if (params.value !== params.data?.snapshot?.description) {
-        return EDITED_CLASS;
-      }
-      return undefined;
+    cellClassRules: {
+      [EDITED_CLASS]: (params) =>
+        params.value !== params.data?.snapshot?.description,
     },
   },
 ]);
@@ -273,10 +284,13 @@ const autoGroupColumnDef: ColDef<Row> = {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore:next-line
   valueSetter: async (params) => {
+    let parent: RowNode<Row> | undefined | null;
     if (params.data instanceof RecordRow) {
       params.data.data.name = params.newValue;
+      parent = params.node;
     } else if (params.data instanceof RecordItemRow) {
       let account: Account = params.newValue;
+      parent = params.node?.parent;
       if (typeof params.newValue === "string") {
         try {
           const result = await accountApi.findById(params.newValue);
@@ -294,8 +308,9 @@ const autoGroupColumnDef: ColDef<Row> = {
       params.data.data.account = account;
     }
 
-    if (params.node) {
-      params.api.refreshCells({ rowNodes: [params.node] });
+    if (parent) {
+      const children = parent?.childrenAfterGroup ?? [];
+      params.api.refreshCells({ rowNodes: [parent, ...children] });
     }
     return true;
   },
@@ -313,32 +328,14 @@ const autoGroupColumnDef: ColDef<Row> = {
     }
   },
 
-  cellClass: (params: CellClassParams<Row>) => {
-    const classes = [];
-
-    let isEdited = false;
-    if (params.data instanceof RecordRow) {
-      isEdited = params.data.data.name !== params.data.snapshot.name;
-    } else if (params.data instanceof RecordItemRow) {
-      isEdited =
-        params.data.data.account?.id !== params.data.snapshot.account?.id;
-    }
-
-    if (isEdited) {
-      classes.push(EDITED_CLASS);
-    }
-
-    let accountJournalMismatch =
-      params.data instanceof RecordItemRow &&
-      params.data.data.account?.journalId !==
-        (params.node.parent as unknown as RowNode<RecordRow>).data?.data
-          ?.journal?.id;
-
-    if (accountJournalMismatch) {
-      classes.push(ERROR_CLASS);
-    }
-
-    return classes;
+  cellClassRules: {
+    [ERROR_CLASS]: (params) =>
+      (params.data?.errors(params.node)?.get("account")?.length ?? 0) > 0,
+    [EDITED_CLASS]: (params) =>
+      (params.data instanceof RecordRow &&
+        params.data.data.name !== params.data.snapshot.name) ||
+      (params.data instanceof RecordItemRow &&
+        params.data.data.account?.id !== params.data.snapshot.account?.id),
   },
 };
 
@@ -351,6 +348,26 @@ const getDataPath = (data: Row) => data.hierarchy;
 
 const onFirstDataRendered = (event: FirstDataRenderedEvent) => {
   event.columnApi.autoSizeAllColumns();
+  gridApi.value = event.api;
+};
+
+const errors = reactive<Record<string, Record<string, SharedError[]>>>({});
+
+const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
+  const parent =
+    event.data instanceof RecordRow ? event.node : event.node.parent;
+  if (!parent) {
+    return;
+  }
+
+  for (const node of [parent, ...(parent.childrenAfterGroup ?? [])]) {
+    const error = node.data?.errors(node);
+    if (error) {
+      errors[node.id ?? ""] = Object.fromEntries([...error]);
+    } else {
+      delete errors[node.id ?? ""];
+    }
+  }
 };
 </script>
 
@@ -367,7 +384,10 @@ const onFirstDataRendered = (event: FirstDataRenderedEvent) => {
   }
 
   &.table-hint-not-editable {
-    @apply italic bg-gray-500/20;
+    .ag-group-value {
+      font-style: italic;
+      text-decoration: line-through;
+    }
   }
 }
 </style>
