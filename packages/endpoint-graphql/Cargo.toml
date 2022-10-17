@@ -10,5 +10,5 @@ backend-shared = { path = "../backend-shared" }
 dotenv = "0.15"
 env_logger = "0.9"
 log = "0.4"
-sea-orm = { version = "0.9", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
+sea-orm = { version = "0.10", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
 tokio = { version = "1.21", features = ["rt", "macros"] }

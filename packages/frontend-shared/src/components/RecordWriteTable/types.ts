@@ -1,5 +1,9 @@
 import { RowNode } from "@ag-grid-community/core";
-import { AccountNotInJournalError, SharedError } from "@shared/error";
+import {
+  AccountNotInJournalError,
+  DuplicateAccountsInRecord,
+  SharedError,
+} from "@shared/error";
 import {
   RecordType,
   Journal,
@@ -8,6 +12,7 @@ import {
   RecordItem,
   AccountType,
 } from "@shared/models";
+import groupBy from "lodash/groupBy";
 
 export const DATE_FORMAT = "yyyy-MM-dd";
 
@@ -78,8 +83,8 @@ export class RecordRow {
     return !this.isDeleted;
   }
 
-  errors(): Map<string, SharedError[]> {
-    return new Map();
+  errors(): Map<string, SharedError[]> | undefined {
+    return undefined;
   }
 }
 
@@ -136,10 +141,11 @@ export class RecordItemRow {
     return !this.isDeleted && !this.isParentDeleted;
   }
 
-  errors(node: RowNode<Row>): Map<string, SharedError[]> {
+  errors(node: RowNode<Row>): Map<string, SharedError[]> | undefined {
     const result = new Map();
-    const journal = (node.parent as unknown as RowNode<RecordRow>).data?.data
-      .journal;
+    const parent = node.parent as unknown as RowNode<RecordRow>;
+
+    const journal = parent.data?.data.journal;
     if (journal?.id !== this.data.account?.journalId) {
       const errors: SharedError[] = result.get("account") ?? [];
       if (errors.length === 0) {
@@ -148,6 +154,27 @@ export class RecordItemRow {
 
       errors.push(new AccountNotInJournalError(journal, this.data.account));
     }
-    return result;
+
+    const rows =
+      (parent.childrenAfterGroup as unknown as Array<RowNode<RecordItemRow>>) ??
+      [];
+    const accountItems = groupBy(
+      rows.map((row) => [row.id, row.data?.data.account?.id]),
+      (pair) => pair[1]
+    );
+    for (const [accountId, pairs] of Object.entries(accountItems)) {
+      const rowIds = pairs.map((pair) => pair[0]);
+      if (rowIds.includes(node.id) && rowIds.length > 1) {
+        const errors: SharedError[] = result.get("account") ?? [];
+        if (errors.length === 0) {
+          result.set("account", errors);
+        }
+        errors.push(
+          new DuplicateAccountsInRecord(this.hierarchy[0], accountId)
+        );
+      }
+    }
+
+    return result.size > 0 ? result : undefined;
   }
 }
