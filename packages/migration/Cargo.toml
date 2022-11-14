@@ -13,13 +13,13 @@ anyhow = "1.0"
 backend-shared = { path = "../backend-shared" }
 chrono = { version = "0.4", features = [ "serde" ] }
 dotenv = "0.15"
-env_logger = "0.9"
+env_logger = "0.10"
 
 fake = { version = "2.5", features = ['chrono', 'rust_decimal'] }
 log = "0.4"
 rand = "0.8"
-rust_decimal = "1.26"
-tokio = { version = "1.21", features = ["rt", "macros"] }
+rust_decimal = "1.27"
+tokio = { version = "1.22", features = ["rt", "macros"] }
 uuid = { version = "1.2", features = ["serde", "v4"] }
 
 [dependencies.sea-orm-migration]
@@ -27,4 +27,4 @@ version = "0.10"
 features = ["sqlx-sqlite", "runtime-tokio-rustls"]
 
 [dev-dependencies]
-tokio = { version = "1.21", features = ["rt", "macros"] }
+tokio = { version = "1.22", features = ["rt", "macros"] }

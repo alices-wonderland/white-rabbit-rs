@@ -4,7 +4,7 @@ COPY . .
 
 RUN cargo build -p endpoint-graphql --bin endpoint-graphql --release
 
-FROM alpine:3.16.2
+FROM alpine:3.16.3
 
 RUN addgroup -S wonderland && adduser -S whiterabbit -G wonderland
 
