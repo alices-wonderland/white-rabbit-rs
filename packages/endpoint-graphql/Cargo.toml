@@ -8,7 +8,7 @@ edition = "2021"
 anyhow = "1.0"
 backend-shared = { path = "../backend-shared" }
 dotenv = "0.15"
-env_logger = "0.9"
+env_logger = "0.10"
 log = "0.4"
 sea-orm = { version = "0.10", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
 tokio = { version = "1.22", features = ["rt", "macros"] }
