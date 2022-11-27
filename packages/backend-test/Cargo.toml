@@ -17,7 +17,7 @@ log = "0.4"
 migration = { path = "../migration" }
 rand = "0.8"
 rust_decimal = "1.27"
-tokio = { version = "1.22", features = ["rt", "macros"] }
+tokio = { version = "1.23", features = ["rt", "macros"] }
 uuid = { version = "1.2", features = ["serde", "v4"] }
 
 [dependencies.sea-orm-migration]
