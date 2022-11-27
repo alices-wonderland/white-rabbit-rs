@@ -224,7 +224,7 @@ pub trait AbstractReadService {
   ) -> Result<Vec<Self::Model>, sea_orm::DbErr> {
     let mut results = Vec::new();
     let mut count = 0;
-    while results.len() < size as usize {
+    while results.len() < size {
       let mut statement: Select<Self::Entity> = Self::find_all_select().filter(condition.clone());
 
       if let Some(ref item) = sort {
