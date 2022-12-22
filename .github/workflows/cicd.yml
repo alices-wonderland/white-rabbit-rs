@@ -44,6 +44,8 @@ jobs:
       - name: Push coverage to Codacy
         if: matrix.platform == 'ubuntu-latest'
         uses: codacy/codacy-coverage-reporter-action@v1
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: target/debug/coverage/lcov.info
