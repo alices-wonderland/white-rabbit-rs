@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/app-web",
-  "packageManager": "yarn@3.3.0",
+  "packageManager": "yarn@3.3.1",
   "main": "src/index.ts",
   "scripts": {
     "dev": "vite --port 3100 --host 127.0.0.1",
