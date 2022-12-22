@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose, Engine as _};
 use futures::stream::{self, StreamExt, TryStreamExt};
 use sea_orm::sea_query::{IntoCondition, Value};
 use sea_orm::{
@@ -187,7 +188,7 @@ pub trait AbstractReadService {
 
   async fn find_by_cursor(conn: &impl ConnectionTrait, cursor: Option<String>) -> crate::Result<Option<Self::Model>> {
     if let Some(cursor) = cursor {
-      let id: uuid::Uuid = String::from_utf8(base64::decode(&cursor)?)?.parse()?;
+      let id: uuid::Uuid = String::from_utf8(general_purpose::STANDARD.decode(&cursor)?)?.parse()?;
       Ok(Self::Entity::find_by_id(id).one(conn).await?)
     } else {
       Ok(None)
@@ -196,7 +197,7 @@ pub trait AbstractReadService {
 
   fn encode_cursor(model: &Self::Model) -> String {
     let id = Self::primary_value(model).to_string();
-    base64::encode(id)
+    general_purpose::STANDARD.encode(id)
   }
 
   async fn filter_by_external_queries(
