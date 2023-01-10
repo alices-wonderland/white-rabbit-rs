@@ -21,7 +21,7 @@
     "@ag-grid-enterprise/range-selection": "^28.2.1",
     "@white-rabbit/frontend-shared": "workspace:^",
     "vue": "^3.2.45",
-    "vuetify": "^3.1.0"
+    "vuetify": "^3.1.1"
   },
   "devDependencies": {
     "eslint": "^8.31.0",

@@ -24,7 +24,7 @@
     "object-hash": "^3.0.0",
     "v-calendar": "^3.0.0-alpha.8",
     "vue": "^3.2.45",
-    "vuetify": "^3.1.0"
+    "vuetify": "^3.1.1"
   },
   "devDependencies": {
     "@types/object-hash": "^3.0.2",
