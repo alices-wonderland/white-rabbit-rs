@@ -49,9 +49,9 @@ import {
   FirstDataRenderedEvent,
   GridApi,
   ICellEditorParams,
+  IRowNode,
   RowClassParams,
   RowClassRules,
-  RowNode,
   ValueFormatterParams,
   ValueGetterParams,
   ValueSetterParams,
@@ -284,7 +284,7 @@ const autoGroupColumnDef: ColDef<Row> = {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore:next-line
   valueSetter: async (params) => {
-    let parent: RowNode<Row> | undefined | null;
+    let parent: IRowNode<Row> | undefined | null;
     if (params.data instanceof RecordRow) {
       params.data.data.name = params.newValue;
       parent = params.node;
