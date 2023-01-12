@@ -1,4 +1,4 @@
-import { RowNode } from "@ag-grid-community/core";
+import { IRowNode, RowNode } from "@ag-grid-community/core";
 import {
   AccountNotInJournalError,
   DuplicateAccountsInRecord,
@@ -141,9 +141,9 @@ export class RecordItemRow {
     return !this.isDeleted && !this.isParentDeleted;
   }
 
-  errors(node: RowNode<Row>): Map<string, SharedError[]> | undefined {
+  errors(node: IRowNode<Row>): Map<string, SharedError[]> | undefined {
     const result = new Map();
-    const parent = node.parent as unknown as RowNode<RecordRow>;
+    const parent = node.parent as RowNode<RecordRow>;
 
     const journal = parent.data?.data.journal;
     if (journal?.id !== this.data.account?.journalId) {
