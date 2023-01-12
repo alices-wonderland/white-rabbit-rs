@@ -14,7 +14,7 @@ pub const MULTIPLE: &str = "groups";
 #[sea_orm(table_name = "groups")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
-  pub id: uuid::Uuid,
+  pub id: Uuid,
   #[sea_orm(unique, indexed)]
   pub name: String,
   pub description: String,
@@ -49,7 +49,11 @@ impl Linked for GroupAdmin {
     vec![
       group_user::Relation::Group
         .def()
-        .on_condition(|_, right| Expr::tbl(right, group_user::Column::IsAdmin).eq(true).into_condition())
+        .on_condition(|_, right| {
+          Expr::col((right, group_user::Column::IsAdmin))
+            .eq(true)
+            .into_condition()
+        })
         .rev(),
       group_user::Relation::User.def(),
     ]
@@ -67,7 +71,11 @@ impl Linked for GroupMember {
     vec![
       group_user::Relation::Group
         .def()
-        .on_condition(|_, right| Expr::tbl(right, group_user::Column::IsAdmin).eq(false).into_condition())
+        .on_condition(|_, right| {
+          Expr::col((right, group_user::Column::IsAdmin))
+            .eq(false)
+            .into_condition()
+        })
         .rev(),
       group_user::Relation::User.def(),
     ]
@@ -76,11 +84,11 @@ impl Linked for GroupMember {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Presentation {
-  pub id: uuid::Uuid,
+  pub id: Uuid,
   pub name: String,
   pub description: String,
-  pub admins: HashSet<uuid::Uuid>,
-  pub members: HashSet<uuid::Uuid>,
+  pub admins: HashSet<Uuid>,
+  pub members: HashSet<Uuid>,
 }
 
 #[async_trait::async_trait]

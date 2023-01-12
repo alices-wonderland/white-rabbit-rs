@@ -17,7 +17,7 @@ pub const MULTIPLE: &str = "journals";
 #[sea_orm(table_name = "journals")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
-  pub id: uuid::Uuid,
+  pub id: Uuid,
   #[sea_orm(unique, indexed)]
   pub name: String,
   pub description: String,
@@ -68,7 +68,7 @@ impl Linked for JournalUserAdmin {
       journal_user::Relation::Journal
         .def()
         .on_condition(|_, right| {
-          Expr::tbl(right, journal_user::Column::IsAdmin)
+          Expr::col((right, journal_user::Column::IsAdmin))
             .eq(true)
             .into_condition()
         })
@@ -90,7 +90,7 @@ impl Linked for JournalUserMember {
       journal_user::Relation::Journal
         .def()
         .on_condition(|_, right| {
-          Expr::tbl(right, journal_user::Column::IsAdmin)
+          Expr::col((right, journal_user::Column::IsAdmin))
             .eq(false)
             .into_condition()
         })
@@ -112,7 +112,7 @@ impl Linked for JournalGroupAdmin {
       journal_group::Relation::Journal
         .def()
         .on_condition(|_, right| {
-          Expr::tbl(right, journal_group::Column::IsAdmin)
+          Expr::col((right, journal_group::Column::IsAdmin))
             .eq(true)
             .into_condition()
         })
@@ -134,7 +134,7 @@ impl Linked for JournalGroupMember {
       journal_group::Relation::Journal
         .def()
         .on_condition(|_, right| {
-          Expr::tbl(right, journal_group::Column::IsAdmin)
+          Expr::col((right, journal_group::Column::IsAdmin))
             .eq(false)
             .into_condition()
         })
@@ -146,7 +146,7 @@ impl Linked for JournalGroupMember {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Presentation {
-  pub id: uuid::Uuid,
+  pub id: Uuid,
   pub name: String,
   pub description: String,
   pub unit: String,

@@ -7,28 +7,28 @@
     "lint:fix": "yarn lint --fix"
   },
   "dependencies": {
-    "@ag-grid-community/client-side-row-model": "^28.2.1",
-    "@ag-grid-community/core": "^28.2.1",
-    "@ag-grid-community/infinite-row-model": "^28.2.1",
-    "@ag-grid-community/styles": "^28.2.1",
-    "@ag-grid-community/vue3": "^28.2.1",
-    "@ag-grid-enterprise/clipboard": "^28.2.1",
-    "@ag-grid-enterprise/column-tool-panel": "^28.2.1",
-    "@ag-grid-enterprise/core": "^28.2.1",
-    "@ag-grid-enterprise/menu": "^28.2.1",
-    "@ag-grid-enterprise/range-selection": "^28.2.1",
-    "@ag-grid-enterprise/rich-select": "^28.2.1",
-    "@ag-grid-enterprise/row-grouping": "^28.2.1",
+    "@ag-grid-community/client-side-row-model": "^29.0.0",
+    "@ag-grid-community/core": "^29.0.0",
+    "@ag-grid-community/infinite-row-model": "^29.0.0",
+    "@ag-grid-community/styles": "^29.0.0",
+    "@ag-grid-community/vue3": "^29.0.0",
+    "@ag-grid-enterprise/clipboard": "^29.0.0",
+    "@ag-grid-enterprise/column-tool-panel": "^29.0.0",
+    "@ag-grid-enterprise/core": "^29.0.0",
+    "@ag-grid-enterprise/menu": "^29.0.0",
+    "@ag-grid-enterprise/range-selection": "^29.0.0",
+    "@ag-grid-enterprise/rich-select": "^29.0.0",
+    "@ag-grid-enterprise/row-grouping": "^29.0.0",
     "date-fns": "^2.29.3",
     "lodash": "^4.17.21",
     "object-hash": "^3.0.0",
     "v-calendar": "^3.0.0-alpha.8",
-    "vue": "^3.2.45",
-    "vuetify": "^3.1.1"
+    "vue": "^3.2.47",
+    "vuetify": "^3.1.4"
   },
   "devDependencies": {
     "@types/object-hash": "^3.0.2",
-    "eslint": "^8.31.0",
+    "eslint": "^8.33.0",
     "vue-tsc": "^1.0.24"
   }
 }
