@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/frontend-shared",
-  "packageManager": "yarn@3.3.1",
+  "packageManager": "yarn@3.4.1",
   "main": "src/index.ts",
   "scripts": {
     "lint": "vue-tsc --noEmit && eslint . --ext .vue,.js,.ts --ignore-path ../../.eslintignore",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/object-hash": "^3.0.2",
-    "eslint": "^8.33.0",
+    "eslint": "^8.34.0",
     "vue-tsc": "^1.0.24"
   }
 }
