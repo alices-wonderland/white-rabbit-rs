@@ -27,7 +27,6 @@ use uuid::Uuid;
 
 fn create_users(size: usize, role: user::Role) -> (Vec<user::ActiveModel>, Vec<auth_id::ActiveModel>) {
   let users: Vec<_> = (0..size)
-    .into_iter()
     .map(|_| user::ActiveModel {
       id: Set(Uuid::new_v4()),
       name: Set(Name().fake()),
@@ -49,7 +48,6 @@ fn create_users(size: usize, role: user::Role) -> (Vec<user::ActiveModel>, Vec<a
 
 fn create_groups(size: usize, users: &mut [user::Model]) -> (Vec<group::ActiveModel>, Vec<group_user::ActiveModel>) {
   let groups: Vec<_> = (0..size)
-    .into_iter()
     .map(|idx| group::ActiveModel {
       id: Set(Uuid::new_v4()),
       name: Set(format!("{}-{}", CountryName().fake::<String>(), idx)),
@@ -97,7 +95,6 @@ fn create_journals(
   let mut rng = thread_rng();
 
   let journals: Vec<_> = (0..size)
-    .into_iter()
     .map(|idx| journal::ActiveModel {
       id: Set(Uuid::new_v4()),
       name: Set(format!("{}-{}", CompanyName().fake::<String>(), idx)),
@@ -110,7 +107,7 @@ fn create_journals(
   let tags: Vec<_> = journals
     .iter()
     .flat_map(|journal| {
-      (0..5).into_iter().map(|idx| journal_tag::ActiveModel {
+      (0..5).map(|idx| journal_tag::ActiveModel {
         journal_id: journal.id.clone(),
         tag: Set(format!("{}-{}", BsNoun().fake::<String>(), idx)),
       })
@@ -162,7 +159,7 @@ fn create_accounts(
   let accounts: Vec<_> = journals
     .iter()
     .flat_map(|journal| {
-      (0..size_per_journals).into_iter().map(|idx| account::ActiveModel {
+      (0..size_per_journals).map(|idx| account::ActiveModel {
         id: Set(Uuid::new_v4()),
         journal_id: Set(journal.id),
         name: Set(format!("{}-{}-{}", journal.name, Industry().fake::<String>(), idx)),
@@ -178,12 +175,10 @@ fn create_accounts(
   let account_tags: Vec<_> = accounts
     .iter()
     .flat_map(|account| {
-      (0..thread_rng().gen_range(10..15))
-        .into_iter()
-        .map(|idx| account_tag::ActiveModel {
-          account_id: account.id.clone(),
-          tag: Set(format!("{}-{}", Bs().fake::<String>(), idx)),
-        })
+      (0..thread_rng().gen_range(10..15)).map(|idx| account_tag::ActiveModel {
+        account_id: account.id.clone(),
+        tag: Set(format!("{}-{}", Bs().fake::<String>(), idx)),
+      })
     })
     .collect();
 
@@ -199,7 +194,7 @@ fn create_records(
   Vec<record_tag::ActiveModel>,
 ) {
   let mut rng = thread_rng();
-  let accounts: HashMap<uuid::Uuid, Vec<&account::Model>> = accounts.iter().fold(HashMap::new(), |mut map, account| {
+  let accounts: HashMap<Uuid, Vec<&account::Model>> = accounts.iter().fold(HashMap::new(), |mut map, account| {
     map.entry(account.journal_id).or_insert_with(Vec::new).push(account);
     map
   });
@@ -241,7 +236,6 @@ fn create_records(
       record_items.append(&mut items);
 
       let mut tags: Vec<_> = (0..5)
-        .into_iter()
         .map(|tag_idx| record_tag::ActiveModel {
           record_id: record_id.clone(),
           tag: Set(format!("{}-{}", Buzzword().fake::<String>(), tag_idx)),
