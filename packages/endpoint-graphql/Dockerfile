@@ -1,10 +1,10 @@
-FROM rust:1.68.1-alpine AS builder
+FROM rust:1.68.2-alpine AS builder
 
 COPY . .
 
 RUN cargo build -p endpoint-graphql --bin endpoint-graphql --release
 
-FROM alpine:3.17.2
+FROM alpine:3.17.3
 
 RUN addgroup -S wonderland && adduser -S whiterabbit -G wonderland
 

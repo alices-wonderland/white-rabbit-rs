@@ -23,9 +23,9 @@
     "date-fns": "^2.29.3",
     "lodash": "^4.17.21",
     "object-hash": "^3.0.0",
-    "v-calendar": "^3.0.2",
+    "v-calendar": "^3.0.3",
     "vue": "^3.2.47",
-    "vuetify": "^3.1.12"
+    "vuetify": "^3.1.13"
   },
   "devDependencies": {
     "@types/object-hash": "^3.0.2",
