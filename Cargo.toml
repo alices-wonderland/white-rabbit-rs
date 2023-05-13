@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "packages/app-desktop/src-tauri",
+  "packages/backend-core",
+]
