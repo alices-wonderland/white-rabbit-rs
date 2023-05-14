@@ -16,36 +16,7 @@ export default defineConfig(() => ({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
-    },
-  },
-  build: {
-    lib: {
-      name: "TestRustAppCore",
-      entry: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
-      formats: ["es", "cjs", "iife"],
-      fileName: (format) => {
-        switch (format) {
-          case "es":
-            return "index.mjs";
-          case "cjs":
-            return "index.cjs";
-          case "iife":
-            return "index.js";
-          default:
-            return "index.js";
-        }
-      },
-    },
-    minify: false,
-    rollupOptions: {
-      external: ["vue"],
-      output: {
-        exports: "named",
-        globals: {
-          vue: "Vue",
-        },
-      },
+      "@core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
     },
   },
   test: {

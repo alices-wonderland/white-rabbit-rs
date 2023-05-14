@@ -7,7 +7,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@core/*": ["../frontend-core/src/*"]
     }
   },
   "references": [
