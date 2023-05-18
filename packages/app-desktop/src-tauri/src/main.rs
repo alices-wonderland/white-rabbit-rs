@@ -2,7 +2,7 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use backend_core::{create, Repository, User, UserCommandCreate, UserRepository};
-use futures::{future, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt};
 use sea_orm::{Database, DbConn, TransactionTrait};
 use std::env;
 use tauri::State;
@@ -21,7 +21,6 @@ async fn user_find_all(db: State<'_, DbConn>) -> Result<Vec<User>, String> {
   let result = UserRepository::find_all(&tx)
     .await
     .map_err(|e| e.to_string())?
-    .try_filter(|user| future::ready(user.name.contains('9')))
     .try_chunks(10)
     .take(2)
     .try_collect::<Vec<_>>()

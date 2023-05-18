@@ -19,12 +19,26 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 
 impl AggregateRoot<'_> for Model {
+  type Model = Model;
+  type ActiveModel = ActiveModel;
+  type Presentation = Model;
+
   fn id(&self) -> Uuid {
     self.id
   }
+
+  async fn from_models(_db: &impl ConnectionTrait, models: Vec<Self::Model>) -> crate::Result<Vec<Self>> {
+    Ok(models)
+  }
 }
 
-impl Presentation<'_> for Model {}
+impl Presentation<'_> for Model {
+  type AggregateRoot = Model;
+
+  async fn from(_db: &impl ConnectionTrait, models: Vec<Self::AggregateRoot>) -> crate::Result<Vec<Self>> {
+    Ok(models)
+  }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(Some(1))")]
