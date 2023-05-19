@@ -1,4 +1,5 @@
 use crate::domains::user::Role;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

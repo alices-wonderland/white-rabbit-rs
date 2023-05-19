@@ -1,33 +1,41 @@
-#![feature(result_option_inspect)]
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
-use backend_core::{create, Repository, User, UserCommandCreate, UserRepository};
-use futures::{StreamExt, TryStreamExt};
+use backend_core::{
+  AggregateRoot, Error, FindAllArgs, Order, Repository, Role, User, UserCommand, UserCommandCreate, UserQuery,
+};
+
+use futures::TryStreamExt;
 use sea_orm::{Database, DbConn, TransactionTrait};
+use std::collections::HashSet;
+use std::default::Default;
 use std::env;
 use tauri::State;
+use uuid::Uuid;
 
 #[tauri::command]
 async fn user_create(db: State<'_, DbConn>, command: UserCommandCreate) -> Result<Option<User>, String> {
-  let tx = db.inner().begin().await.map_err(|e| e.to_string())?;
-  let result = create(&tx, command).await.inspect_err(|e| log::error!("Error: {:?}", e)).map_err(|e| e.to_string())?;
-  tx.commit().await.map_err(|e| e.to_string())?;
-  Ok(result)
+  let tx = db.inner().begin().await.map_err(Error::from)?;
+  let result = User::handle(&tx, None, UserCommand::Create(command)).await?;
+  tx.commit().await.map_err(Error::from)?;
+  Ok(result.into_iter().last())
 }
 
 #[tauri::command]
-async fn user_find_all(db: State<'_, DbConn>) -> Result<Vec<User>, String> {
-  let tx = db.inner().begin().await.map_err(|e| e.to_string())?;
-  let result = UserRepository::find_all(&tx)
-    .await
-    .map_err(|e| e.to_string())?
-    .try_chunks(10)
-    .take(2)
-    .try_collect::<Vec<_>>()
-    .await
-    .map_err(|e| e.to_string())?;
-  tx.commit().await.map_err(|e| e.to_string())?;
-  Ok(result.into_iter().flatten().collect())
+async fn user_find_all(
+  db: State<'_, DbConn>,
+  id: HashSet<Uuid>,
+  name: String,
+  role: Option<Role>,
+  sort: Vec<(String, Order)>,
+) -> Result<Vec<User>, String> {
+  let tx = db.inner().begin().await.map_err(Error::from)?;
+  let result =
+    Repository::<User>::find_all(&tx, FindAllArgs { query: UserQuery { id, name: (name, true), role }, sort })
+      .await?
+      .try_collect::<Vec<_>>()
+      .await?;
+  tx.commit().await.map_err(Error::from)?;
+  Ok(result)
 }
 
 #[tokio::main]

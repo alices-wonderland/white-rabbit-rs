@@ -1,79 +1,104 @@
-#![feature(async_fn_in_trait, impl_trait_projections)]
-
 mod domains;
 mod errors;
 
 pub use domains::*;
 pub use errors::{Error, Result};
-use futures::{Stream, TryStreamExt};
-use sea_orm::sea_query::Expr;
-use sea_orm::{
-  ActiveModelTrait, ConnectionTrait, EntityTrait, IntoActiveModel, Iterable, ModelTrait, PrimaryKeyToColumn,
-  PrimaryKeyTrait, QueryFilter, StreamTrait,
-};
+
+use futures::{stream, Stream, StreamExt, TryStreamExt};
+use sea_orm::sea_query::{Expr, IntoCondition};
+use sea_orm::{ConnectionTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, StreamTrait};
 use std::collections::HashSet;
+use std::marker::PhantomData;
 use std::pin::Pin;
+use std::str::FromStr;
 use uuid::Uuid;
 
-pub trait Repository<'a> {
-  type AggregateRoot: AggregateRoot<'a, Model = Self::Model, Presentation = Self::Presentation, ActiveModel = Self::ActiveModel>;
+const CHUNK_SIZE: usize = 100;
 
-  type Model: ModelTrait<Entity = Self::Entity> + IntoActiveModel<Self::ActiveModel>;
-  type ActiveModel: ActiveModelTrait<Entity = Self::Entity>;
-  type Entity: EntityTrait<Model = Self::Model, PrimaryKey = Self::PrimaryKey>;
-  type Presentation: Presentation<'a>;
-  type PrimaryKey: PrimaryKeyTrait<ValueType = Uuid> + PrimaryKeyToColumn;
+#[derive(Debug, Default)]
+pub struct FindAllArgs<Q>
+where
+  Q: Query,
+{
+  pub query: Q,
+  pub sort: Vec<(String, Order)>,
+}
 
-  async fn find_by_id(db: &impl ConnectionTrait, id: Uuid) -> Result<Option<Self::Model>> {
-    Ok(Self::Entity::find_by_id(id).one(db).await?)
+pub struct Repository<'a, A>
+where
+  A: AggregateRoot<'a> + 'a,
+{
+  _marker: PhantomData<&'a A>,
+}
+
+impl<'a, A> Repository<'a, A>
+where
+  A: AggregateRoot<'a> + 'a,
+{
+  pub async fn find_by_id(db: &impl ConnectionTrait, id: Uuid) -> Result<Option<A>> {
+    Ok(Self::find_by_ids(db, vec![id]).await?.into_iter().last())
   }
 
-  async fn find_by_ids(
-    db: &impl ConnectionTrait,
-    ids: impl IntoIterator<Item = Uuid>,
-  ) -> Result<Vec<Self::AggregateRoot>> {
-    let models = Self::Entity::find()
-      .filter(Expr::col(Self::PrimaryKey::iter().last().unwrap().into_column()).is_in(ids))
-      .all(db)
-      .await?;
-    Self::AggregateRoot::from_models(db, models).await
-  }
-
-  async fn find_all<C>(db: &'a C) -> Result<Pin<Box<dyn Stream<Item = Result<Self::Model>> + Send + 'a>>>
+  pub async fn find_by_ids<I>(db: &impl ConnectionTrait, ids: I) -> Result<Vec<A>>
   where
-    C: ConnectionTrait + StreamTrait,
+    I: IntoIterator<Item = Uuid>,
   {
-    Ok(Box::pin(Self::Entity::find().stream(db).await?.map_err(crate::Error::from)))
+    let models = A::Entity::find().filter(Expr::col(A::primary_column()).is_in(ids)).all(db).await?;
+    A::from_models(db, models).await
   }
 
-  async fn pre_save<C>(_db: &C, _models: &[Self::AggregateRoot]) -> Result<()>
-  where
-    C: ConnectionTrait,
-  {
-    Ok(())
+  pub async fn find_all(
+    db: &'a (impl ConnectionTrait + StreamTrait),
+    args: FindAllArgs<A::Query>,
+  ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
+    let mut filter = A::Entity::find().filter(args.query.into_condition());
+
+    for (field, order) in args.sort {
+      if let Ok(field) = A::Column::from_str(&field) {
+        filter = match order {
+          Order::Asc => filter.order_by_asc(field),
+          Order::Desc => filter.order_by_desc(field),
+        }
+      }
+    }
+
+    let stream = filter
+      .stream(db)
+      .await?
+      .map_err(Error::from)
+      .try_chunks(CHUNK_SIZE)
+      .map_err(|err| err.1)
+      .and_then(|models| A::from_models(db, models))
+      .flat_map(|result| {
+        stream::iter(match result {
+          Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
+          Err(err) => vec![Err(err)],
+        })
+      });
+    Ok(Box::pin(stream))
   }
 
-  async fn save<C>(db: &C, aggregate_roots: Vec<Self::AggregateRoot>) -> Result<Vec<Self::AggregateRoot>>
-  where
-    C: ConnectionTrait,
-  {
+  pub async fn save(db: &impl ConnectionTrait, aggregate_roots: Vec<A>) -> Result<Vec<A>> {
     if aggregate_roots.is_empty() {
       return Ok(Vec::default());
     }
-
-    Self::pre_save(db, &aggregate_roots).await?;
+    A::pre_save(db, &aggregate_roots).await?;
     let ids = aggregate_roots.iter().map(|root| root.id()).collect::<HashSet<_>>();
-    let _ = Self::Entity::insert_many(
-      aggregate_roots.into_iter().map(IntoActiveModel::into_active_model).collect::<Vec<_>>(),
-    )
-    .exec(db)
-    .await?;
+    let _ =
+      A::Entity::insert_many(aggregate_roots.into_iter().map(IntoActiveModel::into_active_model).collect::<Vec<_>>())
+        .exec(db)
+        .await?;
 
     Self::find_by_ids(db, ids).await
   }
-}
 
-pub async fn create(db: &impl ConnectionTrait, command: UserCommandCreate) -> Result<Option<User>> {
-  let user = User { id: Uuid::new_v4(), name: command.name, role: command.role };
-  Ok(UserRepository::save(db, vec![user]).await?.first().cloned())
+  pub async fn delete(db: &impl ConnectionTrait, aggregate_roots: Vec<A>) -> Result<()> {
+    if aggregate_roots.is_empty() {
+      return Ok(());
+    }
+    A::pre_delete(db, &aggregate_roots).await?;
+    let ids = aggregate_roots.iter().map(|root| root.id()).collect::<HashSet<_>>();
+    let _ = A::Entity::delete_many().filter(Expr::col(A::primary_column()).is_in(ids)).exec(db).await?;
+    Ok(())
+  }
 }
