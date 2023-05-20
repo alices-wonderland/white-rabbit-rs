@@ -88,7 +88,14 @@ watchDebounced(
 );
 
 watchDebounced(
-  () => ({ id: id.value, name: name.value, role: role.value, field: field.value, order: order.value }),
+  () => ({
+    user: user.value,
+    id: id.value,
+    name: name.value,
+    role: role.value,
+    field: field.value,
+    order: order.value,
+  }),
   async ({ id, name, role, field, order }) => {
     try {
       users.value = await invoke<object[]>("user_find_all", {

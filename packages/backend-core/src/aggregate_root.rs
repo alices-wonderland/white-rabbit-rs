@@ -1,39 +1,27 @@
-mod user;
+use crate::user::User;
+use crate::{Query, Result};
 
-pub use user::*;
-
-use crate::Result;
-
-use sea_orm::sea_query::IntoCondition;
 use sea_orm::{
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, ModelTrait, PrimaryKeyToColumn,
-  PrimaryKeyTrait, StreamTrait, TryIntoModel,
+  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, ModelTrait,
+  PrimaryKeyToColumn, PrimaryKeyTrait, StreamTrait,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum Order {
-  Asc,
-  Desc,
-}
-
-pub trait Query: IntoCondition + Default + Debug + Send {}
-
-impl<Q> Query for Q where Q: IntoCondition + Default + Debug + Send {}
-
 #[async_trait::async_trait]
-pub trait AggregateRoot<'a>:
-  Debug + Clone + Send + Sync + TryIntoModel<Self::Model> + IntoActiveModel<Self::ActiveModel>
-{
-  type Model: ModelTrait<Entity = Self::Entity> + IntoActiveModel<Self::ActiveModel>;
-  type ActiveModel: ActiveModelTrait<Entity = Self::Entity>;
-  type Entity: EntityTrait<Column = Self::Column, Model = Self::Model, PrimaryKey = Self::PrimaryKey>;
-  type Presentation: Presentation<'a>;
+pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
+  type Model: ModelTrait<Entity = Self::Entity> + IntoActiveModel<Self::ActiveModel> + Send;
+  type ActiveModel: ActiveModelTrait<Entity = Self::Entity> + Send;
+  type Entity: EntityTrait<
+    Column = Self::Column,
+    Model = Self::Model,
+    PrimaryKey = Self::PrimaryKey,
+  >;
+  type Presentation: Presentation;
   type PrimaryKey: PrimaryKeyTrait<ValueType = Uuid> + PrimaryKeyToColumn<Column = Self::Column>;
-  type Query: Query;
+  type Query: Query<AggregateRoot = Self>;
   type Column: ColumnTrait;
   type Command;
 
@@ -45,9 +33,19 @@ pub trait AggregateRoot<'a>:
 
   async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>>;
 
+  async fn do_save(db: &impl ConnectionTrait, aggregate_roots: Vec<Self>) -> Result<()> {
+    Self::Entity::insert_many(
+      aggregate_roots.into_iter().map(|root| root.into().into_active_model()).collect::<Vec<_>>(),
+    )
+    .exec(db)
+    .await?;
+
+    Ok(())
+  }
+
   async fn handle(
     db: &(impl ConnectionTrait + StreamTrait),
-    operator: Option<User>,
+    operator: Option<&User>,
     command: Self::Command,
   ) -> Result<Vec<Self>>;
 
@@ -69,8 +67,8 @@ pub trait AggregateRoot<'a>:
 }
 
 #[async_trait::async_trait]
-pub trait Presentation<'a>: Serialize + Deserialize<'a> + Send + Sync {
-  type AggregateRoot: AggregateRoot<'a, Presentation = Self>;
+pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Send + Sync {
+  type AggregateRoot: AggregateRoot<Presentation = Self>;
 
   async fn from(db: &impl ConnectionTrait, aggregate_roots: Vec<Self::AggregateRoot>) -> Vec<Self>;
 }

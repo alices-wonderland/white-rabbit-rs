@@ -1,7 +1,8 @@
-use crate::{AggregateRoot, User};
+use crate::AggregateRoot;
 
+use crate::user::User;
 use itertools::Itertools;
-use sea_orm::DbErr;
+use sea_orm::{DbErr, TransactionError};
 use serde::Serialize;
 use thiserror::Error;
 use uuid::Uuid;
@@ -27,9 +28,11 @@ pub enum Error {
 }
 
 impl Error {
-  pub fn already_exists<'a, A>(field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>) -> Error
+  pub fn already_exists<A>(
+    field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>,
+  ) -> Error
   where
-    A: AggregateRoot<'a>,
+    A: AggregateRoot,
   {
     Error::AlreadyExist {
       typ: A::typ().to_string(),
@@ -40,16 +43,29 @@ impl Error {
     }
   }
 
-  pub fn no_write_permission<'a, A>(operator: Option<&User>, aggregate_root: &A) -> Error
+  pub fn no_write_permission<A>(operator: Option<&User>, aggregate_root: &A) -> Error
   where
-    A: AggregateRoot<'a>,
+    A: AggregateRoot,
   {
-    Error::NoWritePermission { typ: A::typ().to_string(), operator_id: operator.map(User::id), id: aggregate_root.id() }
+    Error::NoWritePermission {
+      typ: A::typ().to_string(),
+      operator_id: operator.map(User::id),
+      id: aggregate_root.id(),
+    }
   }
 }
 
 impl From<Error> for String {
   fn from(value: Error) -> Self {
     value.to_string()
+  }
+}
+
+impl From<TransactionError<Error>> for Error {
+  fn from(value: TransactionError<Error>) -> Self {
+    match value {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    }
   }
 }
