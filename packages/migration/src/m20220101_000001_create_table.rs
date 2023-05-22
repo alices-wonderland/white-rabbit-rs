@@ -1,8 +1,9 @@
 use crate::sea_orm::Schema;
 
+use backend_core::account::{self, account_tags, Account};
 use backend_core::journal::{self, journal_users, Journal};
 use backend_core::user::{self, User};
-use backend_core::Repository;
+use backend_core::{AggregateRoot, Repository};
 
 use rand::prelude::*;
 use sea_orm_migration::prelude::*;
@@ -19,6 +20,8 @@ impl MigrationTrait for Migration {
     manager.create_table(schema.create_table_from_entity(user::Entity)).await?;
     manager.create_table(schema.create_table_from_entity(journal::Entity)).await?;
     manager.create_table(schema.create_table_from_entity(journal_users::Entity)).await?;
+    manager.create_table(schema.create_table_from_entity(account::Entity)).await?;
+    manager.create_table(schema.create_table_from_entity(account_tags::Entity)).await?;
 
     let db = manager.get_connection();
 
@@ -43,7 +46,28 @@ impl MigrationTrait for Migration {
         )
       })
       .collect::<Vec<_>>();
-    let _ = Repository::<Journal>::save(db, journals).await.unwrap();
+    let journals = Repository::<Journal>::save(db, journals).await.unwrap();
+
+    let accounts = journals
+      .iter()
+      .flat_map(|journal| {
+        let mut accounts = (0..3)
+          .map(|idx| {
+            Account::new(
+              format!("{} - Account {}", journal.name, idx),
+              format!("Desc {}", idx),
+              (0..3).map(|tag| format!("tag {}", tag + idx)),
+              journal,
+              None,
+            )
+          })
+          .collect::<Vec<_>>();
+        accounts[0].parent = Some(accounts[1].id());
+        accounts[1].parent = Some(accounts[2].id());
+        accounts
+      })
+      .collect::<Vec<_>>();
+    let _accounts = Repository::<Account>::save(db, accounts).await.unwrap();
 
     Ok(())
   }

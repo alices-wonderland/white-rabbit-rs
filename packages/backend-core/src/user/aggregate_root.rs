@@ -54,17 +54,22 @@ impl AggregateRoot for User {
     operator: Option<&Self>,
     models: &[Self],
   ) -> crate::Result<HashMap<Uuid, Permission>> {
-    Ok(HashMap::from_iter(models.iter().map(|model| {
-      (
-        model.id(),
-        match operator {
-          Some(operator) if operator.role == Role::Admin || operator.id == model.id() => {
-            Permission::ReadWrite
-          }
-          _ => Permission::ReadOnly,
-        },
-      )
-    })))
+    Ok(
+      models
+        .iter()
+        .map(|model| {
+          (
+            model.id(),
+            match operator {
+              Some(operator) if operator.role == Role::Admin || operator.id == model.id() => {
+                Permission::ReadWrite
+              }
+              _ => Permission::ReadOnly,
+            },
+          )
+        })
+        .collect::<HashMap<_, _>>(),
+    )
   }
 }
 

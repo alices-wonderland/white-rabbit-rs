@@ -1,5 +1,7 @@
+use crate::user::User;
 use crate::{AggregateRoot, Error, Result};
 
+use futures::lock::Mutex;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
 use sea_orm::sea_query::{Expr, SelectStatement};
 use sea_orm::{
@@ -11,6 +13,7 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::str::FromStr;
+use std::sync::Arc;
 use uuid::Uuid;
 
 const CHUNK_SIZE: usize = 100;
@@ -22,17 +25,18 @@ pub enum Order {
 }
 
 #[async_trait::async_trait]
-pub trait Query: Default + Debug + Send {
+pub trait Query: Default + Clone + Debug + Send {
   type AggregateRoot: AggregateRoot;
 
-  async fn parse(self, stmt: &mut SelectStatement) -> crate::Result<()>;
+  async fn parse(self, stmt: &mut SelectStatement) -> Result<()>;
 }
 
 #[derive(Debug, Default)]
-pub struct FindAllArgs<Q>
+pub struct FindAllArgs<'a, Q>
 where
   Q: Query,
 {
+  pub operator: Option<&'a User>,
   pub query: Q,
   pub sort: Vec<(String, Order)>,
 }
@@ -63,8 +67,10 @@ where
 
   pub async fn find_all<'a>(
     db: &'a (impl ConnectionTrait + StreamTrait),
-    args: FindAllArgs<A::Query>,
+    args: FindAllArgs<'a, A::Query>,
   ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
+    let operator = Arc::new(Mutex::new(args.operator));
+    let sub_db = Arc::new(Mutex::new(db));
     let mut root = A::Entity::find().distinct();
     args.query.parse(QueryTrait::query(&mut root)).await?;
 
@@ -83,7 +89,23 @@ where
       .map_err(Error::from)
       .try_chunks(CHUNK_SIZE)
       .map_err(|err| err.1)
-      .and_then(|models| A::from_models(db, models))
+      .zip(stream::repeat((sub_db.clone(), operator.clone())))
+      .map(|(result, (db, operator))| match result {
+        Ok(result) => Ok((db, operator, result)),
+        Err(err) => Err(err),
+      })
+      .and_then(|(db, operator, models)| async move {
+        let db = db.lock().await;
+        let operator = operator.lock().await;
+        let results = A::from_models(*db, models).await?;
+        let permissions = A::get_permission(*db, *operator, &results).await?;
+        Ok(
+          results
+            .into_iter()
+            .filter(|model| permissions.contains_key(&model.id()))
+            .collect::<Vec<_>>(),
+        )
+      })
       .flat_map(|result| {
         stream::iter(match result {
           Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),

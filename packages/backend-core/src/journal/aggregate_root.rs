@@ -1,8 +1,8 @@
 use crate::journal::{
-  self, journal_users, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
+  journal_users, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
 };
-use crate::user::User;
-use crate::AggregateRoot;
+use crate::user::{Role, User};
+use crate::{AggregateRoot, Permission};
 
 use itertools::Itertools;
 use sea_orm::{ConnectionTrait, EntityTrait, IntoActiveModel, LoaderTrait};
@@ -91,8 +91,8 @@ impl AggregateRoot for Journal {
     for (journal, users) in models.into_iter().zip(journal_users.into_iter()) {
       results.push(Self {
         id: journal.id,
-        name: journal.name.clone(),
-        description: journal.description.clone(),
+        name: journal.name,
+        description: journal.description,
         admins: users
           .iter()
           .filter(|u| u.field == journal_users::Field::Admin)
@@ -115,7 +115,7 @@ impl AggregateRoot for Journal {
       .unique_by(|root| root.id)
       .map(|root| Model::from(root.clone()).into_active_model())
       .collect::<Vec<_>>();
-    journal::Entity::insert_many(journals).exec(db).await?;
+    Entity::insert_many(journals).exec(db).await?;
     let journal_users = roots
       .iter()
       .flat_map(|root| HashSet::<journal_users::Model>::from(root.clone()))
@@ -136,9 +136,24 @@ impl AggregateRoot for Journal {
 
   async fn get_permission(
     _db: &impl ConnectionTrait,
-    _operator: Option<&User>,
-    _models: &[Self],
-  ) -> crate::Result<HashMap<Uuid, crate::Permission>> {
-    Ok(HashMap::default())
+    operator: Option<&User>,
+    models: &[Self],
+  ) -> crate::Result<HashMap<Uuid, Permission>> {
+    Ok(if let Some(operator) = operator {
+      models
+        .iter()
+        .filter_map(|model| {
+          if operator.role == Role::Admin || model.admins.contains(&operator.id) {
+            Some((model.id(), Permission::ReadWrite))
+          } else if model.members.contains(&operator.id) {
+            Some((model.id(), Permission::ReadOnly))
+          } else {
+            None
+          }
+        })
+        .collect::<HashMap<_, _>>()
+    } else {
+      models.iter().map(|model| (model.id(), Permission::ReadWrite)).collect::<HashMap<_, _>>()
+    })
   }
 }

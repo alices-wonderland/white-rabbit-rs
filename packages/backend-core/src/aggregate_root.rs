@@ -33,9 +33,9 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 
   async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>>;
 
-  async fn do_save(db: &impl ConnectionTrait, aggregate_roots: Vec<Self>) -> Result<()> {
+  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
     Self::Entity::insert_many(
-      aggregate_roots.into_iter().map(|root| root.into().into_active_model()).collect::<Vec<_>>(),
+      roots.into_iter().map(|root| root.into().into_active_model()).collect::<Vec<_>>(),
     )
     .exec(db)
     .await?;
@@ -73,6 +73,7 @@ pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Send + Sync {
   async fn from(db: &impl ConnectionTrait, aggregate_roots: Vec<Self::AggregateRoot>) -> Vec<Self>;
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Permission {
   ReadOnly,
   ReadWrite,

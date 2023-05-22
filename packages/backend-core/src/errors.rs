@@ -1,6 +1,6 @@
+use crate::user::User;
 use crate::AggregateRoot;
 
-use crate::user::User;
 use itertools::Itertools;
 use sea_orm::{DbErr, TransactionError};
 use serde::Serialize;

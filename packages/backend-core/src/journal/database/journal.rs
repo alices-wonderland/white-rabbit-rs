@@ -1,5 +1,5 @@
 use crate::journal::journal_users;
-use crate::user;
+use crate::{account, user};
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -19,11 +19,19 @@ pub struct Model {
 pub enum Relation {
   #[sea_orm(has_many = "journal_users::Entity")]
   JournalUsers,
+  #[sea_orm(has_many = "account::Entity")]
+  Accounts,
 }
 
 impl Related<journal_users::Entity> for Entity {
   fn to() -> RelationDef {
     Relation::JournalUsers.def()
+  }
+}
+
+impl Related<account::Entity> for Entity {
+  fn to() -> RelationDef {
+    Relation::Accounts.def()
   }
 }
 
