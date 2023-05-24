@@ -1,5 +1,4 @@
 use crate::user::Role;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

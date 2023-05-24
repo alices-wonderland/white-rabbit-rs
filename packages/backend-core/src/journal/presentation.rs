@@ -1,5 +1,4 @@
 use crate::journal::Journal;
-
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +9,7 @@ pub struct Presentation {}
 impl crate::Presentation for Presentation {
   type AggregateRoot = Journal;
 
-  async fn from(_db: &impl ConnectionTrait, _models: Vec<Self::AggregateRoot>) -> Vec<Self> {
+  async fn from(_db: &impl ConnectionTrait, _roots: Vec<Self::AggregateRoot>) -> Vec<Self> {
     Vec::default()
   }
 }

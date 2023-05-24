@@ -1,18 +1,17 @@
 use crate::user::User;
-use crate::{AggregateRoot, Error, Result};
-
+use crate::{AggregateRoot, Error, Presentation, Result};
 use futures::lock::Mutex;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
-use sea_orm::sea_query::{Expr, SelectStatement};
-use sea_orm::{
-  ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, StreamTrait,
-};
+use sea_orm::entity::prelude::*;
+use sea_orm::sea_query::Expr;
+use sea_orm::{QuerySelect, StreamTrait};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::future;
 use std::marker::PhantomData;
 use std::pin::Pin;
-use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -24,21 +23,41 @@ pub enum Order {
   Desc,
 }
 
-#[async_trait::async_trait]
-pub trait Query: Default + Clone + Debug + Send {
-  type AggregateRoot: AggregateRoot;
+pub type Sort = Vec<(String, Order)>;
 
-  async fn parse(self, stmt: &mut SelectStatement) -> Result<()>;
-}
+pub trait Query: Default + Clone + Debug + Send {}
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FindAllArgs<'a, Q>
 where
   Q: Query,
 {
   pub operator: Option<&'a User>,
   pub query: Q,
-  pub sort: Vec<(String, Order)>,
+  pub sort: Sort,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FindPageArgs<'a, Q>
+where
+  Q: Query,
+{
+  pub operator: Option<&'a User>,
+  pub query: Q,
+  pub sort: Sort,
+  pub after: Option<Uuid>,
+  pub before: Option<Uuid>,
+  pub size: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Page<A>
+where
+  A: AggregateRoot,
+{
+  pub items: Vec<A::Presentation>,
+  pub has_previous: bool,
+  pub has_next: bool,
 }
 
 pub struct Repository<A>
@@ -71,19 +90,13 @@ where
   ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
     let operator = Arc::new(Mutex::new(args.operator));
     let sub_db = Arc::new(Mutex::new(db));
-    let mut root = A::Entity::find().distinct();
-    args.query.parse(QueryTrait::query(&mut root)).await?;
 
-    for (field, order) in args.sort {
-      if let Ok(field) = A::Column::from_str(&field) {
-        root = match order {
-          Order::Asc => root.order_by_asc(field),
-          Order::Desc => root.order_by_desc(field),
-        }
-      }
-    }
+    let select = A::Entity::find().distinct();
+    let select = A::parse_join(select, &args.query, &args.sort);
+    let select = A::parse_query(select, args.query);
+    let select = A::parse_order(select, args.sort);
 
-    let stream = root
+    let stream = select
       .stream(db)
       .await?
       .map_err(Error::from)
@@ -115,6 +128,70 @@ where
     Ok(Box::pin(stream))
   }
 
+  pub async fn find_page<'a>(
+    db: &'a (impl ConnectionTrait + StreamTrait),
+    FindPageArgs { operator, query, sort, after, before, size }: FindPageArgs<'a, A::Query>,
+  ) -> Result<Page<A>> {
+    let after = if let Some(after) = after { Self::find_by_id(db, after).await? } else { None };
+    let before = if let Some(before) = before { Self::find_by_id(db, before).await? } else { None };
+    let should_reverse = after.is_none() && before.is_some();
+
+    let sort = if !sort.iter().any(|(field, _)| field == "id") {
+      let mut sort = Vec::from_iter(sort);
+      sort.push(("id".to_string(), Order::Asc));
+      sort
+    } else {
+      sort
+    };
+
+    let items = Self::find_all(
+      db,
+      FindAllArgs {
+        operator,
+        query,
+        sort: sort
+          .iter()
+          .map(|(field, order)| {
+            (
+              field.to_string(),
+              if should_reverse {
+                match order {
+                  Order::Asc => Order::Desc,
+                  Order::Desc => Order::Asc,
+                }
+              } else {
+                order.clone()
+              },
+            )
+          })
+          .collect::<Vec<_>>(),
+      },
+    )
+    .await?
+    .try_filter(|model| {
+      future::ready(filter_between(model, &sort, after.as_ref(), before.as_ref()))
+    })
+    .take(size + 1)
+    .try_collect::<Vec<_>>()
+    .await?;
+
+    let (has_previous, has_next) = if after.is_some() {
+      (true, items.len() > size)
+    } else if before.is_some() {
+      (items.len() > size, true)
+    } else {
+      (false, items.len() > size)
+    };
+
+    let mut items = Presentation::from(db, items.into_iter().take(size).collect::<Vec<_>>()).await;
+
+    if should_reverse {
+      items.reverse();
+    }
+
+    Ok(Page { items, has_previous, has_next })
+  }
+
   pub async fn save(db: &impl ConnectionTrait, aggregate_roots: Vec<A>) -> Result<Vec<A>> {
     if aggregate_roots.is_empty() {
       return Ok(Vec::default());
@@ -135,5 +212,40 @@ where
     let _ =
       A::Entity::delete_many().filter(Expr::col(A::primary_column()).is_in(ids)).exec(db).await?;
     Ok(())
+  }
+}
+
+fn compare<A: AggregateRoot>(
+  root: &A,
+  other: Option<&A>,
+  field: impl ToString,
+  expected: Ordering,
+) -> bool {
+  if let Some(other) = other {
+    root.compare_by_field(other, field).map(|ordering| ordering == expected).unwrap_or(false)
+  } else {
+    true
+  }
+}
+
+fn filter_between<A: AggregateRoot>(
+  root: &A,
+  sort: &[(String, Order)],
+  after: Option<&A>,
+  before: Option<&A>,
+) -> bool {
+  if let Some(((field, order), head)) = sort.split_last() {
+    let head_matches = head.iter().all(|(field, _)| {
+      compare(root, after, field, Ordering::Equal) && compare(root, before, field, Ordering::Equal)
+    });
+    let last_matches = if order == &Order::Asc {
+      compare(root, after, field, Ordering::Greater) && compare(root, before, field, Ordering::Less)
+    } else {
+      compare(root, after, field, Ordering::Less) && compare(root, after, field, Ordering::Greater)
+    };
+
+    (head_matches && last_matches) || filter_between(root, head, after, before)
+  } else {
+    false
   }
 }

@@ -3,11 +3,14 @@ use crate::journal::{
 };
 use crate::user::{Role, User};
 use crate::{AggregateRoot, Permission};
-
 use itertools::Itertools;
-use sea_orm::{ConnectionTrait, EntityTrait, IntoActiveModel, LoaderTrait};
+use sea_orm::entity::prelude::*;
+use sea_orm::sea_query::SimpleExpr;
+use sea_orm::{Condition, IntoActiveModel, JoinType, QuerySelect};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -155,5 +158,55 @@ impl AggregateRoot for Journal {
     } else {
       models.iter().map(|model| (model.id(), Permission::ReadWrite)).collect::<HashMap<_, _>>()
     })
+  }
+
+  fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
+    match field.to_string().as_str() {
+      "id" => Some(self.id.cmp(&other.id)),
+      "name" => Some(self.name.cmp(&other.name)),
+      _ => None,
+    }
+  }
+
+  fn parse_query(mut select: Select<Self::Entity>, query: Self::Query) -> Select<Self::Entity> {
+    let Query { id, name: (name, name_fulltext), description, admin, member } = query;
+
+    if !id.is_empty() {
+      select = select.filter(Column::Id.is_in(id));
+    }
+
+    let name = name.trim();
+    if !name.is_empty() {
+      select = select.filter(if name_fulltext {
+        Column::Name.like(&format!("%{}%", name))
+      } else {
+        Column::Name.eq(name)
+      });
+    }
+
+    let description = description.trim();
+    if !description.is_empty() {
+      select = select.filter(Column::Description.like(&format!("%{}%", description)));
+    }
+
+    if !admin.is_empty() || !member.is_empty() {
+      select = select.join_rev(JoinType::InnerJoin, journal_users::Relation::Journal.def()).filter(
+        Condition::any().add_option(user_query(admin, true)).add_option(user_query(member, false)),
+      );
+    }
+
+    select
+  }
+}
+
+fn user_query(ids: HashSet<Uuid>, is_admin: bool) -> Option<SimpleExpr> {
+  if ids.is_empty() {
+    None
+  } else {
+    Some(
+      journal_users::Column::Field
+        .eq(if is_admin { journal_users::Field::Admin } else { journal_users::Field::Member })
+        .and(journal_users::Column::UserId.is_in(ids)),
+    )
   }
 }

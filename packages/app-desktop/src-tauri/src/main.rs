@@ -2,7 +2,6 @@
 
 use backend_core::user::User;
 use backend_core::{user, AggregateRoot, Error, FindAllArgs, Order, Repository};
-
 use futures::{TryFutureExt, TryStreamExt};
 use sea_orm::{ConnectOptions, Database, DbConn, TransactionTrait};
 use std::collections::HashSet;
@@ -109,8 +108,9 @@ mod tests {
   use backend_core::account::Account;
   use backend_core::journal::Journal;
   use backend_core::user::User;
-  use backend_core::{account, journal, user, AggregateRoot, FindAllArgs, Repository};
-
+  use backend_core::{
+    account, journal, user, AggregateRoot, FindAllArgs, FindPageArgs, Order, Repository,
+  };
   use futures::TryStreamExt;
   use migration::{Migrator, MigratorTrait};
   use std::collections::HashSet;
@@ -212,6 +212,73 @@ mod tests {
     for result in &children {
       log::info!("  Account: {:#?}", result);
     }
+
+    let page = Repository::<User>::find_page(
+      &db,
+      FindPageArgs { size: 6, sort: vec![("name".to_string(), Order::Asc)], ..Default::default() },
+    )
+    .await?;
+    log::info!("Page 1: {:#?}", page);
+
+    let page = Repository::<User>::find_page(
+      &db,
+      FindPageArgs {
+        size: 6,
+        sort: vec![("name".to_string(), Order::Asc)],
+        after: Some(page.items.last().unwrap().id),
+        ..Default::default()
+      },
+    )
+    .await?;
+    log::info!("Page 2: {:#?}", page);
+
+    let page = Repository::<User>::find_page(
+      &db,
+      FindPageArgs {
+        size: 6,
+        sort: vec![("name".to_string(), Order::Asc)],
+        before: Some(page.items[0].id),
+        ..Default::default()
+      },
+    )
+    .await?;
+    log::info!("Back Page 1: {:#?}", page);
+
+    let page = Repository::<Account>::find_page(
+      &db,
+      FindPageArgs {
+        size: 2,
+        sort: vec![("journalId".to_string(), Order::Asc), ("name".to_string(), Order::Asc)],
+        ..Default::default()
+      },
+    )
+    .await?;
+    log::info!("Page 1: {:#?}", page);
+
+    let page = Repository::<Account>::find_page(
+      &db,
+      FindPageArgs {
+        size: 6,
+        sort: vec![("journalId".to_string(), Order::Asc), ("name".to_string(), Order::Asc)],
+        after: Some(page.items.last().unwrap().id),
+        ..Default::default()
+      },
+    )
+    .await?;
+    log::info!("Page 2: {:#?}", page);
+
+    let page = Repository::<Account>::find_page(
+      &db,
+      FindPageArgs {
+        size: 6,
+        sort: vec![("journalId".to_string(), Order::Asc), ("name".to_string(), Order::Asc)],
+        before: Some(page.items[0].id),
+        ..Default::default()
+      },
+    )
+    .await?;
+    log::info!("Back Page 1: {:#?}", page);
+
     Ok(())
   }
 }

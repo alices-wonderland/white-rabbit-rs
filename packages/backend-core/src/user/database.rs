@@ -1,5 +1,4 @@
 use crate::journal::{self, journal_users};
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -20,7 +19,9 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
+#[derive(
+  Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, EnumIter, DeriveActiveEnum,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(Some(1))")]
 pub enum Role {
   #[sea_orm(string_value = "U")]

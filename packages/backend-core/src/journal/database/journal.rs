@@ -1,6 +1,5 @@
 use crate::journal::journal_users;
 use crate::{account, user};
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

@@ -1,13 +1,12 @@
 use crate::user::User;
-use crate::{Query, Result};
-
-use sea_orm::{
-  ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, ModelTrait,
-  PrimaryKeyToColumn, PrimaryKeyTrait, StreamTrait,
-};
+use crate::{Order, Query, Result, Sort};
+use sea_orm::entity::prelude::*;
+use sea_orm::{IntoActiveModel, QueryOrder, StreamTrait};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[async_trait::async_trait]
@@ -19,9 +18,9 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
     Model = Self::Model,
     PrimaryKey = Self::PrimaryKey,
   >;
-  type Presentation: Presentation;
+  type Presentation: Presentation<AggregateRoot = Self>;
   type PrimaryKey: PrimaryKeyTrait<ValueType = Uuid> + PrimaryKeyToColumn<Column = Self::Column>;
-  type Query: Query<AggregateRoot = Self>;
+  type Query: Query;
   type Column: ColumnTrait;
   type Command;
 
@@ -30,6 +29,32 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
   fn id(&self) -> Uuid;
 
   fn primary_column() -> Self::Column;
+
+  fn parse_join(
+    select: Select<Self::Entity>,
+    _query: &Self::Query,
+    _sort: &Sort,
+  ) -> Select<Self::Entity> {
+    select
+  }
+
+  fn parse_query(select: Select<Self::Entity>, _query: Self::Query) -> Select<Self::Entity> {
+    select
+  }
+
+  fn parse_order(mut select: Select<Self::Entity>, sort: Sort) -> Select<Self::Entity> {
+    for (field, order) in sort {
+      if let Ok(field) = Self::Column::from_str(&field) {
+        select = match order {
+          Order::Asc => select.order_by_asc(field),
+          Order::Desc => select.order_by_desc(field),
+        }
+      }
+    }
+    select
+  }
+
+  fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering>;
 
   async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>>;
 
@@ -70,7 +95,7 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Send + Sync {
   type AggregateRoot: AggregateRoot<Presentation = Self>;
 
-  async fn from(db: &impl ConnectionTrait, aggregate_roots: Vec<Self::AggregateRoot>) -> Vec<Self>;
+  async fn from(db: &impl ConnectionTrait, roots: Vec<Self::AggregateRoot>) -> Vec<Self>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

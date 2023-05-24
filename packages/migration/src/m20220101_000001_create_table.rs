@@ -1,10 +1,8 @@
 use crate::sea_orm::Schema;
-
 use backend_core::account::{self, account_tags, Account};
 use backend_core::journal::{self, journal_users, Journal};
 use backend_core::user::{self, User};
 use backend_core::{AggregateRoot, Repository};
-
 use rand::prelude::*;
 use sea_orm_migration::prelude::*;
 

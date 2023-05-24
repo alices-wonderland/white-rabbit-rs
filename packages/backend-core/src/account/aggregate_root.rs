@@ -1,12 +1,14 @@
 use crate::account::{
-  account_tags, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
+  account_tags, ActiveModel, Column, Command, Entity, Model, PrimaryKey, Query,
 };
 use crate::journal::Journal;
 use crate::user::User;
 use crate::{AggregateRoot, Permission, Repository};
 use itertools::Itertools;
-use sea_orm::{ConnectionTrait, EntityTrait, IntoActiveModel, LoaderTrait, StreamTrait};
+use sea_orm::entity::prelude::*;
+use sea_orm::{Condition, IntoActiveModel, JoinType, QuerySelect, StreamTrait};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
@@ -60,7 +62,7 @@ impl AggregateRoot for Account {
   type Model = Model;
   type ActiveModel = ActiveModel;
   type Entity = Entity;
-  type Presentation = Presentation;
+  type Presentation = Self;
   type PrimaryKey = PrimaryKey;
   type Query = Query;
   type Column = Column;
@@ -139,5 +141,60 @@ impl AggregateRoot for Account {
         })
         .collect(),
     )
+  }
+
+  fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
+    match field.to_string().as_str() {
+      "id" => Some(self.id.cmp(&other.id)),
+      "name" => Some(self.name.cmp(&other.name)),
+      "journalId" => Some(self.journal.cmp(&other.journal)),
+      "parentId" => Some(self.parent.cmp(&other.parent)),
+      _ => None,
+    }
+  }
+
+  fn parse_query(mut select: Select<Self::Entity>, query: Self::Query) -> Select<Self::Entity> {
+    let Query { id, name: (name, name_fulltext), description, tag, journal, parent } = query;
+
+    if !id.is_empty() {
+      select = select.filter(Column::Id.is_in(id));
+    }
+
+    let name = name.trim();
+    if !name.is_empty() {
+      select = select.filter(if name_fulltext {
+        Column::Name.like(&format!("%{}%", name))
+      } else {
+        Column::Name.eq(name)
+      });
+    }
+
+    let description = description.trim();
+    if !description.is_empty() {
+      select = select.filter(Column::Description.like(&format!("%{}%", description)));
+    }
+
+    let tag = tag.trim();
+    if !tag.is_empty() {
+      select = select
+        .join_rev(JoinType::InnerJoin, account_tags::Relation::Account.def())
+        .filter(account_tags::Column::Tag.contains(tag));
+    }
+
+    if !journal.is_empty() {
+      select = select.filter(Column::JournalId.is_in(journal));
+    }
+
+    if !parent.is_empty() {
+      let contains_none = parent.contains(&None);
+      let parent = parent.into_iter().flatten().collect::<HashSet<_>>();
+      select = select.filter(
+        Condition::any()
+          .add_option(if contains_none { Some(Column::ParentId.is_null()) } else { None })
+          .add_option(if parent.is_empty() { None } else { Some(Column::ParentId.is_in(parent)) }),
+      );
+    }
+
+    select
   }
 }
