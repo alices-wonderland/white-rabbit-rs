@@ -5,6 +5,195 @@ __metadata:
   version: 6
   cacheKey: 8
 
+"@ag-grid-community/client-side-row-model@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-community/client-side-row-model@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+  checksum: edc3cab4b6b489f42a60b63b87e2e306d1ddbbf9b8ff31b93c8b20a78fc762b7ca203c22c0855f3357fcb51df55ff04297b58dd7bc374c362bd6c02db9233060
+  languageName: node
+  linkType: hard
+
+"@ag-grid-community/core@npm:^29.3.5, @ag-grid-community/core@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-community/core@npm:29.3.5"
+  checksum: 730d280b290e62e846a722550fc47a610fbfbae34c6e62a145782df5bdc1eef2947907054ba7b95f7176cf1ca2e298aa145aaef8bee5d4fa884f5c1a6c13a283
+  languageName: node
+  linkType: hard
+
+"@ag-grid-community/csv-export@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-community/csv-export@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+  checksum: d0f8ff39b597d681fbd3f86a3a3faa4290d8aff732fe88d50b03809fe42d020f99740998967b0d79bf875e5115adf8e9a72d5caf8317e6a1db594e759e1b5601
+  languageName: node
+  linkType: hard
+
+"@ag-grid-community/styles@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-community/styles@npm:29.3.5"
+  checksum: 851d9fe16228820a53497746743ef996083411393c13a631a242a88fe84d26f216365c8e890507bf0d8cdea027ee1e1f32fb17d31b6ab9d0c938c1760fd90d2d
+  languageName: node
+  linkType: hard
+
+"@ag-grid-community/vue3@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-community/vue3@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    vue: ^3.0.0
+  checksum: 500f683c95f68fc43b2bc37f7377672422a8f2be160a00c045c316229f38f4363b94f390b927adcf1207c1fca018a8fca8b4530ba9b710d4060694466096d75d
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/charts@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/charts@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+    "@ag-grid-enterprise/range-selection": ~29.3.5
+    ag-charts-community: ~7.3.0
+  checksum: 4810a693f6ebafa6c355bcfabc602f9a750808e084dc32acd038f8698d4667c821d7177cbedd9b11a31422259818f9f0258a96b530fe2911c388d5865b637858
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/clipboard@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/clipboard@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-community/csv-export": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 22530be004255c6f26cbe9fa96d076a511126aa57c47453d950540ee69fd4d23389ade46b8e0c53bce6750f10bb6c5aa8855c907a166ec05cc1f91affd1ffaab
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/column-tool-panel@npm:^29.3.5, @ag-grid-enterprise/column-tool-panel@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/column-tool-panel@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+    "@ag-grid-enterprise/row-grouping": ~29.3.5
+    "@ag-grid-enterprise/side-bar": ~29.3.5
+  checksum: f8ec550aa68aad8ebf6cee2d6b02378d44d3535ef938fe08ff7ade6ad1cdad152d7dd285ac6eff180a23244ea1a7cf2e8cdea7f13410af655b45f89c452c7256
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/core@npm:^29.3.5, @ag-grid-enterprise/core@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/core@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+  checksum: 2e284cdc7d76e13b9719d8448186e7dddc41bd2a5c4036e1244baca5164da932bcd33086cfa547f5e3a43aeb9dd48144181f591a4e1eafabe6d7f5aa161ab3af
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/excel-export@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/excel-export@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-community/csv-export": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: dd34f938eefeff56b9ba19a87e443396dea653489d2e61143e896d6c74520ab4ddc9699db667500c090232fbc47ce6c1d8b79d73e767b8090adef5c902830551
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/filter-tool-panel@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/filter-tool-panel@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+    "@ag-grid-enterprise/side-bar": ~29.3.5
+  checksum: f0cfaeba73d52dc77d87f987f44814b49c44b76dde1f665d5d8fefc1d22f4094e88389be6933689eac3736e49be10bdbd1dd2f912239acb287591f97f55ad4d0
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/menu@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/menu@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/column-tool-panel": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 179689aa8634f69357587c15488b19e892b7d3688efba354e74ccaa985482a877ccc5983711329dc3d9430a3874cd37304400fb3b72b1cbef3f00fb8990db281
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/multi-filter@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/multi-filter@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: e695629b479f6b60b9c42d92211c7d887c2fd3f8469a789903d5c9166b9e7a0837ba1c0bf8b5a28ee52cf46b97eddea7b0a472fb05ccc3d748060a2d8ca83c86
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/range-selection@npm:^29.3.5, @ag-grid-enterprise/range-selection@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/range-selection@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: fbde7371993147ae159aee716e2a744480a7eb8665f88930f55a6b982cea3421a9230f1cab81c42e409e4a1d93c21ac4674691b4370c5228999893075dc3cb2c
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/rich-select@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/rich-select@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 249296e40cdb04b1be18f940263b2e5e61f65f5227fad01f54098303a75d86d10ff75796bf9a9f66e2f4c7eac466fa888b2a61887763292cf7768c9151e033a5
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/row-grouping@npm:^29.3.5, @ag-grid-enterprise/row-grouping@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/row-grouping@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 92ce2f28cb63cd9da09c5a7b8b86d56f686ac40f29e9ce8f0ddb805ceb0cd92c2cbf1053f0c4727c7a1c5cb06fa8a6aa94b0aeac316e7b73e82d809e8e44b92c
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/set-filter@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/set-filter@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 4f32a35d6225fa3e4a31ee54fd5648db9300963c1d3e2faabd1853c7a652f602116f8fd753f04a0983fd7d1f62a374979c417d43ca1b0eac5ba31455cd9be3e2
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/side-bar@npm:^29.3.5, @ag-grid-enterprise/side-bar@npm:~29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/side-bar@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: 70f2b01fd3b5eeb0a89729bb979c7c9a7e620b385abc719cd79ad833d83b35c2e8fee718f65882543562edea4d65b343cd07da63741a26a9878205c8e9e6bcd4
+  languageName: node
+  linkType: hard
+
+"@ag-grid-enterprise/status-bar@npm:^29.3.5":
+  version: 29.3.5
+  resolution: "@ag-grid-enterprise/status-bar@npm:29.3.5"
+  dependencies:
+    "@ag-grid-community/core": ~29.3.5
+    "@ag-grid-enterprise/core": ~29.3.5
+  checksum: cec74737626c305a3dedcdc1f23b5f48baf0c9107b96a475558a6fe6888a45f8d59a0a830acb6cb3c06406608ef2a2e1017f5f4f10cd15356bb017a70821768d
+  languageName: node
+  linkType: hard
+
 "@alloc/quick-lru@npm:^5.2.0":
   version: 5.2.0
   resolution: "@alloc/quick-lru@npm:5.2.0"
@@ -83,12 +272,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/cli@npm:^17.6.3":
-  version: 17.6.3
-  resolution: "@commitlint/cli@npm:17.6.3"
+"@commitlint/cli@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/cli@npm:17.6.5"
   dependencies:
     "@commitlint/format": ^17.4.4
-    "@commitlint/lint": ^17.6.3
+    "@commitlint/lint": ^17.6.5
     "@commitlint/load": ^17.5.0
     "@commitlint/read": ^17.5.1
     "@commitlint/types": ^17.4.4
@@ -99,16 +288,16 @@ __metadata:
     yargs: ^17.0.0
   bin:
     commitlint: cli.js
-  checksum: e5a597ef453b74b243d1a479746a14938fc68f3fa5ac0210c9f1b5895b6507860b2761c27742e3c1a069ee64de69ef12bea76bcde6a7cb80d6d07bf1b4272c14
+  checksum: acc57bdb732bf308c65e01a13d6b42f6f5f1a4dc40b2e743a5c0a4e797423fa8a2c9b4cc5377d9e6df47c06dc17e190081f7b7c0361c31de22dcf1a05619fa8a
   languageName: node
   linkType: hard
 
-"@commitlint/config-conventional@npm:^17.6.3":
-  version: 17.6.3
-  resolution: "@commitlint/config-conventional@npm:17.6.3"
+"@commitlint/config-conventional@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/config-conventional@npm:17.6.5"
   dependencies:
     conventional-changelog-conventionalcommits: ^5.0.0
-  checksum: 2dbe26cfafdd320141373ed7a7c656d35279300658b4474509bbcace80887701bc493247f57b27284e435029ade8680a822aeb454a7587d89fa42a0e7a774ce1
+  checksum: f2c637a9935044d6dc800eabbb0e032354afb35a7c0dd65d37115320a0fbcf4586ad769647039d0d9347988182213d7ee53339df2af9b2c8a51209ab0225366f
   languageName: node
   linkType: hard
 
@@ -153,25 +342,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/is-ignored@npm:^17.6.3":
-  version: 17.6.3
-  resolution: "@commitlint/is-ignored@npm:17.6.3"
+"@commitlint/is-ignored@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/is-ignored@npm:17.6.5"
   dependencies:
     "@commitlint/types": ^17.4.4
     semver: 7.5.0
-  checksum: db664b7e6b7154a514ab235353b18ac4131586e019655ccefd557d78ed81e374eddcdb5af166668836bc854922e79c6261de01c41e5868eab2ba8b24c7d4a322
+  checksum: 2b7b7f0773192bb8da018fa789689751ac5692af01e1754a214aaebc8253ee533c191409835af0fdb3c12b2fbb4bec43aeb9e442fca165646db1382ea6c21ec9
   languageName: node
   linkType: hard
 
-"@commitlint/lint@npm:^17.6.3":
-  version: 17.6.3
-  resolution: "@commitlint/lint@npm:17.6.3"
+"@commitlint/lint@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/lint@npm:17.6.5"
   dependencies:
-    "@commitlint/is-ignored": ^17.6.3
-    "@commitlint/parse": ^17.4.4
-    "@commitlint/rules": ^17.6.1
+    "@commitlint/is-ignored": ^17.6.5
+    "@commitlint/parse": ^17.6.5
+    "@commitlint/rules": ^17.6.5
     "@commitlint/types": ^17.4.4
-  checksum: f033d25fd37f8bf4d95d3783648edbc1ec61eaa277f698765925f973bc3395558fc36eb308a57b1f9ed7ff64d53cfd2055c4c6573a16b2bf9b79a422aee7286d
+  checksum: 6a6c04a5ecaa89a3ad8a009489d85937ad4093d2b17dbfb9ec8ac3e7f84fac1cb04876bdd1e6306fb665474ca438598c2b874e9e44d4372a3bd99c34afcafca3
   languageName: node
   linkType: hard
 
@@ -204,14 +393,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/parse@npm:^17.4.4":
-  version: 17.4.4
-  resolution: "@commitlint/parse@npm:17.4.4"
+"@commitlint/parse@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/parse@npm:17.6.5"
   dependencies:
     "@commitlint/types": ^17.4.4
     conventional-changelog-angular: ^5.0.11
     conventional-commits-parser: ^3.2.2
-  checksum: 2a6e5b0a5cdea21c879a3919a0227c0d7f3fa1f343808bcb09e3e7f25b0dc494dcca8af32982e7a65640b53c3e6cf138ebf685b657dd55173160bc0fa4e58916
+  checksum: 579dd7b25d2b5a73817318259f4ce1191657fad8736047bcd84e2709bbe9bcb7458cbe66b6dc785e372c1c73a4563050027b94746ad0df16a89d90960a685517
   languageName: node
   linkType: hard
 
@@ -242,16 +431,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/rules@npm:^17.6.1":
-  version: 17.6.1
-  resolution: "@commitlint/rules@npm:17.6.1"
+"@commitlint/rules@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "@commitlint/rules@npm:17.6.5"
   dependencies:
     "@commitlint/ensure": ^17.4.4
     "@commitlint/message": ^17.4.2
     "@commitlint/to-lines": ^17.4.0
     "@commitlint/types": ^17.4.4
     execa: ^5.0.0
-  checksum: e00b453e8a66eee6a335223a67cb328943133c54a9b416a7700857a917ea5ab3a6394c6c37e6123a8244bc2625e765c0f7182b7dfc2d4dee94577bb300d6d3a0
+  checksum: 7f62c594153df5daf15bf66254f8abd72f14f3f0e7bac91d0fc8229c357616a9d852b2dd050a15b3de83366a732a3363ec405d453d48b81cbaeccdd7013cb59f
   languageName: node
   linkType: hard
 
@@ -517,6 +706,13 @@ __metadata:
   version: 8.41.0
   resolution: "@eslint/js@npm:8.41.0"
   checksum: af013d70fe8d0429cdf5cd8b5dcc6fc384ed026c1eccb0cfe30f5849b968ab91645111373fd1b83282b38955b1bdfbe667c1a7dbda3b06cae753521223cad775
+  languageName: node
+  linkType: hard
+
+"@fortawesome/fontawesome-free@npm:^6.4.0":
+  version: 6.4.0
+  resolution: "@fortawesome/fontawesome-free@npm:6.4.0"
+  checksum: 0197cd7df96de375862fea561d69427deebb918cadc26074cc8d490180d536e7e58853d138ca74d081b46b2cbdec2783d01cdaccb8bd723d6ef6b4cc8455b84b
   languageName: node
   linkType: hard
 
@@ -1019,22 +1215,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@test-rust/app-desktop@workspace:packages/app-desktop"
   dependencies:
-    "@quasar/extras": ^1.16.4
     "@tauri-apps/api": ^1.3.0
     "@tauri-apps/cli": ^1.3.1
     "@test-rust/frontend-core": "workspace:^"
     "@vitejs/plugin-vue": ^4.2.3
-    "@vueuse/core": ^10.1.2
     eslint: ^8.41.0
-    pinia: ^2.1.3
-    quasar: ^2.12.0
-    tailwindcss: ^3.3.2
-    uuid: ^9.0.0
     vite: ^4.3.9
-    vitest: ^0.31.1
-    vue: ^3.3.4
-    vue-i18n: ^9.2.2
-    vue-router: ^4.2.2
+    vitest: ^0.31.4
     vue-tsc: ^1.7.8
   languageName: unknown
   linkType: soft
@@ -1043,18 +1230,37 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@test-rust/frontend-core@workspace:packages/frontend-core"
   dependencies:
+    "@ag-grid-community/client-side-row-model": ^29.3.5
+    "@ag-grid-community/core": ^29.3.5
+    "@ag-grid-community/styles": ^29.3.5
+    "@ag-grid-community/vue3": ^29.3.5
+    "@ag-grid-enterprise/charts": ^29.3.5
+    "@ag-grid-enterprise/clipboard": ^29.3.5
+    "@ag-grid-enterprise/column-tool-panel": ^29.3.5
+    "@ag-grid-enterprise/core": ^29.3.5
+    "@ag-grid-enterprise/excel-export": ^29.3.5
+    "@ag-grid-enterprise/filter-tool-panel": ^29.3.5
+    "@ag-grid-enterprise/menu": ^29.3.5
+    "@ag-grid-enterprise/multi-filter": ^29.3.5
+    "@ag-grid-enterprise/range-selection": ^29.3.5
+    "@ag-grid-enterprise/rich-select": ^29.3.5
+    "@ag-grid-enterprise/row-grouping": ^29.3.5
+    "@ag-grid-enterprise/set-filter": ^29.3.5
+    "@ag-grid-enterprise/side-bar": ^29.3.5
+    "@ag-grid-enterprise/status-bar": ^29.3.5
+    "@fortawesome/fontawesome-free": ^6.4.0
+    "@quasar/extras": ^1.16.4
+    "@vueuse/core": ^10.1.2
+    pinia: ^2.1.3
+    quasar: ^2.12.0
     rimraf: ^5.0.1
+    tailwindcss: ^3.3.2
+    uuid: ^9.0.0
     vite: ^4.3.9
+    vue: ^3.3.4
+    vue-i18n: ^9.2.2
+    vue-router: ^4.2.2
     vue-tsc: ^1.7.8
-  peerDependencies:
-    "@quasar/extras": "*"
-    pinia: "*"
-    quasar: "*"
-    tailwindcss: "*"
-    uuid: "*"
-    vue: "*"
-    vue-i18n: "*"
-    vue-router: "*"
   languageName: unknown
   linkType: soft
 
@@ -1186,10 +1392,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/prettier@npm:^2.7.2":
-  version: 2.7.2
-  resolution: "@types/prettier@npm:2.7.2"
-  checksum: b47d76a5252265f8d25dd2fe2a5a61dc43ba0e6a96ffdd00c594cb4fd74c1982c2e346497e3472805d97915407a09423804cc2110a0b8e1b22cffcab246479b7
+"@types/prettier@npm:^2.7.3":
+  version: 2.7.3
+  resolution: "@types/prettier@npm:2.7.3"
+  checksum: 705384209cea6d1433ff6c187c80dcc0b95d99d5c5ce21a46a9a58060c527973506822e428789d842761e0280d25e3359300f017fbe77b9755bc772ab3dc2f83
   languageName: node
   linkType: hard
 
@@ -1466,9 +1672,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/coverage-c8@npm:^0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/coverage-c8@npm:0.31.1"
+"@vitest/coverage-c8@npm:^0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/coverage-c8@npm:0.31.4"
   dependencies:
     "@ampproject/remapping": ^2.2.1
     c8: ^7.13.0
@@ -1477,61 +1683,61 @@ __metadata:
     std-env: ^3.3.2
   peerDependencies:
     vitest: ">=0.30.0 <1"
-  checksum: e9924c652c5891418af5965d483b753b5271be016b408a2577ab8b00329537496d4d5c96ebe7eb8b401b028c253da7e324165b61a895b639d1a4b3254cbbb8ce
+  checksum: 81a462adf47456b46a6a71d868dc0654fff2f6d4d685877145fc966d8ec8508e4ebb1ae90f62f2903d449b5a7cdf8d76e7dc6b0f117921787a629fb727dd974a
   languageName: node
   linkType: hard
 
-"@vitest/expect@npm:0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/expect@npm:0.31.1"
+"@vitest/expect@npm:0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/expect@npm:0.31.4"
   dependencies:
-    "@vitest/spy": 0.31.1
-    "@vitest/utils": 0.31.1
+    "@vitest/spy": 0.31.4
+    "@vitest/utils": 0.31.4
     chai: ^4.3.7
-  checksum: 0d1e135ae753d913231eae830da00ee42afca53d354898fb43f97e82398dcf17298c02e9989dd6b19b9b2909989248ef76d203d63f6af6f9159dc96959ea654b
+  checksum: 589d438b0a6daade1e26c219f9eff5113efc8e0ab465eb2fb8483449c83e5e59e60956286db631afac41060c96dd1c880d4a29781bcd57466e452c4a7cc154b0
   languageName: node
   linkType: hard
 
-"@vitest/runner@npm:0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/runner@npm:0.31.1"
+"@vitest/runner@npm:0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/runner@npm:0.31.4"
   dependencies:
-    "@vitest/utils": 0.31.1
+    "@vitest/utils": 0.31.4
     concordance: ^5.0.4
     p-limit: ^4.0.0
     pathe: ^1.1.0
-  checksum: cc8702e21b799d5e941409cb2afe6d0e576b4f3ac99df4a1393a8cd11b57f6b0b06e756cc24e2739812d095fbfd0824e22e861dbd6a71769ca387d485ade6fb5
+  checksum: c85dee7570cba7caf7cbfcc9292848291a802e14b76b7dc2ff962e9b34c280197f8d83facf9b6278a2ca7d8a71d98598236fa400ca70371865e2c1a4f15c326f
   languageName: node
   linkType: hard
 
-"@vitest/snapshot@npm:0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/snapshot@npm:0.31.1"
+"@vitest/snapshot@npm:0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/snapshot@npm:0.31.4"
   dependencies:
     magic-string: ^0.30.0
     pathe: ^1.1.0
     pretty-format: ^27.5.1
-  checksum: de05fa9136864f26f0804baf3ae8068f67de28015f29047329c84e67fb33be7305c9e52661b016e834d30f4081c136b3b6d8d4054c024a5d52b22a7f90fc4be0
+  checksum: c60b91d02fb3b1907c47c472cd1e77deca6191259b86a7e68fcd85a2fc2084064ce50bbecd176abddf8539d06b6e9b35b0dfb0e491061ed0753f5f4e9c037a90
   languageName: node
   linkType: hard
 
-"@vitest/spy@npm:0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/spy@npm:0.31.1"
+"@vitest/spy@npm:0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/spy@npm:0.31.4"
   dependencies:
     tinyspy: ^2.1.0
-  checksum: 8b06cf25fcc028c16106ec82f4ceb84d6dfa04d06f651bca4738ce2b99796d1fc4e0c10319767240755eff8ede2bff9d31d5a901fe92828d319c65001581137b
+  checksum: 9e904d42a5eac1c8679047014e65584abb6b7e1862fef0f8829559e79173f7f8c350b253bd7771d806921eff959fc124a57a9016a71574bd2ff43215e5cdd3f8
   languageName: node
   linkType: hard
 
-"@vitest/utils@npm:0.31.1":
-  version: 0.31.1
-  resolution: "@vitest/utils@npm:0.31.1"
+"@vitest/utils@npm:0.31.4":
+  version: 0.31.4
+  resolution: "@vitest/utils@npm:0.31.4"
   dependencies:
     concordance: ^5.0.4
     loupe: ^2.3.6
     pretty-format: ^27.5.1
-  checksum: 58016c185455e3814632cb77e37368c846bde5e342f8b4a66fa229bde64f455ca39abebc9c12e2483696ee38bc17b3c4300379f7a3b18d1087f24f474448a8d8
+  checksum: 769e1620e34c05b35fd58453403f5abd7775160dbb9ed908e9a12c65e740d5415f9a9ddeab42b9641a771e0d57bc0ce44abc70330b2ca36be073a0f509e1ab4b
   languageName: node
   linkType: hard
 
@@ -1946,6 +2152,13 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: f790b99a1bf63ef160c967e23c46feea7787e531292bb827126334612c234ed489a0dc2c7ba33156416f0ffa8d25bf2b0fdb7f35c2ba60eb3e960572bece4001
+  languageName: node
+  linkType: hard
+
+"ag-charts-community@npm:~7.3.0":
+  version: 7.3.0
+  resolution: "ag-charts-community@npm:7.3.0"
+  checksum: 2c6e9c7964f439f0d375068801181e3928ec08a57c6363139702d50b0baece667db410980fbceb8b8d092af423a0dd351573f987a08b4200e43a00c0e2a30dc0
   languageName: node
   linkType: hard
 
@@ -2698,15 +2911,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commitlint@npm:^17.6.3":
-  version: 17.6.3
-  resolution: "commitlint@npm:17.6.3"
+"commitlint@npm:^17.6.5":
+  version: 17.6.5
+  resolution: "commitlint@npm:17.6.5"
   dependencies:
-    "@commitlint/cli": ^17.6.3
+    "@commitlint/cli": ^17.6.5
     "@commitlint/types": ^17.4.4
   bin:
     commitlint: cli.js
-  checksum: b32967700e27108d7562f19548ec21945916d31944355d17bf14a9dcda55217640eee73046ed5234ab9cfaf2c82bd9aece0ae9cef82684c3e0017f35bfc2c714
+  checksum: 97f6937b6c1f79bc12edf7d6294becd92bce93cc4d530bf719b49204f59a5ff04ebfeb1da762dd93cdf5829f748ac94f44d7a2a08b1975f0e3e39bd3820aeb05
   languageName: node
   linkType: hard
 
@@ -7838,8 +8051,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "test-rust@workspace:."
   dependencies:
-    "@commitlint/cli": ^17.6.3
-    "@commitlint/config-conventional": ^17.6.3
+    "@commitlint/cli": ^17.6.5
+    "@commitlint/config-conventional": ^17.6.5
     "@intlify/unplugin-vue-i18n": ^0.11.0
     "@intlify/vite-plugin-vue-i18n": ^7.0.0
     "@mdi/js": ^7.2.96
@@ -7847,11 +8060,11 @@ __metadata:
     "@types/eslint": ^8.40.0
     "@types/jsdom": ^21.1.1
     "@types/node": ^20.2.5
-    "@types/prettier": ^2.7.2
+    "@types/prettier": ^2.7.3
     "@typescript-eslint/eslint-plugin": ^5.59.8
     "@typescript-eslint/parser": ^5.59.8
     "@vitejs/plugin-vue": ^4.2.3
-    "@vitest/coverage-c8": ^0.31.1
+    "@vitest/coverage-c8": ^0.31.4
     "@vue/compiler-dom": ^3.3.4
     "@vue/eslint-config-prettier": ^7.1.0
     "@vue/eslint-config-typescript": ^11.0.3
@@ -7859,7 +8072,7 @@ __metadata:
     "@vue/tsconfig": ^0.4.0
     autoprefixer: ^10.4.14
     commitizen: ^4.3.0
-    commitlint: ^17.6.3
+    commitlint: ^17.6.5
     cross-env: ^7.0.3
     cz-conventional-changelog: ^3.3.0
     eslint: ^8.41.0
@@ -7890,9 +8103,9 @@ __metadata:
     stylelint-config-standard-scss: ^9.0.0
     stylelint-config-standard-vue: ^1.0.0
     tailwindcss: ^3.3.2
-    typescript: ^5.0.4
+    typescript: ^5.1.3
     vite: ^4.3.9
-    vitest: ^0.31.1
+    vitest: ^0.31.4
     vue: ^3.3.4
     vue-eslint-parser: ^9.3.0
     vue-tsc: ^1.7.8
@@ -8181,7 +8394,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.6.4 || ^5.0.0, typescript@npm:^5.0.4":
+"typescript@npm:^4.6.4 || ^5.0.0":
   version: 5.0.4
   resolution: "typescript@npm:5.0.4"
   bin:
@@ -8191,13 +8404,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.6.4 || ^5.0.0#~builtin<compat/typescript>, typescript@patch:typescript@^5.0.4#~builtin<compat/typescript>":
+"typescript@npm:^5.1.3":
+  version: 5.1.3
+  resolution: "typescript@npm:5.1.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: d9d51862d98efa46534f2800a1071a613751b1585dc78884807d0c179bcd93d6e9d4012a508e276742f5f33c480adefc52ffcafaf9e0e00ab641a14cde9a31c7
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^4.6.4 || ^5.0.0#~builtin<compat/typescript>":
   version: 5.0.4
   resolution: "typescript@patch:typescript@npm%3A5.0.4#~builtin<compat/typescript>::version=5.0.4&hash=b5f058"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: d26b6ba97b6d163c55dbdffd9bbb4c211667ebebc743accfeb2c8c0154aace7afd097b51165a72a5bad2cf65a4612259344ff60f8e642362aa1695c760d303ac
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.1.3#~builtin<compat/typescript>":
+  version: 5.1.3
+  resolution: "typescript@patch:typescript@npm%3A5.1.3#~builtin<compat/typescript>::version=5.1.3&hash=77c9e2"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 32a25b2e128a4616f999d4ee502aabb1525d5647bc8955e6edf05d7fbc53af8aa98252e2f6ba80bcedfc0260c982b885f3c09cfac8bb65d2924f3133ad1e1e62
   languageName: node
   linkType: hard
 
@@ -8355,9 +8588,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-node@npm:0.31.1":
-  version: 0.31.1
-  resolution: "vite-node@npm:0.31.1"
+"vite-node@npm:0.31.4":
+  version: 0.31.4
+  resolution: "vite-node@npm:0.31.4"
   dependencies:
     cac: ^6.7.14
     debug: ^4.3.4
@@ -8367,7 +8600,7 @@ __metadata:
     vite: ^3.0.0 || ^4.0.0
   bin:
     vite-node: vite-node.mjs
-  checksum: f70ffa3f6dcb4937cdc99f59bf360d42de83c556ba9a19eb1c3504ef20db4c1d1afa644d9a8e63240e851c0c95773b64c526bdb3eb4794b5e941ddcd57124aa9
+  checksum: 822457481fd58915eb41f18237d99ce163f7a45cc57ba0739876f6201f287c904ed00439c351a1a0fef82e4f256db06f4ae238c0519d4121e1ad14bc5dd4a39f
   languageName: node
   linkType: hard
 
@@ -8445,18 +8678,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^0.31.1":
-  version: 0.31.1
-  resolution: "vitest@npm:0.31.1"
+"vitest@npm:^0.31.4":
+  version: 0.31.4
+  resolution: "vitest@npm:0.31.4"
   dependencies:
     "@types/chai": ^4.3.5
     "@types/chai-subset": ^1.3.3
     "@types/node": "*"
-    "@vitest/expect": 0.31.1
-    "@vitest/runner": 0.31.1
-    "@vitest/snapshot": 0.31.1
-    "@vitest/spy": 0.31.1
-    "@vitest/utils": 0.31.1
+    "@vitest/expect": 0.31.4
+    "@vitest/runner": 0.31.4
+    "@vitest/snapshot": 0.31.4
+    "@vitest/spy": 0.31.4
+    "@vitest/utils": 0.31.4
     acorn: ^8.8.2
     acorn-walk: ^8.2.0
     cac: ^6.7.14
@@ -8472,7 +8705,7 @@ __metadata:
     tinybench: ^2.5.0
     tinypool: ^0.5.0
     vite: ^3.0.0 || ^4.0.0
-    vite-node: 0.31.1
+    vite-node: 0.31.4
     why-is-node-running: ^2.2.2
   peerDependencies:
     "@edge-runtime/vm": "*"
@@ -8502,27 +8735,11 @@ __metadata:
       optional: true
   bin:
     vitest: vitest.mjs
-  checksum: b3f64a36102edc5b8594c085da648c838c0d275c620bd3b780624f936903b9c06579d6ef137fe9859e468f16deb8f154a50f009093119f9adb8b60ff1b7597ee
+  checksum: 61493711e349d33b0b42eb7ea2b0c348683256d87aeddb6df266da66193666b737d03c0ea74bb9bf2cd79ee1ecca5a034aabad3bba6ff66898bfdd2b473d8663
   languageName: node
   linkType: hard
 
-"vue-demi@npm:>=0.14.0":
-  version: 0.14.1
-  resolution: "vue-demi@npm:0.14.1"
-  peerDependencies:
-    "@vue/composition-api": ^1.0.0-rc.1
-    vue: ^3.0.0-0 || ^2.6.0
-  peerDependenciesMeta:
-    "@vue/composition-api":
-      optional: true
-  bin:
-    vue-demi-fix: bin/vue-demi-fix.js
-    vue-demi-switch: bin/vue-demi-switch.js
-  checksum: af46db084503910f2fa0174d207a77018edf73f3cac86ac2aea97d073b71c0700e41fa915017722efc7d78aa2b7b7f0851b731efc6e87cce16a6fd1845ffffec
-  languageName: node
-  linkType: hard
-
-"vue-demi@npm:>=0.14.5":
+"vue-demi@npm:>=0.14.0, vue-demi@npm:>=0.14.5":
   version: 0.14.5
   resolution: "vue-demi@npm:0.14.5"
   peerDependencies:
@@ -8622,7 +8839,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue@npm:^3.3.4":
+"vue@npm:^3.0.0, vue@npm:^3.3.4":
   version: 3.3.4
   resolution: "vue@npm:3.3.4"
   dependencies:

@@ -3,8 +3,8 @@ use crate::{AggregateRoot, Error, Presentation, Result};
 use futures::lock::Mutex;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
 use sea_orm::entity::prelude::*;
-use sea_orm::sea_query::Expr;
-use sea_orm::{QuerySelect, StreamTrait};
+use sea_orm::sea_query::{Expr, SimpleExpr};
+use sea_orm::{QueryOrder, StreamTrait};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -12,6 +12,7 @@ use std::fmt::Debug;
 use std::future;
 use std::marker::PhantomData;
 use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -25,7 +26,28 @@ pub enum Order {
 
 pub type Sort = Vec<(String, Order)>;
 
-pub trait Query: Default + Clone + Debug + Send {}
+pub trait Query: Default + Clone + Debug + Send + Into<Select<Self::Entity>> {
+  type Entity: EntityTrait<Column = Self::Column>;
+  type Column: ColumnTrait;
+
+  fn id_expr(column: Self::Column, id: HashSet<Uuid>) -> Option<SimpleExpr> {
+    if id.is_empty() {
+      None
+    } else {
+      Some(column.is_in(id))
+    }
+  }
+
+  fn text_expr(
+    column: Self::Column,
+    (name, fulltext): (impl ToString, bool),
+  ) -> Option<SimpleExpr> {
+    match name.to_string().trim() {
+      "" => None,
+      value => Some(if fulltext { column.like(&format!("%{}%", value)) } else { column.eq(value) }),
+    }
+  }
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct FindAllArgs<'a, Q>
@@ -89,12 +111,18 @@ where
     args: FindAllArgs<'a, A::Query>,
   ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
     let operator = Arc::new(Mutex::new(args.operator));
-    let sub_db = Arc::new(Mutex::new(db));
+    let sub_db = Arc::new(db);
 
-    let select = A::Entity::find().distinct();
-    let select = A::parse_join(select, &args.query, &args.sort);
-    let select = A::parse_query(select, args.query);
-    let select = A::parse_order(select, args.sort);
+    let mut select = args.query.into();
+
+    for (field, order) in args.sort {
+      if let Ok(field) = A::Column::from_str(&field) {
+        select = match order {
+          Order::Asc => select.order_by_asc(field),
+          Order::Desc => select.order_by_desc(field),
+        }
+      }
+    }
 
     let stream = select
       .stream(db)
@@ -108,7 +136,6 @@ where
         Err(err) => Err(err),
       })
       .and_then(|(db, operator, models)| async move {
-        let db = db.lock().await;
         let operator = operator.lock().await;
         let results = A::from_models(*db, models).await?;
         let permissions = A::get_permission(*db, *operator, &results).await?;
@@ -183,7 +210,8 @@ where
       (false, items.len() > size)
     };
 
-    let mut items = Presentation::from(db, items.into_iter().take(size).collect::<Vec<_>>()).await;
+    let mut items =
+      Presentation::from(db, operator, items.into_iter().take(size).collect::<Vec<_>>()).await?;
 
     if should_reverse {
       items.reverse();

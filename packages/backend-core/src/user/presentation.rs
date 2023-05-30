@@ -1,12 +1,34 @@
-use crate::user::User;
-use crate::Presentation;
-use sea_orm::entity::prelude::*;
+use crate::user::{Role, User};
+use crate::{AggregateRoot, Permission, Result};
+use sea_orm::ConnectionTrait;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Presentation {
+  pub id: Uuid,
+  pub permission: Permission,
+  pub name: String,
+  pub role: Role,
+}
 
 #[async_trait::async_trait]
-impl Presentation for User {
+impl crate::Presentation for Presentation {
   type AggregateRoot = User;
 
-  async fn from(_db: &impl ConnectionTrait, roots: Vec<Self::AggregateRoot>) -> Vec<Self> {
-    roots
+  async fn from(
+    db: &impl ConnectionTrait,
+    operator: Option<&User>,
+    roots: Vec<Self::AggregateRoot>,
+  ) -> Result<Vec<Self>> {
+    let permissions = AggregateRoot::get_permission(db, operator, &roots).await?;
+    Ok(
+      roots
+        .into_iter()
+        .filter_map(|User { id, name, role }| {
+          permissions.get(&id).map(|permission| Self { id, permission: *permission, name, role })
+        })
+        .collect(),
+    )
   }
 }

@@ -1,3 +1,9 @@
+use crate::journal::{journal_users, Column, Entity};
+use crate::Query as _;
+use sea_orm::sea_query::SimpleExpr;
+use sea_orm::{
+  ColumnTrait, Condition, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
+};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -10,4 +16,47 @@ pub struct Query {
   pub member: HashSet<Uuid>,
 }
 
-impl crate::Query for Query {}
+impl From<Query> for Select<Entity> {
+  fn from(val: Query) -> Self {
+    let Query { id, name, description, admin, member } = val;
+
+    let mut select = Entity::find();
+
+    if let Some(expr) = Query::id_expr(Column::Id, id) {
+      select = select.filter(expr);
+    }
+
+    if let Some(expr) = Query::text_expr(Column::Name, name) {
+      select = select.filter(expr);
+    }
+
+    if let Some(expr) = Query::text_expr(Column::Description, (description, true)) {
+      select = select.filter(expr);
+    }
+
+    if !admin.is_empty() || !member.is_empty() {
+      select = select.join_rev(JoinType::InnerJoin, journal_users::Relation::Journal.def()).filter(
+        Condition::any().add_option(user_query(admin, true)).add_option(user_query(member, false)),
+      );
+    }
+
+    select
+  }
+}
+
+impl crate::Query for Query {
+  type Column = Column;
+  type Entity = Entity;
+}
+
+fn user_query(ids: HashSet<Uuid>, is_admin: bool) -> Option<SimpleExpr> {
+  if ids.is_empty() {
+    None
+  } else {
+    Some(
+      journal_users::Column::Field
+        .eq(if is_admin { journal_users::Field::Admin } else { journal_users::Field::Member })
+        .and(journal_users::Column::UserId.is_in(ids)),
+    )
+  }
+}

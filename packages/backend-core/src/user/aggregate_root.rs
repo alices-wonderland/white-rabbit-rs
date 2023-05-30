@@ -1,5 +1,6 @@
 use crate::user::{
-  ActiveModel, Column, Command, CommandCreate, Entity, Model, PrimaryKey, Query, Role, User,
+  ActiveModel, Column, Command, CommandCreate, Entity, Model, Presentation, PrimaryKey, Query,
+  Role, User,
 };
 use crate::{AggregateRoot, Error, FindAllArgs, Permission, Repository};
 use futures::TryStreamExt;
@@ -15,7 +16,7 @@ impl AggregateRoot for User {
   type Model = Model;
   type ActiveModel = ActiveModel;
   type Entity = Entity;
-  type Presentation = Model;
+  type Presentation = Presentation;
   type PrimaryKey = PrimaryKey;
   type Query = Query;
   type Column = Column;
@@ -31,6 +32,15 @@ impl AggregateRoot for User {
 
   fn primary_column() -> Column {
     Column::Id
+  }
+
+  fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
+    match field.to_string().as_str() {
+      "id" => Some(self.id.cmp(&other.id)),
+      "name" => Some(self.name.cmp(&other.name)),
+      "role" => Some(self.role.cmp(&other.role)),
+      _ => None,
+    }
   }
 
   async fn from_models(
@@ -71,38 +81,6 @@ impl AggregateRoot for User {
         })
         .collect::<HashMap<_, _>>(),
     )
-  }
-
-  fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
-    match field.to_string().as_str() {
-      "id" => Some(self.id.cmp(&other.id)),
-      "name" => Some(self.name.cmp(&other.name)),
-      "role" => Some(self.role.cmp(&other.role)),
-      _ => None,
-    }
-  }
-
-  fn parse_query(mut select: Select<Self::Entity>, query: Self::Query) -> Select<Self::Entity> {
-    let Query { id, name: (name, name_fulltext), role } = query;
-
-    if !id.is_empty() {
-      select = select.filter(Column::Id.is_in(id));
-    }
-
-    let name = name.trim();
-    if !name.is_empty() {
-      select = select.filter(if name_fulltext {
-        Column::Name.like(&format!("%{}%", name))
-      } else {
-        Column::Name.eq(name)
-      });
-    }
-
-    if let Some(role) = role {
-      select = select.filter(Column::Role.eq(role));
-    }
-
-    select
   }
 }
 

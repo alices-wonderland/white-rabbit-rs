@@ -7,4 +7,5 @@ mod query;
 pub use command::*;
 pub use database::Model as User;
 pub use database::*;
+pub use presentation::*;
 pub use query::*;

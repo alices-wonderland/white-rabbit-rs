@@ -1,35 +1,40 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use backend_core::user::User;
-use backend_core::{user, AggregateRoot, Error, FindAllArgs, Order, Repository};
+use backend_core::{user, AggregateRoot, Error, FindAllArgs, Order, Presentation, Repository};
 use futures::{TryFutureExt, TryStreamExt};
-use sea_orm::{ConnectOptions, Database, DbConn, TransactionTrait};
+use sea_orm::{ConnectOptions, Database, DatabaseTransaction, DbConn, TransactionTrait};
 use std::collections::HashSet;
 use std::default::Default;
 use std::env;
 use tauri::State;
 use uuid::Uuid;
 
+async fn test_get_operator(db: &DatabaseTransaction) -> backend_core::Result<Option<User>> {
+  Repository::<User>::find_all(
+    db,
+    FindAllArgs {
+      query: user::Query { role: Some(user::Role::Admin), ..Default::default() },
+      ..Default::default()
+    },
+  )
+  .await?
+  .try_next()
+  .await
+}
+
 #[tauri::command]
 async fn user_create(
   db: State<'_, DbConn>,
   command: user::CommandCreate,
-) -> Result<Option<User>, String> {
+) -> Result<Option<user::Presentation>, String> {
   Ok(
     db.inner()
       .transaction(|tx| {
         Box::pin(async move {
-          let operator = Repository::<User>::find_all(
-            tx,
-            FindAllArgs {
-              query: user::Query { role: Some(user::Role::Admin), ..Default::default() },
-              ..Default::default()
-            },
-          )
-          .await?
-          .try_next()
-          .await?;
-          User::handle(tx, operator.as_ref(), user::Command::Create(command)).await
+          let operator = test_get_operator(tx).await?;
+          let result = User::handle(tx, operator.as_ref(), user::Command::Create(command)).await?;
+          Ok(Presentation::from(tx, operator.as_ref(), result).await?.into_iter().last())
         })
       })
       .map_ok(|models| models.into_iter().last())
@@ -45,22 +50,12 @@ async fn user_find_all(
   name: String,
   role: Option<user::Role>,
   sort: Vec<(String, Order)>,
-) -> Result<Vec<User>, String> {
+) -> Result<Vec<user::Presentation>, String> {
   Ok(
     db.inner()
       .transaction(|tx| {
         Box::pin(async move {
-          let operator = Repository::<User>::find_all(
-            tx,
-            FindAllArgs {
-              query: user::Query { role: Some(user::Role::Admin), ..Default::default() },
-              ..Default::default()
-            },
-          )
-          .await?
-          .try_next()
-          .await?;
-
+          let operator = test_get_operator(tx).await?;
           let result = Repository::<User>::find_all(
             tx,
             FindAllArgs {
@@ -73,7 +68,7 @@ async fn user_find_all(
           .try_collect::<Vec<_>>()
           .await?;
 
-          Ok(result)
+          Presentation::from(tx, operator.as_ref(), result).await
         })
       })
       .map_err(Error::from)

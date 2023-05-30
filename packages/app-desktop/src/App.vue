@@ -1,4 +1,5 @@
 <template>
+  <EditableTable></EditableTable>
   <label>
     <span>A:</span>
     <input v-model="a" type="number" />
@@ -52,6 +53,7 @@
 
 <script setup lang="ts">
 import { HelloWorld } from "@core/index";
+import { EditableTable } from "@core/components";
 import { invoke } from "@tauri-apps/api/tauri";
 import { watchDebounced } from "@vueuse/core";
 import { ref } from "vue";
