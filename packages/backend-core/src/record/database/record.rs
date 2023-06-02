@@ -57,6 +57,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(
   Debug,
   Clone,
+  Copy,
   Hash,
   Eq,
   PartialEq,

@@ -67,17 +67,17 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 }
 
 #[async_trait::async_trait]
-pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Send + Sync {
+pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Eq + PartialEq + Send + Sync {
   type AggregateRoot: AggregateRoot<Presentation = Self>;
 
   async fn from(
-    db: &impl ConnectionTrait,
+    db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,
   ) -> Result<Vec<Self>>;
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Permission {
   ReadOnly,
   ReadWrite,

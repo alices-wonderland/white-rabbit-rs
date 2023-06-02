@@ -94,7 +94,7 @@ impl Model {
     operator: Option<&Model>,
     command: CommandCreate,
   ) -> crate::Result<Model> {
-    if Repository::<Model>::find_all(
+    if Repository::<Model>::do_find_all(
       db,
       FindAllArgs {
         query: Query { name: (command.name.clone(), false), ..Default::default() },

@@ -11,6 +11,8 @@ pub struct Model {
   #[sea_orm(unique, indexed)]
   pub name: String,
   pub description: String,
+  #[sea_orm(indexed)]
+  pub unit: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

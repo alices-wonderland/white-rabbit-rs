@@ -45,6 +45,7 @@ impl MigrationTrait for Migration {
         Journal::new(
           format!("Journal {}", idx),
           format!("Desc {}", idx),
+          "CNY",
           &users[0..3],
           &users[3..7],
         )
@@ -60,6 +61,8 @@ impl MigrationTrait for Migration {
             Account::new(
               format!("{} - Account {}", journal.name, idx),
               format!("Desc {}", idx),
+              "CNY",
+              if idx == 0 { account::Type::Asset } else { account::Type::Expense },
               (0..3).map(|tag| format!("tag {}", tag + idx)),
               journal,
               None,

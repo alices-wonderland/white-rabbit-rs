@@ -1,6 +1,7 @@
 use crate::account::account_tag;
 use crate::journal;
 use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
 
@@ -12,6 +13,10 @@ pub struct Model {
   #[sea_orm(indexed)]
   pub name: String,
   pub description: String,
+  #[sea_orm(indexed)]
+  pub unit: String,
+  #[sea_orm(indexed)]
+  pub typ: Type,
   #[sea_orm(indexed)]
   pub journal_id: Uuid,
   #[sea_orm(indexed)]
@@ -69,3 +74,30 @@ impl Related<account_tag::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(
+  Debug,
+  Clone,
+  Hash,
+  Eq,
+  PartialEq,
+  Ord,
+  PartialOrd,
+  Serialize,
+  Deserialize,
+  EnumIter,
+  DeriveActiveEnum,
+)]
+#[sea_orm(rs_type = "String", db_type = "String(Some(1))")]
+pub enum Type {
+  #[sea_orm(string_value = "I")]
+  Income,
+  #[sea_orm(string_value = "E")]
+  Expense,
+  #[sea_orm(string_value = "A")]
+  Asset,
+  #[sea_orm(string_value = "L")]
+  Liability,
+  #[sea_orm(string_value = "Q")]
+  Equity,
+}

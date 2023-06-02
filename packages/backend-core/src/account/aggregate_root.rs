@@ -1,5 +1,5 @@
 use crate::account::{
-  account_tag, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
+  account_tag, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query, Type,
 };
 use crate::journal::Journal;
 use crate::user::User;
@@ -16,6 +16,8 @@ pub struct Account {
   pub id: Uuid,
   pub name: String,
   pub description: String,
+  pub unit: String,
+  pub typ: Type,
   pub tags: HashSet<String>,
   pub journal: Uuid,
   pub parent: Option<Uuid>,
@@ -25,6 +27,8 @@ impl Account {
   pub fn new(
     name: impl ToString,
     description: impl ToString,
+    unit: impl ToString,
+    typ: Type,
     tags: impl IntoIterator<Item = impl ToString>,
     journal: &Journal,
     parent: Option<&Self>,
@@ -33,7 +37,9 @@ impl Account {
       id: Uuid::new_v4(),
       name: name.to_string(),
       description: description.to_string(),
-      tags: tags.into_iter().map(|tag| tag.to_string()).collect::<HashSet<_>>(),
+      typ,
+      unit: unit.to_string(),
+      tags: tags.into_iter().map(|tag| tag.to_string()).collect(),
       journal: journal.id(),
       parent: parent.map(|parent| parent.id()),
     }
@@ -41,8 +47,8 @@ impl Account {
 }
 
 impl From<Account> for Model {
-  fn from(Account { id, name, description, journal, parent, .. }: Account) -> Self {
-    Self { id, name, description, journal_id: journal, parent_id: parent }
+  fn from(Account { id, name, description, unit, typ, journal, parent, .. }: Account) -> Self {
+    Self { id, name, description, unit, typ, journal_id: journal, parent_id: parent }
   }
 }
 
@@ -52,7 +58,7 @@ impl From<Account> for HashSet<account_tag::Model> {
       .tags
       .iter()
       .map(|tag| account_tag::Model { account_id: value.id, tag: tag.clone() })
-      .collect::<HashSet<_>>()
+      .collect()
   }
 }
 
@@ -85,6 +91,7 @@ impl AggregateRoot for Account {
       "name" => Some(self.name.cmp(&other.name)),
       "journalId" => Some(self.journal.cmp(&other.journal)),
       "parentId" => Some(self.parent.cmp(&other.parent)),
+      "unit" => Some(self.unit.cmp(&other.unit)),
       _ => None,
     }
   }
@@ -97,6 +104,8 @@ impl AggregateRoot for Account {
         id: account.id,
         name: account.name,
         description: account.description,
+        unit: account.unit,
+        typ: account.typ,
         tags: tags.into_iter().map(|u| u.tag).collect::<HashSet<_>>(),
         journal: account.journal_id,
         parent: account.parent_id,
@@ -113,6 +122,7 @@ impl AggregateRoot for Account {
       .map(|root| Model::from(root.clone()).into_active_model())
       .collect::<Vec<_>>();
     Entity::insert_many(accounts).exec(db).await?;
+
     let tags = roots
       .iter()
       .flat_map(|root| HashSet::<account_tag::Model>::from(root.clone()))
@@ -120,6 +130,7 @@ impl AggregateRoot for Account {
       .map(|model| model.into_active_model())
       .collect::<Vec<_>>();
     account_tag::Entity::insert_many(tags).exec(db).await?;
+
     Ok(())
   }
 

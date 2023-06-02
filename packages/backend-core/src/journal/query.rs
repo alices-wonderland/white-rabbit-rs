@@ -12,13 +12,14 @@ pub struct Query {
   pub id: HashSet<Uuid>,
   pub name: (String, bool),
   pub description: String,
+  pub unit: String,
   pub admin: HashSet<Uuid>,
   pub member: HashSet<Uuid>,
 }
 
 impl From<Query> for Select<Entity> {
   fn from(val: Query) -> Self {
-    let Query { id, name, description, admin, member } = val;
+    let Query { id, name, description, unit, admin, member } = val;
 
     let mut select = Entity::find();
 
@@ -34,6 +35,11 @@ impl From<Query> for Select<Entity> {
       select = select.filter(expr);
     }
 
+    let unit = unit.trim();
+    if !unit.is_empty() {
+      select = select.filter(Column::Unit.eq(unit));
+    }
+
     if !admin.is_empty() || !member.is_empty() {
       select = select.join_rev(JoinType::InnerJoin, journal_user::Relation::Journal.def()).filter(
         Condition::any().add_option(user_query(admin, true)).add_option(user_query(member, false)),
@@ -45,8 +51,8 @@ impl From<Query> for Select<Entity> {
 }
 
 impl crate::Query for Query {
-  type Column = Column;
   type Entity = Entity;
+  type Column = Column;
 }
 
 fn user_query(ids: HashSet<Uuid>, is_admin: bool) -> Option<SimpleExpr> {

@@ -1,5 +1,5 @@
 use crate::user::User;
-use crate::{AggregateRoot, Error, Presentation, Result};
+use crate::{utils, AggregateRoot, Error, Presentation, Result};
 use futures::lock::Mutex;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
 use sea_orm::entity::prelude::*;
@@ -50,11 +50,10 @@ pub trait Query: Default + Clone + Debug + Send + Into<Select<Self::Entity>> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct FindAllArgs<'a, Q>
+pub struct FindAllArgs<Q>
 where
   Q: Query,
 {
-  pub operator: Option<&'a User>,
   pub query: Q,
   pub sort: Sort,
 }
@@ -72,7 +71,7 @@ where
   pub size: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Page<A>
 where
   A: AggregateRoot,
@@ -106,11 +105,10 @@ where
     A::from_models(db, models).await
   }
 
-  pub async fn find_all<'a>(
+  pub async fn do_find_all<'a>(
     db: &'a (impl ConnectionTrait + StreamTrait),
-    args: FindAllArgs<'a, A::Query>,
+    args: FindAllArgs<A::Query>,
   ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
-    let operator = Arc::new(Mutex::new(args.operator));
     let sub_db = Arc::new(db);
 
     let mut select = args.query.into();
@@ -131,6 +129,37 @@ where
         .map_err(Error::from)
         .try_chunks(CHUNK_SIZE)
         .map_err(|err| err.1)
+        .zip(stream::repeat(sub_db.clone()))
+        .map(|(result, db)| match result {
+          Ok(result) => Ok((db, result)),
+          Err(err) => Err(err),
+        })
+        .and_then(|(db, models)| async move {
+          let results = A::from_models(*db, models).await?;
+          Ok(results)
+        })
+        .flat_map(|result| {
+          stream::iter(match result {
+            Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
+            Err(err) => vec![Err(err)],
+          })
+        }),
+    ))
+  }
+
+  pub async fn find_all<'a>(
+    db: &'a (impl ConnectionTrait + StreamTrait),
+    operator: Option<&'a User>,
+    args: FindAllArgs<A::Query>,
+  ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
+    let operator = Arc::new(Mutex::new(operator));
+    let sub_db = Arc::new(db);
+
+    Ok(Box::pin(
+      Self::do_find_all(db, args)
+        .await?
+        .try_chunks(CHUNK_SIZE)
+        .map_err(|err| err.1)
         .zip(stream::repeat((sub_db.clone(), operator.clone())))
         .map(|(result, (db, operator))| match result {
           Ok(result) => Ok((db, operator, result)),
@@ -138,10 +167,9 @@ where
         })
         .and_then(|(db, operator, models)| async move {
           let operator = operator.lock().await;
-          let results = A::from_models(*db, models).await?;
-          let permissions = A::get_permission(*db, *operator, &results).await?;
+          let permissions = A::get_permission(*db, *operator, &models).await?;
           Ok(
-            results
+            models
               .into_iter()
               .filter(|model| permissions.contains_key(&model.id()))
               .collect::<Vec<_>>(),
@@ -174,8 +202,8 @@ where
 
     let items = Self::find_all(
       db,
+      operator,
       FindAllArgs {
-        operator,
         query,
         sort: sort
           .iter()
@@ -226,7 +254,7 @@ where
       return Ok(Vec::default());
     }
     A::pre_save(db, &aggregate_roots).await?;
-    let ids = aggregate_roots.iter().map(|root| root.id()).collect::<HashSet<_>>();
+    let ids = utils::get_ids(&aggregate_roots);
     A::do_save(db, aggregate_roots).await?;
 
     Self::find_by_ids(db, ids).await
@@ -237,7 +265,7 @@ where
       return Ok(());
     }
     A::pre_delete(db, &aggregate_roots).await?;
-    let ids = aggregate_roots.iter().map(|root| root.id()).collect::<HashSet<_>>();
+    let ids = utils::get_ids(&aggregate_roots);
     let _ =
       A::Entity::delete_many().filter(Expr::col(A::primary_column()).is_in(ids)).exec(db).await?;
     Ok(())

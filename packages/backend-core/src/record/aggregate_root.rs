@@ -135,11 +135,11 @@ impl AggregateRoot for Record {
         description: record.description,
         typ: record.typ,
         date: record.date,
-        tags: tags.into_iter().map(|u| u.tag).collect::<HashSet<_>>(),
+        tags: tags.into_iter().map(|u| u.tag).collect(),
         items: items
           .into_iter()
           .map(|u| RecordItem { account: u.account_id, amount: u.amount, price: u.price })
-          .collect::<HashSet<_>>(),
+          .collect(),
       });
     }
 
@@ -153,6 +153,7 @@ impl AggregateRoot for Record {
       .map(|root| Model::from(root.clone()).into_active_model())
       .collect::<Vec<_>>();
     Entity::insert_many(records).exec(db).await?;
+
     let record_tags = roots
       .iter()
       .flat_map(|root| HashSet::<record_tag::Model>::from(root.clone()))

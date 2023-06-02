@@ -60,6 +60,6 @@ impl From<Query> for Select<Entity> {
 }
 
 impl crate::Query for Query {
-  type Column = Column;
   type Entity = Entity;
+  type Column = Column;
 }

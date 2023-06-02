@@ -1,17 +1,20 @@
-use crate::account::Account;
+use crate::account::{Account, Type};
 use crate::user::User;
 use crate::{AggregateRoot, Permission, Result};
-use sea_orm::ConnectionTrait;
+use sea_orm::{ConnectionTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Presentation {
   pub id: Uuid,
   pub permission: Permission,
   pub name: String,
   pub description: String,
+  pub unit: String,
+  #[serde(rename = "type")]
+  pub typ: Type,
   pub tags: HashSet<String>,
   pub journal: Uuid,
   pub parent: Option<Uuid>,
@@ -22,7 +25,7 @@ impl crate::Presentation for Presentation {
   type AggregateRoot = Account;
 
   async fn from(
-    db: &impl ConnectionTrait,
+    db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,
   ) -> Result<Vec<Self>> {
@@ -30,12 +33,14 @@ impl crate::Presentation for Presentation {
     Ok(
       roots
         .into_iter()
-        .filter_map(|Account { id, name, description, tags, journal, parent }| {
+        .filter_map(|Account { id, name, description, unit, typ, tags, journal, parent }| {
           permissions.get(&id).map(|permission| Self {
             id,
             permission: *permission,
             name,
             description,
+            unit,
+            typ,
             tags,
             journal,
             parent,

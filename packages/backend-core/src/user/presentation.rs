@@ -1,10 +1,10 @@
 use crate::user::{Role, User};
 use crate::{AggregateRoot, Permission, Result};
-use sea_orm::ConnectionTrait;
+use sea_orm::{ConnectionTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Presentation {
   pub id: Uuid,
   pub permission: Permission,
@@ -17,7 +17,7 @@ impl crate::Presentation for Presentation {
   type AggregateRoot = User;
 
   async fn from(
-    db: &impl ConnectionTrait,
+    db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,
   ) -> Result<Vec<Self>> {

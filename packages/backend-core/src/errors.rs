@@ -10,14 +10,18 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug, Serialize)]
 pub enum Error {
-  #[error("Not found")]
-  NotFound,
+  #[error("{typ}[{}] not found", .field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "))]
+  NotFound { typ: String, field_values: Vec<(String, String)> },
   #[error("{typ}[{}] already exists", .field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "))]
   AlreadyExist { typ: String, field_values: Vec<(String, String)> },
   #[error("User[id = {operator_id:?}] has no permission to write {typ}[id = {id}]")]
   NoWritePermission { operator_id: Option<Uuid>, typ: String, id: Uuid },
   #[error("Field[{field}] is not in Range[begin = {begin}, end = {end}]")]
   NotInRange { field: String, begin: usize, end: usize },
+
+  #[error("Item with Account[id = {account}] in Record[id = {id}] must contain price")]
+  RecordItemMustContainPrice { id: Uuid, account: Uuid },
+
   #[error("Internal database error: {0}")]
   Database(
     #[from]
@@ -27,6 +31,21 @@ pub enum Error {
 }
 
 impl Error {
+  pub fn not_found<A>(
+    field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>,
+  ) -> Error
+  where
+    A: AggregateRoot,
+  {
+    Error::NotFound {
+      typ: A::typ().to_string(),
+      field_values: field_values
+        .into_iter()
+        .map(|(field, value)| (field.to_string(), value.to_string()))
+        .collect::<Vec<_>>(),
+    }
+  }
+
   pub fn already_exists<A>(
     field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>,
   ) -> Error

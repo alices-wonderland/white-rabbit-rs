@@ -1,22 +1,49 @@
-use crate::record::{Column, Entity};
+use crate::record::{record_item, Column, Entity, Type};
 use crate::Query as _;
-use sea_orm::{EntityTrait, QueryFilter, Select};
+use chrono::NaiveDate;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Select};
 use std::collections::HashSet;
 use uuid::Uuid;
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct Query {
   pub id: HashSet<Uuid>,
+  pub typ: Option<Type>,
+  pub journal: HashSet<Uuid>,
+  pub account: HashSet<Uuid>,
+  pub start: Option<NaiveDate>,
+  pub end: Option<NaiveDate>,
 }
 
 impl From<Query> for Select<Entity> {
   fn from(value: Query) -> Self {
-    let Query { id } = value;
+    let Query { id, typ, journal, account, start, end } = value;
 
     let mut select = Entity::find();
 
     if let Some(expr) = Query::id_expr(Column::Id, id) {
       select = select.filter(expr);
+    }
+
+    if let Some(typ) = typ {
+      select = select.filter(Column::Typ.eq(typ));
+    }
+
+    if !journal.is_empty() {
+      select = select.filter(Column::JournalId.is_in(journal));
+    }
+
+    if !account.is_empty() {
+      select =
+        select.left_join(record_item::Entity).filter(record_item::Column::AccountId.is_in(account));
+    }
+
+    if let Some(start) = start {
+      select = select.filter(Column::Date.gte(start));
+    }
+
+    if let Some(end) = end {
+      select = select.filter(Column::Date.lte(end));
     }
 
     select
