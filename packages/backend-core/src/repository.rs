@@ -124,35 +124,36 @@ where
       }
     }
 
-    let stream = select
-      .stream(db)
-      .await?
-      .map_err(Error::from)
-      .try_chunks(CHUNK_SIZE)
-      .map_err(|err| err.1)
-      .zip(stream::repeat((sub_db.clone(), operator.clone())))
-      .map(|(result, (db, operator))| match result {
-        Ok(result) => Ok((db, operator, result)),
-        Err(err) => Err(err),
-      })
-      .and_then(|(db, operator, models)| async move {
-        let operator = operator.lock().await;
-        let results = A::from_models(*db, models).await?;
-        let permissions = A::get_permission(*db, *operator, &results).await?;
-        Ok(
-          results
-            .into_iter()
-            .filter(|model| permissions.contains_key(&model.id()))
-            .collect::<Vec<_>>(),
-        )
-      })
-      .flat_map(|result| {
-        stream::iter(match result {
-          Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
-          Err(err) => vec![Err(err)],
+    Ok(Box::pin(
+      select
+        .stream(db)
+        .await?
+        .map_err(Error::from)
+        .try_chunks(CHUNK_SIZE)
+        .map_err(|err| err.1)
+        .zip(stream::repeat((sub_db.clone(), operator.clone())))
+        .map(|(result, (db, operator))| match result {
+          Ok(result) => Ok((db, operator, result)),
+          Err(err) => Err(err),
         })
-      });
-    Ok(Box::pin(stream))
+        .and_then(|(db, operator, models)| async move {
+          let operator = operator.lock().await;
+          let results = A::from_models(*db, models).await?;
+          let permissions = A::get_permission(*db, *operator, &results).await?;
+          Ok(
+            results
+              .into_iter()
+              .filter(|model| permissions.contains_key(&model.id()))
+              .collect::<Vec<_>>(),
+          )
+        })
+        .flat_map(|result| {
+          stream::iter(match result {
+            Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
+            Err(err) => vec![Err(err)],
+          })
+        }),
+    ))
   }
 
   pub async fn find_page<'a>(

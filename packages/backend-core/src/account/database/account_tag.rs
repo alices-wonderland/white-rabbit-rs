@@ -1,10 +1,10 @@
 use crate::account;
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
+
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, DeriveEntityModel)]
-#[sea_orm(table_name = "account_tags")]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
+#[sea_orm(table_name = "account_tag")]
 pub struct Model {
   #[sea_orm(primary_key)]
   pub account_id: Uuid,

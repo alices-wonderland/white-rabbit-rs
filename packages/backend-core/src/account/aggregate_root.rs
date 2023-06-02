@@ -1,18 +1,17 @@
 use crate::account::{
-  account_tags, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
+  account_tag, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
 };
 use crate::journal::Journal;
 use crate::user::User;
-use crate::{AggregateRoot, Permission, Repository};
+use crate::{AggregateRoot, Permission, Repository, Result};
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::{IntoActiveModel, StreamTrait};
-use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Account {
   pub id: Uuid,
   pub name: String,
@@ -47,12 +46,12 @@ impl From<Account> for Model {
   }
 }
 
-impl From<Account> for HashSet<account_tags::Model> {
+impl From<Account> for HashSet<account_tag::Model> {
   fn from(value: Account) -> Self {
     value
       .tags
       .iter()
-      .map(|tag| account_tags::Model { account_id: value.id, tag: tag.clone() })
+      .map(|tag| account_tag::Model { account_id: value.id, tag: tag.clone() })
       .collect::<HashSet<_>>()
   }
 }
@@ -90,12 +89,9 @@ impl AggregateRoot for Account {
     }
   }
 
-  async fn from_models(
-    db: &impl ConnectionTrait,
-    models: Vec<Self::Model>,
-  ) -> crate::Result<Vec<Self>> {
+  async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>> {
     let mut results = Vec::new();
-    let tags = models.load_many(account_tags::Entity, db).await?;
+    let tags = models.load_many(account_tag::Entity, db).await?;
     for (account, tags) in models.into_iter().zip(tags.into_iter()) {
       results.push(Self {
         id: account.id,
@@ -110,7 +106,7 @@ impl AggregateRoot for Account {
     Ok(results)
   }
 
-  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> crate::Result<()> {
+  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
     let accounts = roots
       .iter()
       .unique_by(|root| root.id)
@@ -119,11 +115,11 @@ impl AggregateRoot for Account {
     Entity::insert_many(accounts).exec(db).await?;
     let tags = roots
       .iter()
-      .flat_map(|root| HashSet::<account_tags::Model>::from(root.clone()))
+      .flat_map(|root| HashSet::<account_tag::Model>::from(root.clone()))
       .unique()
       .map(|model| model.into_active_model())
       .collect::<Vec<_>>();
-    account_tags::Entity::insert_many(tags).exec(db).await?;
+    account_tag::Entity::insert_many(tags).exec(db).await?;
     Ok(())
   }
 
@@ -131,7 +127,7 @@ impl AggregateRoot for Account {
     _db: &(impl ConnectionTrait + StreamTrait),
     _operator: Option<&User>,
     _command: Self::Command,
-  ) -> crate::Result<Vec<Self>> {
+  ) -> Result<Vec<Self>> {
     todo!()
   }
 
@@ -139,7 +135,7 @@ impl AggregateRoot for Account {
     db: &impl ConnectionTrait,
     operator: Option<&User>,
     models: &[Self],
-  ) -> crate::Result<HashMap<Uuid, Permission>> {
+  ) -> Result<HashMap<Uuid, Permission>> {
     let ids = models.iter().map(|model| model.journal).collect::<HashSet<_>>();
     let journals = Repository::<Journal>::find_by_ids(db, ids).await?;
     let permissions = Journal::get_permission(db, operator, &journals).await?;

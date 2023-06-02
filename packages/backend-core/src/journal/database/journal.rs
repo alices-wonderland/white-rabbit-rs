@@ -1,10 +1,9 @@
-use crate::journal::journal_users;
+use crate::journal::journal_user;
 use crate::{account, user};
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, DeriveEntityModel)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "journal")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
@@ -16,13 +15,13 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-  #[sea_orm(has_many = "journal_users::Entity")]
+  #[sea_orm(has_many = "journal_user::Entity")]
   JournalUsers,
   #[sea_orm(has_many = "account::Entity")]
   Accounts,
 }
 
-impl Related<journal_users::Entity> for Entity {
+impl Related<journal_user::Entity> for Entity {
   fn to() -> RelationDef {
     Relation::JournalUsers.def()
   }
@@ -36,11 +35,11 @@ impl Related<account::Entity> for Entity {
 
 impl Related<user::Entity> for Entity {
   fn to() -> RelationDef {
-    journal_users::Relation::User.def()
+    journal_user::Relation::User.def()
   }
 
   fn via() -> Option<RelationDef> {
-    Some(journal_users::Relation::Journal.def().rev())
+    Some(journal_user::Relation::Journal.def().rev())
   }
 }
 

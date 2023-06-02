@@ -1,4 +1,4 @@
-use crate::journal::{journal_users, Column, Entity};
+use crate::journal::{journal_user, Column, Entity};
 use crate::Query as _;
 use sea_orm::sea_query::SimpleExpr;
 use sea_orm::{
@@ -35,7 +35,7 @@ impl From<Query> for Select<Entity> {
     }
 
     if !admin.is_empty() || !member.is_empty() {
-      select = select.join_rev(JoinType::InnerJoin, journal_users::Relation::Journal.def()).filter(
+      select = select.join_rev(JoinType::InnerJoin, journal_user::Relation::Journal.def()).filter(
         Condition::any().add_option(user_query(admin, true)).add_option(user_query(member, false)),
       );
     }
@@ -54,9 +54,9 @@ fn user_query(ids: HashSet<Uuid>, is_admin: bool) -> Option<SimpleExpr> {
     None
   } else {
     Some(
-      journal_users::Column::Field
-        .eq(if is_admin { journal_users::Field::Admin } else { journal_users::Field::Member })
-        .and(journal_users::Column::UserId.is_in(ids)),
+      journal_user::Column::Field
+        .eq(if is_admin { journal_user::Field::Admin } else { journal_user::Field::Member })
+        .and(journal_user::Column::UserId.is_in(ids)),
     )
   }
 }

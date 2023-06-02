@@ -1,4 +1,4 @@
-use crate::account::{account_tags, Column, Entity};
+use crate::account::{account_tag, Column, Entity};
 use crate::Query as _;
 use sea_orm::{
   ColumnTrait, Condition, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
@@ -37,8 +37,8 @@ impl From<Query> for Select<Entity> {
     let tag = tag.trim();
     if !tag.is_empty() {
       select = select
-        .join_rev(JoinType::InnerJoin, account_tags::Relation::Account.def())
-        .filter(account_tags::Column::Tag.contains(tag));
+        .join_rev(JoinType::InnerJoin, account_tag::Relation::Account.def())
+        .filter(account_tag::Column::Tag.contains(tag));
     }
 
     if !journal.is_empty() {

@@ -1,10 +1,10 @@
-use crate::account::account_tags;
+use crate::account::account_tag;
 use crate::journal;
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
+
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, DeriveEntityModel)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "account")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
@@ -28,7 +28,7 @@ pub enum Relation {
   Journal,
   #[sea_orm(belongs_to = "Entity", from = "Column::ParentId", to = "Column::Id")]
   Parent,
-  #[sea_orm(has_many = "account_tags::Entity")]
+  #[sea_orm(has_many = "account_tag::Entity")]
   Tags,
 }
 
@@ -62,7 +62,7 @@ impl Related<journal::Entity> for Entity {
   }
 }
 
-impl Related<account_tags::Entity> for Entity {
+impl Related<account_tag::Entity> for Entity {
   fn to() -> RelationDef {
     Relation::Tags.def()
   }

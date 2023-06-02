@@ -3,8 +3,8 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, DeriveEntityModel)]
-#[sea_orm(table_name = "journal_users")]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
+#[sea_orm(table_name = "journal_user")]
 pub struct Model {
   #[sea_orm(primary_key)]
   pub journal_id: Uuid,

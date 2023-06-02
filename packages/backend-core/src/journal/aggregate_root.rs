@@ -1,18 +1,17 @@
 use crate::journal::{
-  journal_users, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
+  journal_user, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
 };
 use crate::user::{Role, User};
 use crate::{AggregateRoot, Permission};
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::IntoActiveModel;
-use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Journal {
   pub id: Uuid,
   pub name: String,
@@ -44,19 +43,19 @@ impl From<Journal> for Model {
   }
 }
 
-impl From<Journal> for HashSet<journal_users::Model> {
+impl From<Journal> for HashSet<journal_user::Model> {
   fn from(Journal { id, admins, members, .. }: Journal) -> Self {
-    let mut result = HashMap::<Uuid, journal_users::Field>::default();
+    let mut result = HashMap::<Uuid, journal_user::Field>::default();
     for id in admins {
-      result.insert(id, journal_users::Field::Admin);
+      result.insert(id, journal_user::Field::Admin);
     }
     for id in members {
-      result.insert(id, journal_users::Field::Member);
+      result.insert(id, journal_user::Field::Member);
     }
 
     result
       .into_iter()
-      .map(|(user_id, field)| journal_users::Model { journal_id: id, user_id, field })
+      .map(|(user_id, field)| journal_user::Model { journal_id: id, user_id, field })
       .collect::<HashSet<_>>()
   }
 }
@@ -97,7 +96,7 @@ impl AggregateRoot for Journal {
     models: Vec<Self::Model>,
   ) -> crate::Result<Vec<Self>> {
     let mut results = Vec::new();
-    let journal_users = models.load_many(journal_users::Entity, db).await?;
+    let journal_users = models.load_many(journal_user::Entity, db).await?;
     for (journal, users) in models.into_iter().zip(journal_users.into_iter()) {
       results.push(Self {
         id: journal.id,
@@ -105,12 +104,12 @@ impl AggregateRoot for Journal {
         description: journal.description,
         admins: users
           .iter()
-          .filter(|u| u.field == journal_users::Field::Admin)
+          .filter(|u| u.field == journal_user::Field::Admin)
           .map(|u| u.user_id)
           .collect::<HashSet<_>>(),
         members: users
           .iter()
-          .filter(|u| u.field == journal_users::Field::Member)
+          .filter(|u| u.field == journal_user::Field::Member)
           .map(|u| u.user_id)
           .collect::<HashSet<_>>(),
       });
@@ -128,11 +127,11 @@ impl AggregateRoot for Journal {
     Entity::insert_many(journals).exec(db).await?;
     let journal_users = roots
       .iter()
-      .flat_map(|root| HashSet::<journal_users::Model>::from(root.clone()))
+      .flat_map(|root| HashSet::<journal_user::Model>::from(root.clone()))
       .unique()
       .map(|model| model.into_active_model())
       .collect::<Vec<_>>();
-    journal_users::Entity::insert_many(journal_users).exec(db).await?;
+    journal_user::Entity::insert_many(journal_users).exec(db).await?;
     Ok(())
   }
 
