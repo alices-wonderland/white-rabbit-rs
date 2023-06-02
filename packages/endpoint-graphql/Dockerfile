@@ -1,4 +1,4 @@
-FROM rust:1.68.2-alpine AS builder
+FROM rust:1.70.0-alpine AS builder
 
 COPY . .
 
