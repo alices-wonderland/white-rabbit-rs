@@ -1,5 +1,5 @@
 use crate::user::User;
-use crate::{Query, Result};
+use crate::{Error, Query, Result};
 use sea_orm::entity::prelude::*;
 use sea_orm::{IntoActiveModel, StreamTrait};
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,9 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use uuid::Uuid;
+
+pub const FIELD_ID: &str = "id";
+pub const FIELD_NAME: &str = "name";
 
 #[async_trait::async_trait]
 pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
@@ -54,6 +57,20 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
     operator: Option<&User>,
     models: &[Self],
   ) -> Result<HashMap<Uuid, Permission>>;
+
+  async fn check_writeable(
+    db: &impl ConnectionTrait,
+    operator: Option<&User>,
+    models: &[Self],
+  ) -> Result<()> {
+    let permissions = Self::get_permission(db, operator, models).await?;
+    for model in models {
+      if permissions.get(&model.id()) != Some(&Permission::ReadWrite) {
+        return Err(Error::no_write_permission(operator, model));
+      }
+    }
+    Ok(())
+  }
 
   async fn pre_save(_db: &impl ConnectionTrait, models: &[Self]) -> Result<()> {
     log::info!("pre_save: {:#?}", models);

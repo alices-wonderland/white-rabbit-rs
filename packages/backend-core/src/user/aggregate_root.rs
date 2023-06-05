@@ -1,15 +1,18 @@
 use crate::user::{
-  ActiveModel, Column, Command, CommandCreate, Entity, Model, Presentation, PrimaryKey, Query,
-  Role, User,
+  ActiveModel, Column, Command, CommandCreate, CommandDelete, CommandUpdate, Entity, Model,
+  Presentation, PrimaryKey, Query, Role, User,
 };
-use crate::{AggregateRoot, Error, FindAllArgs, Permission, Repository};
+use crate::{
+  AggregateRoot, Error, FindAllArgs, Permission, Repository, Result, FIELD_ID, FIELD_NAME,
+};
 use futures::TryStreamExt;
 use sea_orm::entity::prelude::*;
 use sea_orm::StreamTrait;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-
 use uuid::Uuid;
+
+const FIELD_ROLE: &str = "role";
 
 #[async_trait::async_trait]
 impl AggregateRoot for User {
@@ -36,17 +39,14 @@ impl AggregateRoot for User {
 
   fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
     match field.to_string().as_str() {
-      "id" => Some(self.id.cmp(&other.id)),
-      "name" => Some(self.name.cmp(&other.name)),
-      "role" => Some(self.role.cmp(&other.role)),
+      FIELD_ID => Some(self.id.cmp(&other.id)),
+      FIELD_NAME => Some(self.name.cmp(&other.name)),
+      FIELD_ROLE => Some(self.role.cmp(&other.role)),
       _ => None,
     }
   }
 
-  async fn from_models(
-    _db: &impl ConnectionTrait,
-    models: Vec<Self::Model>,
-  ) -> crate::Result<Vec<Self>> {
+  async fn from_models(_db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>> {
     Ok(models)
   }
 
@@ -54,9 +54,14 @@ impl AggregateRoot for User {
     db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&Model>,
     command: Self::Command,
-  ) -> crate::Result<Vec<Self>> {
+  ) -> Result<Vec<Self>> {
     Ok(match command {
       Command::Create(command) => vec![Model::create(db, operator, command).await?],
+      Command::Update(command) => vec![Model::update(db, operator, command).await?],
+      Command::Delete(command) => {
+        let _ = Model::delete(db, operator, command).await?;
+        vec![]
+      }
     })
   }
 
@@ -64,7 +69,7 @@ impl AggregateRoot for User {
     _db: &impl ConnectionTrait,
     operator: Option<&Self>,
     models: &[Self],
-  ) -> crate::Result<HashMap<Uuid, Permission>> {
+  ) -> Result<HashMap<Uuid, Permission>> {
     Ok(
       models
         .iter()
@@ -89,15 +94,15 @@ impl Model {
     Model { id: Uuid::new_v4(), name: name.to_string(), role }
   }
 
-  async fn create(
+  async fn validate_name(
     db: &(impl ConnectionTrait + StreamTrait),
-    operator: Option<&Model>,
-    command: CommandCreate,
-  ) -> crate::Result<Model> {
+    name: impl ToString,
+  ) -> Result<String> {
+    let name = name.to_string().trim().to_string();
     if Repository::<Model>::do_find_all(
       db,
       FindAllArgs {
-        query: Query { name: (command.name.clone(), false), ..Default::default() },
+        query: Query { name: (name.clone(), false), ..Default::default() },
         ..Default::default()
       },
     )
@@ -106,22 +111,76 @@ impl Model {
     .await?
     .is_some()
     {
-      return Err(Error::already_exists::<Self>(vec![("name", command.name)]));
+      Err(Error::already_exists::<Self>(vec![(FIELD_NAME, name)]))
+    } else if name.len() < 4 || name.len() > 128 {
+      Err(Error::NotInRange { field: "name.length".to_string(), begin: 4, end: 128 })
+    } else {
+      Ok(name)
+    }
+  }
+
+  fn validate_role(operator: Option<&Model>, role: Role) -> Result<Role> {
+    if operator.map(|operator| operator.role >= role).unwrap_or_else(|| role == Role::User) {
+      Ok(role)
+    } else {
+      Err(Error::NoWritePermission {
+        operator_id: operator.map(User::id),
+        typ: User::typ().to_string(),
+        field_values: vec![(FIELD_ROLE.to_string(), role.to_string())],
+      })
+    }
+  }
+
+  async fn create(
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&Model>,
+    command: CommandCreate,
+  ) -> Result<Model> {
+    let name = Self::validate_name(db, command.name).await?;
+    let role = Self::validate_role(operator, command.role)?;
+    let user = Model::new(name, role);
+
+    Ok(Repository::<Model>::save(db, vec![user]).await?.into_iter().last().unwrap())
+  }
+
+  async fn update(
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&Model>,
+    command: CommandUpdate,
+  ) -> Result<Model> {
+    let id: Uuid = command.id.clone().parse()?;
+    let mut model = Repository::<User>::find_by_id(db, id)
+      .await?
+      .ok_or_else(|| Error::not_found::<User>(vec![(FIELD_ID, id)]))?;
+
+    if command.is_empty() {
+      return Ok(model);
     }
 
-    let name = command.name.trim();
-    if name.len() < 4 || name.len() > 128 {
-      return Err(Error::NotInRange { field: "name.length".to_string(), begin: 4, end: 128 });
+    Self::check_writeable(db, operator, &[model.clone()]).await?;
+
+    if let Some(name) = command.name {
+      model.name = Self::validate_name(db, name).await?;
     }
 
-    let user = Model::new(name, command.role);
-    let users = vec![user.clone()];
-
-    match Self::get_permission(db, operator, &users).await?.get(&user.id()) {
-      None | Some(Permission::ReadOnly) => return Err(Error::no_write_permission(operator, &user)),
-      _ => {}
+    if let Some(role) = command.role {
+      model.role = Self::validate_role(operator, role)?;
     }
 
-    Ok(Repository::<Model>::save(db, users).await?.into_iter().last().unwrap())
+    Ok(model)
+  }
+
+  async fn delete(
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&Model>,
+    command: CommandDelete,
+  ) -> Result<()> {
+    if command.id.is_empty() {
+      return Ok(());
+    }
+
+    let models = Repository::<User>::find_by_ids(db, command.id).await?;
+    Self::check_writeable(db, operator, &models).await?;
+    Repository::delete(db, models).await
   }
 }

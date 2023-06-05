@@ -1,5 +1,5 @@
 use crate::user::User;
-use crate::AggregateRoot;
+use crate::{AggregateRoot, FIELD_ID};
 use itertools::Itertools;
 use sea_orm::{DbErr, TransactionError};
 use serde::Serialize;
@@ -14,8 +14,8 @@ pub enum Error {
   NotFound { typ: String, field_values: Vec<(String, String)> },
   #[error("{typ}[{}] already exists", .field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "))]
   AlreadyExist { typ: String, field_values: Vec<(String, String)> },
-  #[error("User[id = {operator_id:?}] has no permission to write {typ}[id = {id}]")]
-  NoWritePermission { operator_id: Option<Uuid>, typ: String, id: Uuid },
+  #[error("User[id = {operator_id:?}] has no permission to write {typ}[{}]", .field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "))]
+  NoWritePermission { operator_id: Option<Uuid>, typ: String, field_values: Vec<(String, String)> },
   #[error("Field[{field}] is not in Range[begin = {begin}, end = {end}]")]
   NotInRange { field: String, begin: usize, end: usize },
 
@@ -27,6 +27,12 @@ pub enum Error {
     #[from]
     #[serde(skip_serializing)]
     DbErr,
+  ),
+  #[error("Uuid error: {0}")]
+  Uuid(
+    #[from]
+    #[serde(skip_serializing)]
+    uuid::Error,
   ),
 }
 
@@ -42,7 +48,7 @@ impl Error {
       field_values: field_values
         .into_iter()
         .map(|(field, value)| (field.to_string(), value.to_string()))
-        .collect::<Vec<_>>(),
+        .collect(),
     }
   }
 
@@ -57,7 +63,7 @@ impl Error {
       field_values: field_values
         .into_iter()
         .map(|(field, value)| (field.to_string(), value.to_string()))
-        .collect::<Vec<_>>(),
+        .collect(),
     }
   }
 
@@ -68,7 +74,7 @@ impl Error {
     Error::NoWritePermission {
       typ: A::typ().to_string(),
       operator_id: operator.map(User::id),
-      id: aggregate_root.id(),
+      field_values: vec![(FIELD_ID.to_string(), aggregate_root.id().to_string())],
     }
   }
 }
