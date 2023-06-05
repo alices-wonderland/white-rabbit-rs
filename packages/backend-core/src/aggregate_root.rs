@@ -72,13 +72,11 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
     Ok(())
   }
 
-  async fn pre_save(_db: &impl ConnectionTrait, models: &[Self]) -> Result<()> {
-    log::info!("pre_save: {:#?}", models);
+  async fn pre_save(_db: &impl ConnectionTrait, _models: &[Self]) -> Result<()> {
     Ok(())
   }
 
-  async fn pre_delete(_db: &impl ConnectionTrait, models: &[Self]) -> Result<()> {
-    log::info!("pre_delete: {:#?}", models);
+  async fn pre_delete(_db: &impl ConnectionTrait, _models: &[Self]) -> Result<()> {
     Ok(())
   }
 }

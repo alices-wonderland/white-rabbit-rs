@@ -10,7 +10,7 @@ pub enum Command {
   Delete(CommandDelete),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandCreate {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub id: Option<String>,
@@ -18,7 +18,7 @@ pub struct CommandCreate {
   pub role: Role,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandUpdate {
   pub id: String,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,7 +33,7 @@ impl CommandUpdate {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandDelete {
   pub id: HashSet<Uuid>,
 }

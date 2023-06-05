@@ -3,4 +3,5 @@ members = [
   "packages/app-desktop/src-tauri",
   "packages/backend-core",
   "packages/migration",
+  "packages/test-suite",
 ]

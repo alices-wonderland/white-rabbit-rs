@@ -325,6 +325,7 @@ dependencies = [
  "serde_json",
  "strum 0.24.1",
  "strum_macros 0.24.3",
+ "test-suite",
  "thiserror",
  "tokio",
  "uuid",
@@ -1041,6 +1042,7 @@ name = "endpoint-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "backend-core",
  "dotenv",
  "env_logger",
@@ -1053,6 +1055,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "test-suite",
  "tokio",
  "uuid",
 ]
@@ -4316,6 +4319,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be55cf8942feac5c765c2c993422806843c9a9a45d4d5c407ad6dd2ea95eb9b6"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test-suite"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backend-core",
+ "chrono",
+ "dotenv",
+ "env_logger",
+ "futures",
+ "migration",
+ "rand 0.8.5",
+ "rust_decimal",
+ "tokio",
 ]
 
 [[package]]
