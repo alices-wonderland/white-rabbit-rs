@@ -1,12 +1,12 @@
 {
   "build": {
-    "beforeDevCommand": "yarn workspace @test-rust/app-desktop run dev:vue",
-    "beforeBuildCommand": "yarn workspace @test-rust/app-desktop run build:vue",
+    "beforeDevCommand": "yarn workspace @white-rabbit/app-desktop run dev:vue",
+    "beforeBuildCommand": "yarn workspace @white-rabbit/app-desktop run build:vue",
     "devPath": "http://localhost:1420/",
     "distDir": "../dist"
   },
   "package": {
-    "productName": "test-rust-desktop",
+    "productName": "white-rabbit-desktop",
     "version": "0.1.0"
   },
   "tauri": {

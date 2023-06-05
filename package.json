@@ -1,8 +1,8 @@
 {
-  "name": "test-rust",
+  "name": "white-rabbit",
   "version": "0.1.0",
   "license": "MIT",
-  "packageManager": "yarn@3.5.1",
+  "packageManager": "yarn@3.6.0",
   "engines": {
     "yarn": ">=3",
     "node": ">=20"
@@ -14,14 +14,14 @@
   "scripts": {
     "prepare": "husky install",
     "build:rs": "cargo build --workspace --release",
-    "build:js": "yarn workspaces foreach -pitv --exclude test-rust run build",
+    "build:js": "yarn workspaces foreach -pitv --exclude white-rabbit run build",
     "build": "yarn build:js && yarn build:rs",
     "lint:rs": "cargo fmt --check && cargo clippy",
     "lint:stylelint": "stylelint '**/*.{vue,scss,css}' --ignore-path .eslintignore",
     "lint:base:prettier": "prettier '**/*.{vue,ts,js,json}' --ignore-path .eslintignore",
     "lint:prettier": "yarn lint:base:prettier --check",
     "lint:eslint": "eslint '**/*.{vue,ts,js}'",
-    "lint:tsc": "yarn workspaces foreach -pitv --exclude test-rust run lint:tsc",
+    "lint:tsc": "yarn workspaces foreach -pitv --exclude white-rabbit run lint:tsc",
     "lint:fix:prettier": "yarn lint:base:prettier --write",
     "lint:fix:eslint": "yarn lint:eslint --fix",
     "lint:fix:stylelint": "yarn lint:stylelint --fix",
@@ -29,7 +29,11 @@
     "lint:fix": "yarn lint:fix:eslint && yarn lint:fix:stylelint && yarn lint:fix:rs && yarn lint:fix:prettier",
     "lint": "yarn lint:eslint && yarn lint:stylelint && yarn lint:prettier && yarn lint:tsc && yarn lint:rs",
     "upgrade": "yarn upgrade-interactive && cargo update && cargo upgrade --incompatible --pinned",
-    "test": "cargo test"
+    "test": "cargo test",
+    "test:coverage": "rimraf target/debug/coverage; yarn test:coverage:test && yarn test:coverage:generate -t html -o target/debug/coverage/ && yarn test:coverage:generate -t lcov -o target/debug/coverage/lcov.info && yarn test:coverage:clean",
+    "test:coverage:test": "RUSTFLAGS='-Cinstrument-coverage' LLVM_PROFILE_FILE='coverage-%p-%m.profraw' cargo test",
+    "test:coverage:generate": "grcov . -s . --binary-path ./target/debug/ --branch --keep-only 'packages/*'",
+    "test:coverage:clean": "rimraf *.profraw; rimraf packages/**/*.profraw"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.5",
@@ -38,14 +42,14 @@
     "@intlify/vite-plugin-vue-i18n": "^7.0.0",
     "@mdi/js": "^7.2.96",
     "@quasar/vite-plugin": "^1.3.3",
-    "@types/eslint": "^8.40.0",
+    "@types/eslint": "^8.40.1",
     "@types/jsdom": "^21.1.1",
     "@types/node": "^20.2.5",
     "@types/prettier": "^2.7.3",
-    "@typescript-eslint/eslint-plugin": "^5.59.8",
-    "@typescript-eslint/parser": "^5.59.8",
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.9",
     "@vitejs/plugin-vue": "^4.2.3",
-    "@vitest/coverage-c8": "^0.31.4",
+    "@vitest/coverage-c8": "^0.32.0",
     "@vue/compiler-dom": "^3.3.4",
     "@vue/eslint-config-prettier": "^7.1.0",
     "@vue/eslint-config-typescript": "^11.0.3",
@@ -76,9 +80,9 @@
     "prettier": "^2.8.8",
     "rimraf": "^5.0.1",
     "rollup-plugin-visualizer": "^5.9.0",
-    "sass": "^1.62.1",
+    "sass": "^1.63.2",
     "sass-loader": "^13.3.1",
-    "stylelint": "^15.6.3",
+    "stylelint": "^15.7.0",
     "stylelint-config-recommended-scss": "^12.0.0",
     "stylelint-config-recommended-vue": "^1.4.0",
     "stylelint-config-standard-scss": "^9.0.0",
@@ -86,10 +90,10 @@
     "tailwindcss": "^3.3.2",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
-    "vitest": "^0.31.4",
+    "vitest": "^0.32.0",
     "vue": "^3.3.4",
     "vue-eslint-parser": "^9.3.0",
-    "vue-tsc": "^1.7.8"
+    "vue-tsc": "^1.7.11"
   },
   "config": {
     "commitizen": {

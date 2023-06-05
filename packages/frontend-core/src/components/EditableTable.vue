@@ -24,31 +24,20 @@ const rowData = ref([
 </script>
 
 <template>
-  <div class="resizeable-container">
-    <ag-grid-vue
-      class="ag-theme-alpine"
-      :column-defs="columnDefs"
-      :row-data="rowData"
-      :default-col-def="defaultColDef"
-    ></ag-grid-vue>
-  </div>
+  <ag-grid-vue
+    class="ag-theme-alpine"
+    :column-defs="columnDefs"
+    :row-data="rowData"
+    :default-col-def="defaultColDef"
+  ></ag-grid-vue>
 </template>
 
 <style scoped lang="scss">
-.resizeable-container {
-  min-width: 20vw;
-  min-height: 20vh;
-  max-width: 90vw;
-  max-height: 90vh;
-  width: 80vw;
+.ag-theme-alpine {
   height: 40vh;
+  width: 100%;
   resize: both;
   overflow: auto;
   padding: 10px;
-
-  .ag-theme-alpine {
-    height: 100%;
-    width: 100%;
-  }
 }
 </style>

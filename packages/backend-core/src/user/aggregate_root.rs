@@ -4,6 +4,7 @@ use crate::user::{
 };
 use crate::{
   AggregateRoot, Error, FindAllArgs, Permission, Repository, Result, FIELD_ID, FIELD_NAME,
+  FIELD_NAME_LENGTH,
 };
 use futures::TryStreamExt;
 use sea_orm::entity::prelude::*;
@@ -12,7 +13,9 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-const FIELD_ROLE: &str = "role";
+pub const FIELD_ROLE: &str = "role";
+pub const MIN_NAME: usize = 6;
+pub const MAX_NAME: usize = 128;
 
 #[async_trait::async_trait]
 impl AggregateRoot for User {
@@ -99,7 +102,13 @@ impl Model {
     name: impl ToString,
   ) -> Result<String> {
     let name = name.to_string().trim().to_string();
-    if Repository::<Model>::do_find_all(
+    if name.len() < MIN_NAME || name.len() > MAX_NAME {
+      Err(Error::NotInRange {
+        field: FIELD_NAME_LENGTH.to_string(),
+        begin: MIN_NAME,
+        end: MAX_NAME,
+      })
+    } else if Repository::<Model>::do_find_all(
       db,
       FindAllArgs {
         query: Query { name: (name.clone(), false), ..Default::default() },
@@ -112,8 +121,6 @@ impl Model {
     .is_some()
     {
       Err(Error::already_exists::<Self>(vec![(FIELD_NAME, name)]))
-    } else if name.len() < 4 || name.len() > 128 {
-      Err(Error::NotInRange { field: "name.length".to_string(), begin: 4, end: 128 })
     } else {
       Ok(name)
     }

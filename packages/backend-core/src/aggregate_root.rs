@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 pub const FIELD_ID: &str = "id";
 pub const FIELD_NAME: &str = "name";
+pub const FIELD_NAME_LENGTH: &str = "name.length";
 
 #[async_trait::async_trait]
 pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {

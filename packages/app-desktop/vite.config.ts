@@ -23,7 +23,7 @@ export default defineConfig(() => {
     envPrefix: ["VITE_", "TAURI_"],
     resolve: {
       alias: {
-        "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
+        "@desktop": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
         "@core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../frontend-core/src"),
       },
     },
@@ -48,14 +48,8 @@ export default defineConfig(() => {
           manualChunks: (id): string | null => {
             if (id.includes("ag-charts")) {
               return "ag-charts";
-            } else if (id.includes("@ag-grid-enterprise/charts")) {
-              return "ag-grid";
-            } else if (id.includes("@ag-grid-enterprise")) {
-              return "ag-grid-enterprise";
             } else if (id.includes("@ag-grid-community/core")) {
               return "ag-grid-community-core";
-            } else if (id.includes("@ag-grid-community")) {
-              return "ag-grid";
             }
             return null;
           },
