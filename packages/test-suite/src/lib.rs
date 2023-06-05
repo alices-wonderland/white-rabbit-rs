@@ -1,29 +1,36 @@
+pub mod user_test;
+
+pub use anyhow::Result;
 use backend_core::account::Account;
 use backend_core::journal::Journal;
 use backend_core::record::{Record, RecordItem};
 use backend_core::user::User;
-use backend_core::{account, record, user, AggregateRoot, Repository};
+use backend_core::{account, record, user, AggregateRoot, FindAllArgs, Repository};
 use chrono::{Duration, NaiveDate};
+use futures::TryStreamExt;
 use migration::sea_orm::DatabaseConnection;
 use migration::{Migrator, MigratorTrait};
 use rand::prelude::*;
 
-mod test_runner;
-pub mod user_test;
-
-pub use anyhow::Result;
-pub use test_runner::TestRunner;
-
 #[macro_export]
 macro_rules! generate_tests {
-  ($runner: path; $package: ident; $( $func:ident ),*) => {
+  ($runner: ident; $package: ident; $( $func: ident ),*) => {
     $(
     #[tokio::test]
     async fn $func() -> ::test_suite::Result<()> {
-      ::test_suite::$package::$func::<$runner>().await
+      ::test_suite::$package::$func($runner).await
     }
     )*
   };
+}
+
+pub struct RunnerArgs<A>
+where
+  A: AggregateRoot,
+{
+  pub db: DatabaseConnection,
+  pub operator: Option<User>,
+  pub command: A::Command,
 }
 
 async fn init() -> Result<DatabaseConnection> {
@@ -31,6 +38,15 @@ async fn init() -> Result<DatabaseConnection> {
   Migrator::up(&db, None).await?;
 
   Ok(db)
+}
+
+async fn get_user(db: &DatabaseConnection, query: user::Query) -> Result<Option<User>> {
+  Ok(
+    Repository::<User>::do_find_all(db, FindAllArgs { query, ..Default::default() })
+      .await?
+      .try_next()
+      .await?,
+  )
 }
 
 async fn populate_data(db: &DatabaseConnection) -> Result<()> {

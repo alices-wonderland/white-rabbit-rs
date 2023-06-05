@@ -1,21 +1,9 @@
-use backend_core::user;
 use backend_core::user::User;
 use backend_core::{AggregateRoot, Result};
-use sea_orm::DatabaseConnection;
+use test_suite::RunnerArgs;
 
-struct TestRunner {}
-
-#[async_trait::async_trait]
-impl test_suite::TestRunner for TestRunner {
-  type AggregateRoot = User;
-
-  async fn run_test(
-    db: &DatabaseConnection,
-    operator: Option<&User>,
-    command: user::Command,
-  ) -> Result<Vec<Self::AggregateRoot>> {
-    User::handle(db, operator, command).await
-  }
+async fn runner(RunnerArgs { db, operator, command }: RunnerArgs<User>) -> Result<Vec<User>> {
+  User::handle(&db, operator.as_ref(), command).await
 }
 
-test_suite::generate_user_tests!(TestRunner);
+test_suite::generate_user_tests!(runner);

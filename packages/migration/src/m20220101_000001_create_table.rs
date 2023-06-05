@@ -4,7 +4,6 @@ use backend_core::journal::{self, journal_user};
 use backend_core::record;
 use backend_core::record::{record_item, record_tag};
 use backend_core::user::{self};
-
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]

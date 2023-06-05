@@ -4,6 +4,7 @@ mod database;
 mod presentation;
 mod query;
 
+pub use aggregate_root::*;
 pub use command::*;
 pub use database::Model as User;
 pub use database::*;
