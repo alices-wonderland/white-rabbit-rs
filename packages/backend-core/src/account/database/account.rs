@@ -19,8 +19,6 @@ pub struct Model {
   pub typ: Type,
   #[sea_orm(indexed)]
   pub journal_id: Uuid,
-  #[sea_orm(indexed)]
-  pub parent_id: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -31,34 +29,8 @@ pub enum Relation {
     to = "crate::journal::Column::Id"
   )]
   Journal,
-  #[sea_orm(belongs_to = "Entity", from = "Column::ParentId", to = "Column::Id")]
-  Parent,
   #[sea_orm(has_many = "account_tag::Entity")]
   Tags,
-}
-
-pub struct ParentLink;
-
-impl Linked for ParentLink {
-  type FromEntity = Entity;
-
-  type ToEntity = Entity;
-
-  fn link(&self) -> Vec<RelationDef> {
-    vec![Relation::Parent.def()]
-  }
-}
-
-pub struct ChildrenLink;
-
-impl Linked for ChildrenLink {
-  type FromEntity = Entity;
-
-  type ToEntity = Entity;
-
-  fn link(&self) -> Vec<RelationDef> {
-    vec![Relation::Parent.def().rev()]
-  }
 }
 
 impl Related<journal::Entity> for Entity {

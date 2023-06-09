@@ -17,7 +17,6 @@ pub struct Presentation {
   pub typ: Type,
   pub tags: HashSet<String>,
   pub journal: Uuid,
-  pub parent: Option<Uuid>,
 }
 
 #[async_trait::async_trait]
@@ -33,7 +32,7 @@ impl crate::Presentation for Presentation {
     Ok(
       roots
         .into_iter()
-        .filter_map(|Account { id, name, description, unit, typ, tags, journal, parent }| {
+        .filter_map(|Account { id, name, description, unit, typ, tags, journal }| {
           permissions.get(&id).map(|permission| Self {
             id,
             permission: *permission,
@@ -43,7 +42,6 @@ impl crate::Presentation for Presentation {
             typ,
             tags,
             journal,
-            parent,
           })
         })
         .collect(),

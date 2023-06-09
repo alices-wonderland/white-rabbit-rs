@@ -1,12 +1,15 @@
 use crate::user::{Column, Entity, Role};
 use crate::Query as _;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Query {
+  #[serde(default)]
   pub id: HashSet<Uuid>,
+  #[serde(default)]
   pub name: (String, bool),
   pub role: Option<Role>,
 }

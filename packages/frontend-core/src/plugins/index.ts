@@ -1,1 +1,1 @@
-export { default as agGrid } from "./AgGrid";
+export { default as agGrid } from "./ag-grid";

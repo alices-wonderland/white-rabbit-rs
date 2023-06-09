@@ -1,10 +1,12 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use backend_core::user::User;
-use backend_core::{user, AggregateRoot, Error, FindAllArgs, Order, Presentation, Repository};
+use backend_core::{
+  user, AggregateRoot, Error, FindAllArgs, FindPageArgs, Page, Presentation, Repository, Sort,
+};
 use futures::{TryFutureExt, TryStreamExt};
 use sea_orm::{ConnectOptions, Database, DatabaseTransaction, DbConn, TransactionTrait};
-use std::collections::HashSet;
+
 use std::default::Default;
 use std::env;
 use tauri::State;
@@ -44,28 +46,73 @@ async fn user_create(
 }
 
 #[tauri::command]
+async fn user_find_page(
+  db: State<'_, DbConn>,
+  query: user::Query,
+  sort: Sort,
+  after: Option<Uuid>,
+  before: Option<Uuid>,
+  size: usize,
+) -> Result<Page<User>, String> {
+  Ok(
+    db.inner()
+      .transaction(|tx| {
+        Box::pin(async move {
+          let operator = test_get_operator(tx).await?;
+          Repository::<User>::find_page(
+            tx,
+            FindPageArgs { operator: operator.as_ref(), query, sort, after, before, size },
+          )
+          .await
+        })
+      })
+      .map_err(Error::from)
+      .await?,
+  )
+}
+
+#[tauri::command]
 async fn user_find_all(
   db: State<'_, DbConn>,
-  id: HashSet<Uuid>,
-  name: String,
-  role: Option<user::Role>,
-  sort: Vec<(String, Order)>,
+  query: user::Query,
+  sort: Sort,
 ) -> Result<Vec<user::Presentation>, String> {
   Ok(
     db.inner()
       .transaction(|tx| {
         Box::pin(async move {
           let operator = test_get_operator(tx).await?;
-          let result = Repository::<User>::find_all(
-            tx,
-            operator.as_ref(),
-            FindAllArgs { query: user::Query { id, name: (name, true), role }, sort },
-          )
-          .await?
-          .try_collect::<Vec<_>>()
-          .await?;
+          let result =
+            Repository::<User>::find_all(tx, operator.as_ref(), FindAllArgs { query, sort })
+              .await?
+              .try_collect::<Vec<_>>()
+              .await?;
 
           Presentation::from(tx, operator.as_ref(), result).await
+        })
+      })
+      .map_err(Error::from)
+      .await?,
+  )
+}
+
+#[tauri::command]
+async fn user_find_by_id(
+  db: State<'_, DbConn>,
+  id: Uuid,
+) -> Result<Option<user::Presentation>, String> {
+  Ok(
+    db.inner()
+      .transaction(|tx| {
+        Box::pin(async move {
+          let operator = test_get_operator(tx).await?;
+          let result = Repository::<User>::find_by_id(tx, id).await?;
+
+          if let Some(result) = result {
+            Ok(Presentation::from(tx, operator.as_ref(), vec![result]).await?.into_iter().last())
+          } else {
+            Ok(None)
+          }
         })
       })
       .map_err(Error::from)
@@ -89,7 +136,12 @@ async fn main() -> anyhow::Result<()> {
 
   tauri::Builder::default()
     .manage(db)
-    .invoke_handler(tauri::generate_handler![user_create, user_find_all])
+    .invoke_handler(tauri::generate_handler![
+      user_create,
+      user_find_page,
+      user_find_all,
+      user_find_by_id
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
   Ok(())

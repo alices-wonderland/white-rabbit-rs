@@ -15,5 +15,4 @@ pub struct CommandCreate {
   pub description: String,
   pub tags: HashSet<String>,
   pub journal: Uuid,
-  pub parent: Option<Uuid>,
 }

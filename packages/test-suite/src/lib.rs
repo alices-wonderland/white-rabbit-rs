@@ -57,7 +57,7 @@ async fn populate_data(db: &DatabaseConnection) -> Result<()> {
         if idx % 3 == 0 { user::Role::Admin } else { user::Role::User },
       )
     })
-    .collect::<Vec<_>>();
+    .collect();
   let mut users = Repository::<User>::save(db, users).await.unwrap();
 
   let journals = (0..3)
@@ -71,30 +71,24 @@ async fn populate_data(db: &DatabaseConnection) -> Result<()> {
         &users[3..7],
       )
     })
-    .collect::<Vec<_>>();
+    .collect();
   let journals = Repository::<Journal>::save(db, journals).await.unwrap();
 
   let accounts = journals
     .iter()
     .flat_map(|journal| {
-      let mut accounts = (0..3)
-        .map(|idx| {
-          Account::new(
-            format!("{} - Account {}", journal.name, idx),
-            format!("Desc {}", idx),
-            "CNY",
-            if idx == 0 { account::Type::Asset } else { account::Type::Expense },
-            (0..3).map(|tag| format!("tag {}", tag + idx)),
-            journal,
-            None,
-          )
-        })
-        .collect::<Vec<_>>();
-      accounts[0].parent = Some(accounts[1].id());
-      accounts[1].parent = Some(accounts[2].id());
-      accounts
+      (0..3).map(|idx| {
+        Account::new(
+          format!("{} - Account {}", journal.name, idx),
+          format!("Desc {}", idx),
+          "CNY",
+          if idx == 0 { account::Type::Asset } else { account::Type::Expense },
+          (0..3).map(|tag| format!("tag {}", tag + idx)),
+          journal,
+        )
+      })
     })
-    .collect::<Vec<_>>();
+    .collect();
   let mut accounts = Repository::<Account>::save(db, accounts).await.unwrap();
 
   let mut records = Vec::new();

@@ -20,7 +20,6 @@ pub struct Account {
   pub typ: Type,
   pub tags: HashSet<String>,
   pub journal: Uuid,
-  pub parent: Option<Uuid>,
 }
 
 impl Account {
@@ -31,7 +30,6 @@ impl Account {
     typ: Type,
     tags: impl IntoIterator<Item = impl ToString>,
     journal: &Journal,
-    parent: Option<&Self>,
   ) -> Self {
     Self {
       id: Uuid::new_v4(),
@@ -41,14 +39,13 @@ impl Account {
       unit: unit.to_string(),
       tags: tags.into_iter().map(|tag| tag.to_string()).collect(),
       journal: journal.id(),
-      parent: parent.map(|parent| parent.id()),
     }
   }
 }
 
 impl From<Account> for Model {
-  fn from(Account { id, name, description, unit, typ, journal, parent, .. }: Account) -> Self {
-    Self { id, name, description, unit, typ, journal_id: journal, parent_id: parent }
+  fn from(Account { id, name, description, unit, typ, journal, .. }: Account) -> Self {
+    Self { id, name, description, unit, typ, journal_id: journal }
   }
 }
 
@@ -90,7 +87,6 @@ impl AggregateRoot for Account {
       "id" => Some(self.id.cmp(&other.id)),
       "name" => Some(self.name.cmp(&other.name)),
       "journalId" => Some(self.journal.cmp(&other.journal)),
-      "parentId" => Some(self.parent.cmp(&other.parent)),
       "unit" => Some(self.unit.cmp(&other.unit)),
       _ => None,
     }
@@ -108,7 +104,6 @@ impl AggregateRoot for Account {
         typ: account.typ,
         tags: tags.into_iter().map(|u| u.tag).collect::<HashSet<_>>(),
         journal: account.journal_id,
-        parent: account.parent_id,
       });
     }
 

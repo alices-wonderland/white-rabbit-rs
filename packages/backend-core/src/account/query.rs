@@ -1,7 +1,7 @@
 use crate::account::{account_tag, Column, Entity};
 use crate::Query as _;
 use sea_orm::{
-  ColumnTrait, Condition, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
+  ColumnTrait, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
 };
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -13,12 +13,11 @@ pub struct Query {
   pub description: String,
   pub tag: String,
   pub journal: HashSet<Uuid>,
-  pub parent: HashSet<Option<Uuid>>,
 }
 
 impl From<Query> for Select<Entity> {
   fn from(val: Query) -> Self {
-    let Query { id, name, description, tag, journal, parent } = val;
+    let Query { id, name, description, tag, journal } = val;
 
     let mut select = Entity::find();
 
@@ -43,16 +42,6 @@ impl From<Query> for Select<Entity> {
 
     if !journal.is_empty() {
       select = select.filter(Column::JournalId.is_in(journal));
-    }
-
-    if !parent.is_empty() {
-      let contains_none = parent.contains(&None);
-      let parent = parent.into_iter().flatten().collect::<HashSet<_>>();
-      select = select.filter(
-        Condition::any()
-          .add_option(if contains_none { Some(Column::ParentId.is_null()) } else { None })
-          .add_option(if parent.is_empty() { None } else { Some(Column::ParentId.is_in(parent)) }),
-      );
     }
 
     select
