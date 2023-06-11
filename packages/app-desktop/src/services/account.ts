@@ -1,19 +1,37 @@
 import type {
-  FindAllArgs,
-  FindPageArgs,
   AccountApi,
   AccountCommand,
   AccountQuery,
   AccountSort,
-  Page,
   Permission,
-  ReadModel,
   AccountType,
+  ReadModel,
 } from "@core/services";
 import { Account } from "@core/services";
+import { AbstractWriteApi } from "@desktop/services/api";
 
-class AccountApiImpl implements AccountApi {
-  private convert(input: Record<string, unknown>): Account {
+class AccountApiImpl extends AbstractWriteApi<Account, AccountQuery, AccountCommand, AccountSort> {
+  protected get findAllKey(): string {
+    return "account_find_all";
+  }
+
+  protected get findByIdKey(): string {
+    return "account_find_by_id";
+  }
+
+  protected get findPageKey(): string {
+    return "account_find_page";
+  }
+
+  protected get handleCommandKey(): string {
+    return "account_handle_command";
+  }
+
+  protected loadIncluded(models: Account[]): Promise<Map<string, ReadModel>> {
+    throw new Error("Method not implemented.");
+  }
+
+  protected convert(input: Record<string, unknown>): Account {
     return new Account({
       id: input.id as string,
       permission: input.permission as Permission,
@@ -24,24 +42,6 @@ class AccountApiImpl implements AccountApi {
       tags: input.tags as string[],
       journal: input.journal as string,
     });
-  }
-
-  async findAll(args: FindAllArgs<AccountQuery, AccountSort>): Promise<[Account[], ReadModel[]]> {
-    return [[], []];
-  }
-
-  async findPage(
-    args: FindPageArgs<AccountQuery, AccountSort>
-  ): Promise<[Page<Account>, ReadModel[]]> {
-    return [{ hasNext: false, hasPrevious: false, items: [] }, []];
-  }
-
-  async handle(command: AccountCommand): Promise<Account[]> {
-    return [];
-  }
-
-  async findById(id: string): Promise<[Account, ReadModel[]] | null> {
-    return null;
   }
 }
 

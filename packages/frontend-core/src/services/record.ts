@@ -1,4 +1,4 @@
-import type { Command, Permission, WriteApi, WriteModel } from "@core/services";
+import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
 export class Record_ implements WriteModel {
   id: string;
@@ -57,7 +57,7 @@ export type RecordStateItem =
 
 export type RecordSort = "name" | "journal" | "type" | "date";
 
-export interface RecordQuery {
+export interface RecordQuery extends Query {
   readonly id?: string[];
   readonly type?: RecordType;
   readonly journal?: string[];

@@ -1,13 +1,15 @@
 import "@desktop/style.scss";
-
 import { createApp } from "vue";
 import App from "./App.vue";
 import { agGrid } from "@core/plugins";
-import { USER_API_KEY } from "@core/services";
-import { userApi } from "@desktop/services";
+import { ACCOUNT_API_KEY, JOURNAL_API_KEY, RECORD_API_KEY, USER_API_KEY } from "@core/services";
+import { accountApi, journalApi, recordApi, userApi } from "@desktop/services";
 
 const app = createApp(App);
 
 app.use(agGrid);
 app.provide(USER_API_KEY, userApi);
+app.provide(JOURNAL_API_KEY, journalApi);
+app.provide(ACCOUNT_API_KEY, accountApi);
+app.provide(RECORD_API_KEY, recordApi);
 app.mount("#app");

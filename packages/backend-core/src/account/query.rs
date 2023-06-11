@@ -3,15 +3,20 @@ use crate::Query as _;
 use sea_orm::{
   ColumnTrait, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Query {
+  #[serde(default)]
   pub id: HashSet<Uuid>,
   pub name: (String, bool),
+  #[serde(default)]
   pub description: String,
+  #[serde(default)]
   pub tag: String,
+  #[serde(default)]
   pub journal: HashSet<Uuid>,
 }
 

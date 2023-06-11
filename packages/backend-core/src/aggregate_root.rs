@@ -88,7 +88,7 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 pub trait Presentation: Serialize + for<'a> Deserialize<'a> + Eq + PartialEq + Send + Sync {
   type AggregateRoot: AggregateRoot<Presentation = Self>;
 
-  async fn from(
+  async fn from_aggregate_roots(
     db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,

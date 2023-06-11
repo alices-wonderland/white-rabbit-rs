@@ -1,8 +1,10 @@
 <template>
   <EditableTable></EditableTable>
-  <HelloWorld></HelloWorld>
+  <HelloUser></HelloUser>
+  <HelloJournal></HelloJournal>
+  <HelloAccount></HelloAccount>
 </template>
 
 <script setup lang="ts">
-import { HelloWorld, EditableTable } from "@core/components";
+import { HelloUser, HelloJournal, HelloAccount, EditableTable } from "@core/components";
 </script>

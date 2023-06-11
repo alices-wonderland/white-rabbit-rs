@@ -2,7 +2,6 @@ use crate::account::Account;
 use crate::journal::Journal;
 use crate::record::{Query, Record, Type};
 use crate::{account, utils, AggregateRoot, Error, FindAllArgs, Repository, Result};
-use futures::TryStreamExt;
 use itertools::Itertools;
 use rust_decimal::Decimal;
 use sea_orm::{ConnectionTrait, StreamTrait};
@@ -120,9 +119,8 @@ impl State {
         },
         ..Default::default()
       },
+      None,
     )
-    .await?
-    .try_collect::<Vec<_>>()
     .await?
     .into_iter()
     .into_group_map_by(|record| record.journal);

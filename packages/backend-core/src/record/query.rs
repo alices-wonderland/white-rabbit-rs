@@ -2,14 +2,18 @@ use crate::record::{record_item, Column, Entity, Type};
 use crate::Query as _;
 use chrono::NaiveDate;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Select};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Query {
+  #[serde(default)]
   pub id: HashSet<Uuid>,
   pub typ: Option<Type>,
+  #[serde(default)]
   pub journal: HashSet<Uuid>,
+  #[serde(default)]
   pub account: HashSet<Uuid>,
   pub start: Option<NaiveDate>,
   pub end: Option<NaiveDate>,

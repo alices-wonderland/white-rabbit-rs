@@ -5,9 +5,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Presentation {
   pub id: Uuid,
   pub permission: Permission,
+  pub model_type: String,
   pub name: String,
   pub role: Role,
 }
@@ -16,7 +18,7 @@ pub struct Presentation {
 impl crate::Presentation for Presentation {
   type AggregateRoot = User;
 
-  async fn from(
+  async fn from_aggregate_roots(
     db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,
@@ -26,7 +28,13 @@ impl crate::Presentation for Presentation {
       roots
         .into_iter()
         .filter_map(|User { id, name, role }| {
-          permissions.get(&id).map(|permission| Self { id, permission: *permission, name, role })
+          permissions.get(&id).map(|permission| Self {
+            id,
+            permission: *permission,
+            model_type: User::typ().to_string(),
+            name,
+            role,
+          })
         })
         .collect(),
     )

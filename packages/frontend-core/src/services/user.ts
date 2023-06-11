@@ -1,4 +1,4 @@
-import type { Command, Permission, WriteApi, WriteModel } from "@core/services";
+import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
 export class User implements WriteModel {
   id: string;
@@ -22,7 +22,7 @@ export type Role = "User" | "Admin";
 
 export type UserSort = "name" | "role";
 
-export interface UserQuery {
+export interface UserQuery extends Query {
   readonly id?: string[];
   readonly name?: [string, boolean];
   readonly role?: Role;

@@ -107,24 +107,41 @@ impl AggregateRoot for Journal {
     db: &impl ConnectionTrait,
     models: Vec<Self::Model>,
   ) -> crate::Result<Vec<Self>> {
+    let model_ids = models.iter().map(|model| model.id).collect::<HashSet<_>>();
     let mut results = Vec::new();
-    let journal_users = models.load_many(journal_user::Entity, db).await?;
-    for (journal, users) in models.into_iter().zip(journal_users.into_iter()) {
+    let users = journal_user::Entity::find()
+      .filter(journal_user::Column::JournalId.is_in(model_ids))
+      .all(db)
+      .await?;
+    for journal in models {
+      let admins = users
+        .iter()
+        .filter_map(|user| {
+          if user.journal_id == journal.id && user.field == journal_user::Field::Admin {
+            Some(user.user_id)
+          } else {
+            None
+          }
+        })
+        .collect();
+      let members = users
+        .iter()
+        .filter_map(|user| {
+          if user.journal_id == journal.id && user.field == journal_user::Field::Member {
+            Some(user.user_id)
+          } else {
+            None
+          }
+        })
+        .collect();
+
       results.push(Self {
         id: journal.id,
         name: journal.name,
         description: journal.description,
         unit: journal.unit,
-        admins: users
-          .iter()
-          .filter(|u| u.field == journal_user::Field::Admin)
-          .map(|u| u.user_id)
-          .collect(),
-        members: users
-          .iter()
-          .filter(|u| u.field == journal_user::Field::Member)
-          .map(|u| u.user_id)
-          .collect(),
+        admins,
+        members,
       });
     }
 

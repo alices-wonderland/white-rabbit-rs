@@ -1,19 +1,15 @@
 use crate::user::User;
-use crate::{utils, AggregateRoot, Error, Presentation, Result};
-use futures::lock::Mutex;
-use futures::{stream, Stream, StreamExt, TryStreamExt};
+use crate::{utils, AggregateRoot, Presentation, Result};
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{Expr, SimpleExpr};
-use sea_orm::{QueryOrder, StreamTrait};
+use sea_orm::{QueryOrder, QuerySelect, StreamTrait};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::future;
-use std::marker::PhantomData;
-use std::pin::Pin;
 
-use std::sync::Arc;
+use std::marker::PhantomData;
+
 use uuid::Uuid;
 
 const CHUNK_SIZE: usize = 100;
@@ -56,6 +52,7 @@ where
 {
   pub query: Q,
   pub sort: Sort,
+  pub size: Option<usize>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -105,13 +102,13 @@ where
     A::from_models(db, models).await
   }
 
-  pub async fn do_find_all<'a>(
-    db: &'a (impl ConnectionTrait + StreamTrait),
+  pub async fn do_find_all(
+    db: &(impl ConnectionTrait + StreamTrait),
     args: FindAllArgs<A::Query>,
-  ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
-    let sub_db = Arc::new(db);
-
-    let mut select = args.query.into();
+    offset: Option<usize>,
+  ) -> Result<Vec<A>> {
+    let mut select =
+      args.query.into().offset(offset.map(|n| n as u64)).limit(args.size.map(|n| n as u64));
 
     for (field, order) in args.sort {
       if let Some(column) = A::sortable_column(field) {
@@ -122,66 +119,34 @@ where
       }
     }
 
-    Ok(Box::pin(
-      select
-        .stream(db)
-        .await?
-        .map_err(Error::from)
-        .try_chunks(CHUNK_SIZE)
-        .map_err(|err| err.1)
-        .zip(stream::repeat(sub_db.clone()))
-        .map(|(result, db)| match result {
-          Ok(result) => Ok((db, result)),
-          Err(err) => Err(err),
-        })
-        .and_then(|(db, models)| async move {
-          let results = A::from_models(*db, models).await?;
-          Ok(results)
-        })
-        .flat_map(|result| {
-          stream::iter(match result {
-            Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
-            Err(err) => vec![Err(err)],
-          })
-        }),
-    ))
+    A::from_models(db, select.all(db).await?).await
   }
 
   pub async fn find_all<'a>(
     db: &'a (impl ConnectionTrait + StreamTrait),
     operator: Option<&'a User>,
     args: FindAllArgs<A::Query>,
-  ) -> Result<Pin<Box<dyn 'a + Send + Stream<Item = Result<A>>>>> {
-    let operator = Arc::new(Mutex::new(operator));
-    let sub_db = Arc::new(db);
+  ) -> Result<Vec<A>> {
+    let mut results = Vec::default();
+    let size = args.size.unwrap_or(CHUNK_SIZE);
+    let mut count = 0;
 
-    Ok(Box::pin(
-      Self::do_find_all(db, args)
-        .await?
-        .try_chunks(CHUNK_SIZE)
-        .map_err(|err| err.1)
-        .zip(stream::repeat((sub_db.clone(), operator.clone())))
-        .map(|(result, (db, operator))| match result {
-          Ok(result) => Ok((db, operator, result)),
-          Err(err) => Err(err),
-        })
-        .and_then(|(db, operator, models)| async move {
-          let operator = operator.lock().await;
-          let permissions = A::get_permission(*db, *operator, &models).await?;
-          Ok(
-            models
-              .into_iter()
-              .filter(|model| permissions.contains_key(&model.id()))
-              .collect::<Vec<_>>(),
-          )
-        })
-        .flat_map(|result| {
-          stream::iter(match result {
-            Ok(roots) => roots.into_iter().map(|root| Ok(root)).collect::<Vec<_>>(),
-            Err(err) => vec![Err(err)],
-          })
-        }),
-    ))
+    while results.len() <= size {
+      let roots = Self::do_find_all(db, args.clone(), Some(count * size)).await?;
+      if roots.is_empty() {
+        break;
+      }
+
+      count += 1;
+      let permissions = A::get_permission(db, operator, &roots).await?;
+      for root in roots {
+        if permissions.contains_key(&root.id()) {
+          results.push(root);
+        }
+      }
+    }
+
+    Ok(results.into_iter().take(size).collect())
   }
 
   pub async fn find_page<'a>(
@@ -200,36 +165,49 @@ where
       sort
     };
 
-    let items = Self::find_all(
-      db,
-      operator,
-      FindAllArgs {
-        query,
-        sort: sort
-          .iter()
-          .map(|(field, order)| {
-            (
-              field.to_string(),
-              if should_reverse {
-                match order {
-                  Order::Asc => Order::Desc,
-                  Order::Desc => Order::Asc,
-                }
-              } else {
-                order.clone()
-              },
-            )
-          })
-          .collect::<Vec<_>>(),
-      },
-    )
-    .await?
-    .try_filter(|model| {
-      future::ready(filter_between(model, &sort, after.as_ref(), before.as_ref()))
-    })
-    .take(size + 1)
-    .try_collect::<Vec<_>>()
-    .await?;
+    let mut items = Vec::default();
+    let mut count = 0;
+
+    while items.len() < size + 1 {
+      let roots = Self::do_find_all(
+        db,
+        FindAllArgs {
+          size: Some(size + 1),
+          query: query.clone(),
+          sort: sort
+            .iter()
+            .map(|(field, order)| {
+              (
+                field.to_string(),
+                if should_reverse {
+                  match order {
+                    Order::Asc => Order::Desc,
+                    Order::Desc => Order::Asc,
+                  }
+                } else {
+                  order.clone()
+                },
+              )
+            })
+            .collect(),
+        },
+        Some(count * (size + 1)),
+      )
+      .await?;
+      if roots.is_empty() {
+        break;
+      }
+
+      count += 1;
+      let permissions = A::get_permission(db, operator, &roots).await?;
+      for root in roots {
+        if permissions.contains_key(&root.id())
+          && filter_between(&root, &sort, after.as_ref(), before.as_ref())
+        {
+          items.push(root);
+        }
+      }
+    }
 
     let (has_previous, has_next) = if after.is_some() {
       (true, items.len() > size)
@@ -239,8 +217,12 @@ where
       (false, items.len() > size)
     };
 
-    let mut items =
-      Presentation::from(db, operator, items.into_iter().take(size).collect::<Vec<_>>()).await?;
+    let mut items = Presentation::from_aggregate_roots(
+      db,
+      operator,
+      items.into_iter().take(size).collect::<Vec<_>>(),
+    )
+    .await?;
 
     if should_reverse {
       items.reverse();

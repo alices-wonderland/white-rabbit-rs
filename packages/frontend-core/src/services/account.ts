@@ -1,4 +1,4 @@
-import type { Command, Permission, WriteApi, WriteModel } from "@core/services";
+import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
 export class Account implements WriteModel {
   id: string;
@@ -39,7 +39,7 @@ export type AccountType = "Income" | "Expense" | "Asset" | "Liability" | "Equity
 
 export type AccountSort = "name" | "unit" | "type" | "journal";
 
-export interface AccountQuery {
+export interface AccountQuery extends Query {
   readonly id?: string[];
   readonly name?: [string, boolean];
   readonly description?: string;

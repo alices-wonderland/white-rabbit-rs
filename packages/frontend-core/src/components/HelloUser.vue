@@ -27,7 +27,7 @@
   </div>
   <div>
     <h2>Included:</h2>
-    <div v-for="inc in included" :key="`${inc.modelType}:${inc.id}`">
+    <div v-for="inc in included.values()" :key="`${inc.modelType}:${inc.id}`">
       <div>
         <strong>Type:</strong>
         <span>{{ inc.modelType }}</span>

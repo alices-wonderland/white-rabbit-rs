@@ -4,16 +4,22 @@ use sea_orm::sea_query::SimpleExpr;
 use sea_orm::{
   ColumnTrait, Condition, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Select,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Query {
+  #[serde(default)]
   pub id: HashSet<Uuid>,
   pub name: (String, bool),
+  #[serde(default)]
   pub description: String,
+  #[serde(default)]
   pub unit: String,
+  #[serde(default)]
   pub admin: HashSet<Uuid>,
+  #[serde(default)]
   pub member: HashSet<Uuid>,
 }
 

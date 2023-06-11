@@ -6,7 +6,6 @@ use crate::{
   AggregateRoot, Error, FindAllArgs, Permission, Repository, Result, FIELD_ID, FIELD_NAME,
   FIELD_NAME_LENGTH,
 };
-use futures::TryStreamExt;
 use sea_orm::entity::prelude::*;
 use sea_orm::StreamTrait;
 use std::cmp::Ordering;
@@ -116,17 +115,17 @@ impl Model {
         begin: MIN_NAME,
         end: MAX_NAME,
       })
-    } else if Repository::<Model>::do_find_all(
+    } else if !Repository::<Model>::do_find_all(
       db,
       FindAllArgs {
+        size: Some(1),
         query: Query { name: (name.clone(), false), ..Default::default() },
         ..Default::default()
       },
+      None,
     )
     .await?
-    .try_next()
-    .await?
-    .is_some()
+    .is_empty()
     {
       Err(Error::already_exists::<Self>(vec![(FIELD_NAME, name)]))
     } else {

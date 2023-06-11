@@ -8,9 +8,11 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Presentation {
   pub id: Uuid,
   pub permission: Permission,
+  pub model_type: String,
   pub journal: Uuid,
   pub name: String,
   pub description: String,
@@ -26,7 +28,7 @@ pub struct Presentation {
 impl crate::Presentation for Presentation {
   type AggregateRoot = Record;
 
-  async fn from(
+  async fn from_aggregate_roots(
     db: &(impl ConnectionTrait + StreamTrait),
     operator: Option<&User>,
     roots: Vec<Self::AggregateRoot>,
@@ -41,6 +43,7 @@ impl crate::Presentation for Presentation {
           permissions.get(&id).map(|permission| Self {
             id,
             permission: *permission,
+            model_type: Record::typ().to_string(),
             journal,
             name,
             description,

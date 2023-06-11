@@ -7,7 +7,6 @@ use backend_core::record::{Record, RecordItem};
 use backend_core::user::User;
 use backend_core::{account, record, user, AggregateRoot, FindAllArgs, Repository};
 use chrono::{Duration, NaiveDate};
-use futures::TryStreamExt;
 use migration::sea_orm::DatabaseConnection;
 use migration::{Migrator, MigratorTrait};
 use rand::prelude::*;
@@ -42,10 +41,14 @@ async fn init() -> Result<DatabaseConnection> {
 
 async fn get_user(db: &DatabaseConnection, query: user::Query) -> Result<Option<User>> {
   Ok(
-    Repository::<User>::do_find_all(db, FindAllArgs { query, ..Default::default() })
-      .await?
-      .try_next()
-      .await?,
+    Repository::<User>::do_find_all(
+      db,
+      FindAllArgs { size: Some(1), query, ..Default::default() },
+      None,
+    )
+    .await?
+    .into_iter()
+    .last(),
   )
 }
 
