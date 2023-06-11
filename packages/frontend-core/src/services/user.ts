@@ -6,14 +6,14 @@ export class User implements WriteModel {
   name: string;
   role: Role;
 
-  constructor({ id, permission, name, role }: Omit<User, "type">) {
+  constructor({ id, permission, name, role }: Omit<User, "modelType">) {
     this.id = id;
     this.permission = permission;
     this.name = name;
     this.role = role;
   }
 
-  get type(): string {
+  get modelType(): string {
     return "users";
   }
 }

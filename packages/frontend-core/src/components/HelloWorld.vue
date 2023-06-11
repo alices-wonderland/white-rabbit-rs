@@ -27,10 +27,10 @@
   </div>
   <div>
     <h2>Included:</h2>
-    <div v-for="inc in included" :key="`${inc.type}:${inc.id}`">
+    <div v-for="inc in included" :key="`${inc.modelType}:${inc.id}`">
       <div>
         <strong>Type:</strong>
-        <span>{{ inc.type }}</span>
+        <span>{{ inc.modelType }}</span>
       </div>
       <div>
         <strong>Id:</strong>

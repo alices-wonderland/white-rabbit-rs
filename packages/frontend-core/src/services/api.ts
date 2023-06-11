@@ -1,7 +1,5 @@
-import { User } from "@core/services/user";
-
 export interface ReadApi<M extends ReadModel, Q, S extends string> {
-  findById(id: string): Promise<[User, ReadModel[]] | null>;
+  findById(id: string): Promise<[M, ReadModel[]] | null>;
 
   findAll(args: FindAllArgs<Q, S>): Promise<[M[], ReadModel[]]>;
 }
@@ -15,7 +13,7 @@ export interface WriteApi<M extends WriteModel, Q, C, S extends string> extends 
 export interface ReadModel {
   id: string;
 
-  get type(): string;
+  get modelType(): string;
 }
 
 export interface WriteModel extends ReadModel {
@@ -43,4 +41,4 @@ export type Permission = "ReadWrite" | "ReadOnly";
 
 export type Order = "Asc" | "Desc";
 
-export type Command<T extends string> = { type: T };
+export type Command<T extends string> = { commandType: T };

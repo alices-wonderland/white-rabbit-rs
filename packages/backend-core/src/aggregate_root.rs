@@ -33,6 +33,8 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 
   fn primary_column() -> Self::Column;
 
+  fn sortable_column(field: impl ToString) -> Option<Self::Column>;
+
   fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering>;
 
   async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>>;

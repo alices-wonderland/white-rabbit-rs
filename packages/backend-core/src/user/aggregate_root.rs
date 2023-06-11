@@ -40,6 +40,14 @@ impl AggregateRoot for User {
     Column::Id
   }
 
+  fn sortable_column(field: impl ToString) -> Option<Self::Column> {
+    match field.to_string().as_str() {
+      "name" => Some(Column::Name),
+      "role" => Some(Column::Role),
+      _ => None,
+    }
+  }
+
   fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
     match field.to_string().as_str() {
       FIELD_ID => Some(self.id.cmp(&other.id)),

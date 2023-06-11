@@ -112,11 +112,21 @@ impl AggregateRoot for Record {
     Column::Id
   }
 
+  fn sortable_column(field: impl ToString) -> Option<Self::Column> {
+    match field.to_string().as_str() {
+      "journal" => Some(Column::JournalId),
+      "name" => Some(Column::Name),
+      "type" => Some(Column::Typ),
+      "date" => Some(Column::Date),
+      _ => None,
+    }
+  }
+
   fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
     match field.to_string().as_str() {
       "id" => Some(self.id.cmp(&other.id)),
+      "journal" => Some(self.journal.cmp(&other.journal)),
       "name" => Some(self.name.cmp(&other.name)),
-      "journalId" => Some(self.journal.cmp(&other.journal)),
       "type" => Some(self.typ.cmp(&other.typ)),
       "date" => Some(self.date.cmp(&other.date)),
       _ => None,

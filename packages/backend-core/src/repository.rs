@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use std::future;
 use std::marker::PhantomData;
 use std::pin::Pin;
-use std::str::FromStr;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -114,10 +114,10 @@ where
     let mut select = args.query.into();
 
     for (field, order) in args.sort {
-      if let Ok(field) = A::Column::from_str(&field) {
+      if let Some(column) = A::sortable_column(field) {
         select = match order {
-          Order::Asc => select.order_by_asc(field),
-          Order::Desc => select.order_by_desc(field),
+          Order::Asc => select.order_by_asc(column),
+          Order::Desc => select.order_by_desc(column),
         }
       }
     }

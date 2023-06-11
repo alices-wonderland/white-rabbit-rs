@@ -82,12 +82,23 @@ impl AggregateRoot for Account {
     Column::Id
   }
 
+  fn sortable_column(field: impl ToString) -> Option<Self::Column> {
+    match field.to_string().as_str() {
+      "name" => Some(Column::Name),
+      "unit" => Some(Column::Unit),
+      "type" => Some(Column::Typ),
+      "journal" => Some(Column::JournalId),
+      _ => None,
+    }
+  }
+
   fn compare_by_field(&self, other: &Self, field: impl ToString) -> Option<Ordering> {
     match field.to_string().as_str() {
       "id" => Some(self.id.cmp(&other.id)),
       "name" => Some(self.name.cmp(&other.name)),
-      "journalId" => Some(self.journal.cmp(&other.journal)),
       "unit" => Some(self.unit.cmp(&other.unit)),
+      "type" => Some(self.typ.cmp(&other.typ)),
+      "journal" => Some(self.journal.cmp(&other.journal)),
       _ => None,
     }
   }
