@@ -1,2 +1,10 @@
 @use "@ag-grid-community/styles" as ag;
-@include ag.grid-styles((themes: (alpine)));
+@use 'vuetify' with ($utilities: false);
+
+@import "material-design-icons-iconfont/dist/material-design-icons.css";
+
+@include ag.grid-styles((themes: (alpine, alpine-dark)));
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

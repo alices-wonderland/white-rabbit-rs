@@ -1,6 +1,10 @@
 import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
-export class Journal implements WriteModel {
+export const JOURNAL_TYPE = "journals";
+
+export const JOURNAL_API_KEY = Symbol("JOURNAL_API_KEY");
+
+export class Journal implements WriteModel<typeof JOURNAL_TYPE> {
   id: string;
   permission: Permission;
   name: string;
@@ -27,8 +31,8 @@ export class Journal implements WriteModel {
     this.members = members;
   }
 
-  get modelType(): string {
-    return "journals";
+  get modelType(): typeof JOURNAL_TYPE {
+    return JOURNAL_TYPE;
   }
 }
 
@@ -43,7 +47,7 @@ export interface JournalQuery extends Query {
   readonly members?: string[];
 }
 
-export interface JournalCommandCreate extends Command<"journals:create"> {
+export interface JournalCommandCreate extends Command<`${typeof JOURNAL_TYPE}:create`> {
   readonly id?: string;
   readonly name: string;
   readonly description: string;
@@ -52,7 +56,7 @@ export interface JournalCommandCreate extends Command<"journals:create"> {
   readonly members: string[];
 }
 
-export interface JournalCommandUpdate extends Command<"journals:update"> {
+export interface JournalCommandUpdate extends Command<`${typeof JOURNAL_TYPE}:update`> {
   readonly id: string;
   readonly name?: string;
   readonly description?: string;
@@ -61,12 +65,10 @@ export interface JournalCommandUpdate extends Command<"journals:update"> {
   readonly members?: string[];
 }
 
-export interface JournalCommandDelete extends Command<"journals:delete"> {
+export interface JournalCommandDelete extends Command<`${typeof JOURNAL_TYPE}:delete`> {
   readonly id: string[];
 }
 
 export type JournalCommand = JournalCommandCreate | JournalCommandUpdate | JournalCommandDelete;
-
-export const JOURNAL_API_KEY = Symbol("JOURNAL_API_KEY");
 
 export type JournalApi = WriteApi<Journal, JournalQuery, JournalCommand, JournalSort>;

@@ -1,6 +1,10 @@
 import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
-export class Record_ implements WriteModel {
+export const RECORD_TYPE = "records";
+
+export const RECORD_API_KEY = Symbol("RECORD_API_KEY");
+
+export class Record_ implements WriteModel<typeof RECORD_TYPE> {
   id: string;
   permission: Permission;
   journal: string;
@@ -36,8 +40,8 @@ export class Record_ implements WriteModel {
     this.state = state;
   }
 
-  get modelType(): string {
-    return "records";
+  get modelType(): typeof RECORD_TYPE {
+    return RECORD_TYPE;
   }
 }
 
@@ -66,7 +70,7 @@ export interface RecordQuery extends Query {
   readonly end?: Date;
 }
 
-export interface RecordCommandCreate extends Command<"records:create"> {
+export interface RecordCommandCreate extends Command<`${typeof RECORD_TYPE}:create`> {
   readonly id?: string;
   readonly journal: string;
   readonly name: string;
@@ -77,7 +81,7 @@ export interface RecordCommandCreate extends Command<"records:create"> {
   readonly items: RecordItem[];
 }
 
-export interface RecordCommandUpdate extends Command<"records:update"> {
+export interface RecordCommandUpdate extends Command<`${typeof RECORD_TYPE}:update`> {
   readonly id: string;
   readonly name?: string;
   readonly description?: string;
@@ -87,12 +91,10 @@ export interface RecordCommandUpdate extends Command<"records:update"> {
   readonly items?: RecordItem[];
 }
 
-export interface RecordCommandDelete extends Command<"records:delete"> {
+export interface RecordCommandDelete extends Command<`${typeof RECORD_TYPE}:delete`> {
   readonly id: string[];
 }
 
 export type RecordCommand = RecordCommandCreate | RecordCommandUpdate | RecordCommandDelete;
-
-export const RECORD_API_KEY = Symbol("RECORD_API_KEY");
 
 export type RecordApi = WriteApi<Record_, RecordQuery, RecordCommand, RecordSort>;

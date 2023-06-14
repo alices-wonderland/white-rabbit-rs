@@ -3,18 +3,12 @@ import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { fileURLToPath } from "url";
 import { visualizer } from "rollup-plugin-visualizer";
-import { quasar, transformAssetUrls } from "@quasar/vite-plugin";
+import vuetify from "vite-plugin-vuetify";
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
-    plugins: [
-      vue({
-        template: { transformAssetUrls },
-      }),
-      visualizer(),
-      quasar(),
-    ],
+    plugins: [vue(), visualizer(), vuetify()],
     clearScreen: false,
     server: {
       port: 1420,

@@ -2,18 +2,12 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { fileURLToPath } from "url";
 import { visualizer } from "rollup-plugin-visualizer";
-import { quasar, transformAssetUrls } from "@quasar/vite-plugin";
+import vuetify from "vite-plugin-vuetify";
 import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
-  plugins: [
-    vue({
-      template: { transformAssetUrls },
-    }),
-    visualizer(),
-    quasar(),
-  ],
+  plugins: [vue(), visualizer(), vuetify()],
   resolve: {
     alias: {
       "@core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),

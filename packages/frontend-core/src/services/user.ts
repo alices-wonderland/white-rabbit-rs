@@ -1,6 +1,10 @@
 import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
 
-export class User implements WriteModel {
+export const USER_TYPE = "users";
+
+export const USER_API_KEY = Symbol("USER_API_KEY");
+
+export class User implements WriteModel<typeof USER_TYPE> {
   id: string;
   permission: Permission;
   name: string;
@@ -13,8 +17,8 @@ export class User implements WriteModel {
     this.role = role;
   }
 
-  get modelType(): string {
-    return "users";
+  get modelType(): typeof USER_TYPE {
+    return USER_TYPE;
   }
 }
 
@@ -28,24 +32,22 @@ export interface UserQuery extends Query {
   readonly role?: Role;
 }
 
-export interface UserCommandCreate extends Command<"users:create"> {
+export interface UserCommandCreate extends Command<`${typeof USER_TYPE}:create`> {
   readonly id?: string;
   readonly name: string;
   readonly role: Role;
 }
 
-export interface UserCommandUpdate extends Command<"users:update"> {
+export interface UserCommandUpdate extends Command<`${typeof USER_TYPE}:update`> {
   readonly id: string;
   readonly name?: string;
   readonly role?: Role;
 }
 
-export interface UserCommandDelete extends Command<"users:delete"> {
+export interface UserCommandDelete extends Command<`${typeof USER_TYPE}:delete`> {
   readonly id: string[];
 }
 
 export type UserCommand = UserCommandCreate | UserCommandUpdate | UserCommandDelete;
-
-export const USER_API_KEY = Symbol("USER_API_KEY");
 
 export type UserApi = WriteApi<User, UserQuery, UserCommand, UserSort>;

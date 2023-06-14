@@ -16,31 +16,35 @@ export abstract class AbstractReadApi<M extends ReadModel, Q extends Query, S ex
 {
   protected abstract convert(input: Record<string, unknown>): M;
 
-  protected abstract loadIncluded(models: M[]): Promise<Map<string, ReadModel>>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected async loadIncluded(models: M[]): Promise<Map<string, ReadModel>> {
+    return new Map();
+  }
 
   protected abstract get findAllKey(): string;
 
   protected abstract get findByIdKey(): string;
 
-  async findAll({ query, sort }: FindAllArgs<Q, S>): Promise<[M[], Map<string, ReadModel>]> {
+  async findAll(
+    { query, sort }: FindAllArgs<Q, S>,
+    loadIncluded?: boolean
+  ): Promise<[M[], Map<string, ReadModel>]> {
     const response = await invoke<Record<string, unknown>[]>(this.findAllKey, {
       query,
       sort,
     });
     const models = response.map(this.convert);
-    const included = await this.loadIncluded(models);
-    return [models, included];
+    return [models, loadIncluded ? await this.loadIncluded(models) : new Map()];
   }
 
-  async findById(id: string): Promise<[M, Map<string, ReadModel>] | null> {
+  async findById(id: string, loadIncluded?: boolean): Promise<[M, Map<string, ReadModel>] | null> {
     const response = await invoke<Record<string, unknown> | null>(this.findByIdKey, {
       id,
     });
 
     if (response) {
       const model = this.convert(response);
-      const included = await this.loadIncluded([model]);
-      return [model, included];
+      return [model, loadIncluded ? await this.loadIncluded([model]) : new Map()];
     } else {
       return null;
     }
@@ -60,13 +64,10 @@ export abstract class AbstractWriteApi<
 
   protected abstract get handleCommandKey(): string;
 
-  async findPage({
-    query,
-    sort,
-    after,
-    before,
-    size,
-  }: FindPageArgs<Q, S>): Promise<[Page<M>, Map<string, ReadModel>]> {
+  async findPage(
+    { query, sort, after, before, size }: FindPageArgs<Q, S>,
+    loadIncluded?: boolean
+  ): Promise<[Page<M>, Map<string, ReadModel>]> {
     const page = await invoke<Record<string, unknown>>(this.findPageKey, {
       query: query,
       sort: sort,
@@ -76,14 +77,13 @@ export abstract class AbstractWriteApi<
     });
 
     const models = (page.items as Record<string, unknown>[]).map(this.convert);
-    const included = await this.loadIncluded(models);
     return [
       {
         hasPrevious: page.hasPrevious as boolean,
         hasNext: page.hasNext as boolean,
         items: models,
       },
-      included,
+      loadIncluded ? await this.loadIncluded(models) : new Map(),
     ];
   }
 

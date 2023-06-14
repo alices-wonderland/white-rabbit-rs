@@ -19,8 +19,11 @@ pub enum State {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum Item {
-  Valid(Decimal),
-  Invalid(Decimal, Decimal),
+  Valid(#[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal),
+  Invalid(
+    #[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal,
+    #[serde(with = "rust_decimal::serde::arbitrary_precision")] Decimal,
+  ),
 }
 
 impl Default for Item {

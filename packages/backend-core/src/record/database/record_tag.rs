@@ -1,6 +1,5 @@
 use crate::record;
 use sea_orm::entity::prelude::*;
-
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]

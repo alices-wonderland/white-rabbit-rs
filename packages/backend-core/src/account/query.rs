@@ -11,6 +11,7 @@ use uuid::Uuid;
 pub struct Query {
   #[serde(default)]
   pub id: HashSet<Uuid>,
+  #[serde(default)]
   pub name: (String, bool),
   #[serde(default)]
   pub description: String,

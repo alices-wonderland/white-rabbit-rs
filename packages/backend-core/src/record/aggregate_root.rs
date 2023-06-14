@@ -53,7 +53,9 @@ impl Record {
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RecordItem {
   pub account: Uuid,
+  #[serde(with = "rust_decimal::serde::arbitrary_precision")]
   pub amount: Decimal,
+  #[serde(with = "rust_decimal::serde::arbitrary_precision_option")]
   pub price: Option<Decimal>,
 }
 
