@@ -3,8 +3,9 @@
   <HelloUser></HelloUser>
   <HelloJournal></HelloJournal>
   <HelloAccount></HelloAccount>
+  <UserTable></UserTable>
 </template>
 
 <script setup lang="ts">
-import { HelloUser, HelloJournal, HelloAccount, EditableTable } from "@core/components";
+import { HelloUser, HelloJournal, HelloAccount, EditableTable, UserTable } from "@core/components";
 </script>

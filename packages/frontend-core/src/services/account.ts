@@ -3,31 +3,31 @@ import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/ser
 export class Account implements WriteModel {
   id: string;
   permission: Permission;
+  journal: string;
   name: string;
   description: string;
   unit: string;
   type: AccountType;
   tags: string[];
-  journal: string;
 
   constructor({
     id,
     permission,
+    journal,
     name,
     description,
     unit,
     type,
     tags,
-    journal,
   }: Omit<Account, "modelType">) {
     this.id = id;
     this.permission = permission;
+    this.journal = journal;
     this.name = name;
     this.description = description;
     this.unit = unit;
     this.type = type;
     this.tags = tags;
-    this.journal = journal;
   }
 
   get modelType(): string {
@@ -41,21 +41,21 @@ export type AccountSort = "name" | "unit" | "type" | "journal";
 
 export interface AccountQuery extends Query {
   readonly id?: string[];
+  readonly journal?: string[];
   readonly name?: [string, boolean];
   readonly description?: string;
   readonly type?: AccountType;
   readonly tag?: string;
-  readonly journal?: string[];
 }
 
 export interface AccountCommandCreate extends Command<"accounts:create"> {
   readonly id?: string;
+  readonly journal: string;
   readonly name: string;
   readonly description: string;
   readonly unit: string;
   readonly type: AccountType;
   readonly tags: string[];
-  readonly journal: string;
 }
 
 export interface AccountCommandUpdate extends Command<"accounts:update"> {
@@ -65,7 +65,6 @@ export interface AccountCommandUpdate extends Command<"accounts:update"> {
   readonly unit?: string;
   readonly type?: AccountType;
   readonly tags?: string[];
-  readonly journal?: string;
 }
 
 export interface AccountCommandDelete extends Command<"accounts:delete"> {

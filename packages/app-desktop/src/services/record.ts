@@ -8,32 +8,43 @@ import type {
   RecordItem,
   RecordState,
   ReadModel,
+  JournalQuery,
+  AccountQuery,
 } from "@core/services";
 import { Record_ } from "@core/services";
-import { AbstractWriteApi } from "@desktop/services/api";
+import { AbstractWriteApi } from "./api";
+import { journalApi } from "./journal";
+import { toMap } from "@core/utils";
+import { accountApi } from "./account";
 
 class RecordApiImpl extends AbstractWriteApi<Record_, RecordQuery, RecordCommand, RecordSort> {
-  protected get findAllKey(): string {
+  protected override get findAllKey(): string {
     return "record_find_all";
   }
 
-  protected get findByIdKey(): string {
+  protected override get findByIdKey(): string {
     return "record_find_by_id";
   }
 
-  protected get findPageKey(): string {
+  protected override get findPageKey(): string {
     return "record_find_page";
   }
 
-  protected get handleCommandKey(): string {
+  protected override get handleCommandKey(): string {
     return "record_handle_command";
   }
 
-  protected loadIncluded(models: Record_[]): Promise<Map<string, ReadModel>> {
-    throw new Error("Method not implemented.");
+  protected override async loadIncluded(models: Record_[]): Promise<Map<string, ReadModel>> {
+    const journalIds = new Set(models.map((model) => model.journal));
+    const journals = await journalApi.findAll({ query: { id: [...journalIds] } as JournalQuery });
+
+    const accountIds = new Set(models.flatMap((model) => model.items).map((item) => item.account));
+    const accounts = await accountApi.findAll({ query: { id: [...accountIds] } as AccountQuery });
+
+    return toMap([...journals[0], ...accounts[0]]);
   }
 
-  protected convert(input: Record<string, unknown>): Record_ {
+  protected override convert(input: Record<string, unknown>): Record_ {
     return new Record_({
       id: input.id as string,
       permission: input.permission as Permission,

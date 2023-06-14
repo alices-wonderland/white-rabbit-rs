@@ -5,32 +5,37 @@ import type {
   JournalSort,
   Permission,
   ReadModel,
+  UserQuery,
 } from "@core/services";
 import { Journal } from "@core/services";
-import { AbstractWriteApi } from "@desktop/services/api";
+import { AbstractWriteApi } from "./api";
+import { userApi } from "./user";
+import { toMap } from "@core/utils";
 
 class JournalApiImpl extends AbstractWriteApi<Journal, JournalQuery, JournalCommand, JournalSort> {
-  protected get findAllKey(): string {
+  protected override get findAllKey(): string {
     return "journal_find_all";
   }
 
-  protected get findByIdKey(): string {
+  protected override get findByIdKey(): string {
     return "journal_find_by_id";
   }
 
-  protected get findPageKey(): string {
+  protected override get findPageKey(): string {
     return "journal_find_page";
   }
 
-  protected get handleCommandKey(): string {
+  protected override get handleCommandKey(): string {
     return "journal_handle_command";
   }
 
-  protected loadIncluded(models: Journal[]): Promise<Map<string, ReadModel>> {
-    throw new Error("Method not implemented.");
+  protected override async loadIncluded(models: Journal[]): Promise<Map<string, ReadModel>> {
+    const userIds = new Set(models.flatMap((model) => [...model.admins, ...model.members]));
+    const users = await userApi.findAll({ query: { id: [...userIds] } as UserQuery });
+    return toMap(users[0]);
   }
 
-  protected convert(input: Record<string, unknown>): Journal {
+  protected override convert(input: Record<string, unknown>): Journal {
     return new Journal({
       id: input.id as string,
       permission: input.permission as Permission,

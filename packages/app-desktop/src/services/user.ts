@@ -1,37 +1,25 @@
-import type {
-  Permission,
-  ReadModel,
-  Role,
-  UserApi,
-  UserCommand,
-  UserQuery,
-  UserSort,
-} from "@core/services";
+import type { Permission, Role, UserApi, UserCommand, UserQuery, UserSort } from "@core/services";
 import { User } from "@core/services";
-import { AbstractWriteApi } from "@desktop/services/api";
+import { AbstractWriteApi } from "./api";
 
 class UserApiImpl extends AbstractWriteApi<User, UserQuery, UserCommand, UserSort> {
-  protected get findAllKey(): string {
+  protected override get findAllKey(): string {
     return "user_find_all";
   }
 
-  protected get findByIdKey(): string {
+  protected override get findByIdKey(): string {
     return "user_find_by_id";
   }
 
-  protected get findPageKey(): string {
+  protected override get findPageKey(): string {
     return "user_find_page";
   }
 
-  protected get handleCommandKey(): string {
+  protected override get handleCommandKey(): string {
     return "user_handle_command";
   }
 
-  protected loadIncluded(models: User[]): Promise<Map<string, ReadModel>> {
-    throw new Error("Method not implemented.");
-  }
-
-  protected convert(input: Record<string, unknown>): User {
+  protected override convert(input: Record<string, unknown>): User {
     return new User({
       id: input.id as string,
       permission: input.permission as Permission,

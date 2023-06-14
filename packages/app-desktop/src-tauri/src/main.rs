@@ -81,7 +81,7 @@ macro_rules! generate_tauri_command {
         async fn [<$model _find_all>](
           db: State<'_, DbConn>,
           query: ::backend_core::$model::Query,
-          sort: Sort,
+          sort: Option<Sort>,
           size: Option<usize>,
         ) -> Result<Vec<::backend_core::$model::Presentation>, String> {
           Ok(
@@ -91,7 +91,7 @@ macro_rules! generate_tauri_command {
                   let operator = test_get_operator(tx).await?;
                   let result =
                     Repository::<::backend_core::$model::[< $model:camel >]>::find_all(tx, operator.as_ref(), FindAllArgs { query, sort, size }).await?;
-
+                    log::info!("Find All: count: {},  {:?}", result.len(), result);
                   ::backend_core::$model::Presentation::from_aggregate_roots(tx, operator.as_ref(), result).await
                 })
               })

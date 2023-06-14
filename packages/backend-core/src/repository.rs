@@ -51,7 +51,7 @@ where
   Q: Query,
 {
   pub query: Q,
-  pub sort: Sort,
+  pub sort: Option<Sort>,
   pub size: Option<usize>,
 }
 
@@ -107,14 +107,19 @@ where
     args: FindAllArgs<A::Query>,
     offset: Option<usize>,
   ) -> Result<Vec<A>> {
-    let mut select =
-      args.query.into().offset(offset.map(|n| n as u64)).limit(args.size.map(|n| n as u64));
+    let mut select: Select<A::Entity> = args.query.into();
 
-    for (field, order) in args.sort {
-      if let Some(column) = A::sortable_column(field) {
-        select = match order {
-          Order::Asc => select.order_by_asc(column),
-          Order::Desc => select.order_by_desc(column),
+    if let Some(size) = args.size {
+      select = select.offset(offset.map(|n| n as u64)).limit(size as u64);
+    }
+
+    if let Some(sort) = args.sort {
+      for (field, order) in sort {
+        if let Some(column) = A::sortable_column(field) {
+          select = match order {
+            Order::Asc => select.order_by_asc(column),
+            Order::Desc => select.order_by_desc(column),
+          }
         }
       }
     }
@@ -132,7 +137,9 @@ where
     let mut count = 0;
 
     while results.len() <= size {
-      let roots = Self::do_find_all(db, args.clone(), Some(count * size)).await?;
+      let roots =
+        Self::do_find_all(db, FindAllArgs { size: Some(size), ..args.clone() }, Some(count * size))
+          .await?;
       if roots.is_empty() {
         break;
       }
@@ -174,22 +181,24 @@ where
         FindAllArgs {
           size: Some(size + 1),
           query: query.clone(),
-          sort: sort
-            .iter()
-            .map(|(field, order)| {
-              (
-                field.to_string(),
-                if should_reverse {
-                  match order {
-                    Order::Asc => Order::Desc,
-                    Order::Desc => Order::Asc,
-                  }
-                } else {
-                  order.clone()
-                },
-              )
-            })
-            .collect(),
+          sort: Some(
+            sort
+              .iter()
+              .map(|(field, order)| {
+                (
+                  field.to_string(),
+                  if should_reverse {
+                    match order {
+                      Order::Asc => Order::Desc,
+                      Order::Desc => Order::Asc,
+                    }
+                  } else {
+                    order.clone()
+                  },
+                )
+              })
+              .collect(),
+          ),
         },
         Some(count * (size + 1)),
       )

@@ -1,8 +1,9 @@
-import { inject, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import type { Ref } from "vue";
 import type { Command, FindPageArgs, Query, ReadModel, WriteApi, WriteModel } from "@core/services";
+import useInject from "./useInject";
 
-export function usePage<
+export default function usePage<
   M extends WriteModel,
   Q extends Query,
   S extends string,
@@ -11,10 +12,7 @@ export function usePage<
   key: symbol,
   defaultArgs: FindPageArgs<Q, S>
 ): [Ref<FindPageArgs<Q, S>>, Ref<M[]>, Ref<Map<string, ReadModel>>, () => Promise<void>] {
-  const api = inject<A>(key);
-  if (!api) {
-    throw new Error(`Api with ${String(key)} cannot be found`);
-  }
+  const api = useInject<A>(key);
 
   const args = ref<FindPageArgs<Q, S>>(defaultArgs) as Ref<FindPageArgs<Q, S>>;
   const models = ref<M[]>([]) as Ref<M[]>;

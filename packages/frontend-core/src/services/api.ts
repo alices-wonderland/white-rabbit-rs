@@ -3,17 +3,20 @@ export interface ReadApi<
   Q extends Query = Query,
   S extends string = string
 > {
-  findById(id: string): Promise<[M, Map<string, ReadModel>] | null>;
-  findAll(args: FindAllArgs<Q, S>): Promise<[M[], Map<string, ReadModel>]>;
+  findById(id: string, loadIncluded?: boolean): Promise<[M, Map<string, ReadModel>] | null>;
+  findAll(args: FindAllArgs<Q, S>, loadIncluded?: boolean): Promise<[M[], Map<string, ReadModel>]>;
 }
 
 export interface WriteApi<
-  M extends WriteModel,
-  Q extends Query,
-  C extends Command,
-  S extends string
+  M extends WriteModel = WriteModel,
+  Q extends Query = Query,
+  C extends Command = Command,
+  S extends string = string
 > extends ReadApi<M, Q, S> {
-  findPage(args: FindPageArgs<Q, S>): Promise<[Page<M>, Map<string, ReadModel>]>;
+  findPage(
+    args: FindPageArgs<Q, S>,
+    loadIncluded?: boolean
+  ): Promise<[Page<M>, Map<string, ReadModel>]>;
   handleCommand(command: C): Promise<M[]>;
 }
 
@@ -27,11 +30,12 @@ export interface WriteModel extends ReadModel {
 }
 export interface FindAllArgs<Q extends Query, S extends string> {
   query: Q;
-  sort: Array<[S, Order]>;
+  sort?: Array<[S, Order]>;
   size?: number;
 }
 
 export interface FindPageArgs<Q extends Query, S extends string> extends FindAllArgs<Q, S> {
+  sort: Array<[S, Order]>;
   after?: string;
   before?: string;
   size: number;

@@ -1,3 +1,12 @@
+<template>
+  <ag-grid-vue
+    class="ag-theme-alpine"
+    :column-defs="columnDefs"
+    :row-data="rowData"
+    :default-col-def="defaultColDef"
+  ></ag-grid-vue>
+</template>
+
 <script setup lang="ts">
 import type { ColDef } from "@ag-grid-community/core";
 import { AgGridVue } from "@ag-grid-community/vue3";
@@ -22,15 +31,6 @@ const rowData = ref([
   { make: "Porsche", model: "Boxster", price: 72000 },
 ]);
 </script>
-
-<template>
-  <ag-grid-vue
-    class="ag-theme-alpine"
-    :column-defs="columnDefs"
-    :row-data="rowData"
-    :default-col-def="defaultColDef"
-  ></ag-grid-vue>
-</template>
 
 <style scoped lang="scss">
 .ag-theme-alpine {
