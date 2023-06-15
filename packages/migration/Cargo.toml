@@ -9,7 +9,7 @@ async-trait = "0.1"
 backend-core = { path = "../backend-core" }
 chrono = { version = "0.4", features = [ "serde" ] }
 rand = "0.8"
-rust_decimal = "1.29"
+rust_decimal = "1.30"
 tokio = { version = "1.28", features = ["rt", "macros"] }
 
 [dependencies.sea-orm-migration]
