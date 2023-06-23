@@ -4,11 +4,25 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { visualizer } from "rollup-plugin-visualizer";
 import vuetify from "vite-plugin-vuetify";
+import vueI18n from "@intlify/unplugin-vue-i18n/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
-    plugins: [vue(), visualizer(), vuetify()],
+    plugins: [
+      vue(),
+      vueI18n({
+        include: [
+          path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src/locales/**"),
+          path.resolve(
+            path.dirname(fileURLToPath(import.meta.url)),
+            "../frontend-core/src/locales/**"
+          ),
+        ],
+      }),
+      vuetify(),
+      visualizer(),
+    ],
     clearScreen: false,
     server: {
       port: 1420,
@@ -27,9 +41,6 @@ export default defineConfig(() => {
         reporter: ["lcov", "html"],
       },
       setupFiles: ["../../vitest.setup.ts", "vitest.setup.ts"],
-      deps: {
-        inline: ["vuetify"],
-      },
     },
     build: {
       target: ["esnext"],

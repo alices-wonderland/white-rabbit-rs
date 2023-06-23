@@ -19,6 +19,8 @@ export interface BaseRow {
   get dataPath(): string[];
   get state(): RecordStateItem | undefined;
 
+  get editedFields(): string[];
+
   compare(another: Row): number;
 }
 
@@ -72,12 +74,38 @@ export class Parent implements BaseRow {
 
     return (this.name ?? "").localeCompare(another.name ?? "");
   }
+
+  get editedFields(): string[] {
+    const results: string[] = [];
+
+    if (this.name !== this.record?.name) {
+      results.push("name");
+    }
+
+    if (this.date !== this.record?.date) {
+      results.push("date");
+    }
+
+    if (this.type !== this.record?.type) {
+      results.push("type");
+    }
+
+    for (const child of this.children) {
+      if (child.editedFields.length > 0) {
+        results.push(child.id);
+      }
+    }
+
+    return results;
+  }
 }
 
 export class Child implements BaseRow {
   _deleted = false;
 
   parent: Parent;
+  recordItem: RecordItem;
+
   account: Account;
   amount: number;
   price?: number;
@@ -85,6 +113,7 @@ export class Child implements BaseRow {
   constructor(parent: Parent, recordItem: RecordItem, account: Account) {
     this.parent = parent;
     this.account = account;
+    this.recordItem = recordItem;
     this.amount = recordItem.amount;
     this.price = recordItem.price;
   }
@@ -137,6 +166,24 @@ export class Child implements BaseRow {
     }
 
     return this.account.type.localeCompare(another.account.type);
+  }
+
+  get editedFields(): string[] {
+    const results: string[] = [];
+
+    if (this.recordItem.account !== this.account.id) {
+      results.push("name");
+    }
+
+    if (this.amount !== this.recordItem.amount) {
+      results.push("amount");
+    }
+
+    if (this.price !== this.recordItem.price) {
+      results.push("price");
+    }
+
+    return results;
   }
 }
 

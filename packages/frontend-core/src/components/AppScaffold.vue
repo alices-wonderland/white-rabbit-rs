@@ -23,12 +23,17 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useTheme } from "vuetify";
+import { mdiWeatherNight, mdiWeatherSunny } from "@mdi/js";
 
 const theme = useTheme();
+
 const toggleDark = () => {
   theme.global.name.value = theme.global.name.value === "dark" ? "light" : "dark";
 };
-const darkIcon = computed(() => (theme.global.name.value === "dark" ? "dark_mode" : "light_mode"));
+
+const darkIcon = computed(() =>
+  theme.global.name.value === "dark" ? mdiWeatherNight : mdiWeatherSunny
+);
 </script>
 
 <style scoped lang="scss">

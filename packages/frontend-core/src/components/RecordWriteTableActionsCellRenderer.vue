@@ -5,10 +5,10 @@
       size="x-small"
       variant="text"
       color="error"
-      :icon="deleted ? 'undo' : 'deleted'"
+      :icon="deleted ? mdiUndo : mdiDelete"
       @click="toggleDelete"
     ></v-btn>
-    <v-btn size="x-small" variant="text" icon="content_copy"></v-btn>
+    <v-btn size="x-small" variant="text" :icon="mdiContentCopy"></v-btn>
   </div>
 </template>
 
@@ -16,6 +16,7 @@
 import type { ICellRendererParams } from "@ag-grid-community/core";
 import type { Row } from "./row";
 import { computed, type ComputedRef } from "vue";
+import { mdiDelete, mdiUndo, mdiContentCopy } from "@mdi/js";
 
 const props = defineProps<{ params: ICellRendererParams<Row> }>();
 

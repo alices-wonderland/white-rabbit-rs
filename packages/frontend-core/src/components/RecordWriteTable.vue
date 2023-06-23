@@ -1,14 +1,15 @@
 <template>
-  <v-text-field v-model="date" type="datetime-local"> </v-text-field>
+  <v-btn color="primary" size="small" @click="saveEditedRows">Save</v-btn>
   <ag-grid-vue
     :style="{ minHeight: '150px', maxHeight: '80vh', height }"
     :class="theme.global.name.value === 'dark' ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'"
-    animate-rows="true"
     :column-defs="columnDefs"
     :default-col-def="defaultColDef"
-    :auto-group-column-def="autoGroupColumnDef"
-    tree-data="true"
+    group-display-type="custom"
     :get-data-path="getDataPath"
+    animate-rows
+    tree-data
+    enable-range-selection
     @grid-ready="onGridReady"
   ></ag-grid-vue>
 </template>
@@ -20,6 +21,9 @@ import {
   type GridReadyEvent,
   type ValueGetterParams,
   type ValueSetterParams,
+  type CellClassParams,
+  type AbstractColDef,
+  type ColGroupDef,
   ColumnApi,
   GridApi,
 } from "@ag-grid-community/core";
@@ -45,66 +49,121 @@ import { Child, Parent, type Row } from "./row";
 
 const theme = useTheme();
 
-const date = ref<string>("2022-03-31T00:11:22");
-
 const rows = ref<Row[]>([]);
 const recordApi = useInject<RecordApi>(RECORD_API_KEY);
 const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
 const gridApi = ref<GridApi>();
 const columnApi = ref<ColumnApi>();
 
-const columnDefs = ref<ColDef[]>([
-  { headerName: "Actions", cellRenderer: RecordWriteTableActionsCellRenderer, pinned: "left" },
+const columnDefs = ref<AbstractColDef[]>([
+  {
+    headerName: "Actions",
+    cellRenderer: RecordWriteTableActionsCellRenderer,
+    pinned: "left",
+    sortable: false,
+  } as ColDef,
+  {
+    headerName: "Record",
+    children: [
+      {
+        headerName: "Name",
+        cellRenderer: "agGroupCellRenderer",
+        cellRendererParams: {
+          innerRenderer: RecordWriteTableGroupCellRenderer,
+          suppressDoubleClickExpand: true,
+        },
+        editable: (params: EditableCallbackParams<Row>) => params.data instanceof Parent,
+        valueGetter: (params: ValueGetterParams<Row>) =>
+          params.data instanceof Parent ? params.data.name : params.data?.account?.id,
+        valueSetter(params: ValueSetterParams<Row>): boolean {
+          if (params.data instanceof Parent) {
+            params.data.name = params.newValue;
+            return true;
+          }
+          return false;
+        },
+        filter: true,
+        showRowGroup: true,
+        filterParams: {
+          valueGetter: (params: ValueGetterParams<Row>) => params.data?.name,
+        },
+        cellClassRules: {
+          "cell cell-edited": (params: CellClassParams<Row>) =>
+            params.data?.editedFields?.includes("name"),
+        },
+      } as ColDef,
+      {
+        headerName: "State",
+        cellRenderer: RecordWriteTableStateCellRenderer,
+        sortable: false,
+        columnGroupShow: "open",
+      } as ColDef,
+    ],
+  } as ColGroupDef,
   {
     headerName: "Date",
     field: "date",
+    filter: "agDateColumnFilter",
     editable: (params: EditableCallbackParams<Row, Date>) => params.data instanceof Parent,
-  },
+    cellClassRules: {
+      "cell cell-edited": (params: CellClassParams<Row>) =>
+        params.data?.editedFields?.includes("date") ?? false,
+    },
+  } as ColDef,
   {
     headerName: "Type",
     valueGetter: (params: ValueGetterParams<Row>) =>
       params.data instanceof Parent ? params.data.type : params.data?.account?.type,
     editable: (params: EditableCallbackParams<Row, RecordType>) => params.data instanceof Parent,
-  },
-  {
-    headerName: "State",
-    cellRenderer: RecordWriteTableStateCellRenderer,
-  },
+    sortable: false,
+    filter: true,
+    cellEditor: "agSelectCellEditor",
+    cellEditorParams: {
+      values: ["Record", "Check"] as RecordType[],
+    },
+    valueSetter: (params: ValueSetterParams<Row, RecordType>) => {
+      if (params.data instanceof Parent && params.newValue) {
+        params.data.type = params.newValue;
+        return true;
+      }
+      return false;
+    },
+    cellClassRules: {
+      "cell cell-edited": (params: CellClassParams<Row>) =>
+        params.data?.editedFields?.includes("type"),
+    },
+  } as ColDef,
   {
     headerName: "Amount",
     field: "amount",
+    sortable: false,
     editable: (params: EditableCallbackParams<Row, number>) => params.data instanceof Child,
-  },
+    cellEditor: "agNumberCellEditor",
+    cellClassRules: {
+      "cell cell-edited": (params: CellClassParams<Row>) =>
+        params.data?.editedFields?.includes("amount") ?? false,
+    },
+  } as ColDef,
   {
     headerName: "Price",
     field: "price",
+    sortable: false,
     editable: (params: EditableCallbackParams<Row, number>) => params.data instanceof Child,
-  },
+    cellEditor: "agNumberCellEditor",
+    cellClassRules: {
+      "cell cell-edited": (params: CellClassParams<Row>) =>
+        params.data?.editedFields?.includes("price") ?? false,
+    },
+  } as ColDef,
 ]);
 
 const defaultColDef: ColDef = {
   flex: 1,
   minWidth: 100,
   sortable: true,
-  filter: true,
+  floatingFilter: true,
   resizable: true,
   suppressMovable: true,
-};
-
-const autoGroupColumnDef: ColDef = {
-  headerName: "Record",
-  editable: (params: EditableCallbackParams<Row, number>) => params.data instanceof Parent,
-  cellRendererParams: {
-    innerRenderer: RecordWriteTableGroupCellRenderer,
-    suppressDoubleClickExpand: true,
-  },
-  valueSetter(params: ValueSetterParams<Row>): boolean {
-    if (params.data instanceof Parent) {
-      params.data.name = params.newValue;
-      return true;
-    }
-    return false;
-  },
 };
 
 const onGridReady = async (params: GridReadyEvent) => {
@@ -133,6 +192,15 @@ const height = computed(() => `${rows.value.filter((row) => row instanceof Paren
 watch(rows, (newRows) => gridApi.value?.setRowData(newRows));
 
 const getDataPath = (data: Row) => data.dataPath;
+
+const saveEditedRows = () => {
+  const editedRows = rows.value.filter((row) => row.editedFields.length > 0);
+  console.log("There are #", editedRows.length, "rows being edited...");
+  for (const row of editedRows) {
+    console.log("  Row:", row);
+    console.log("    Fields: ", row.editedFields);
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -142,5 +210,14 @@ const getDataPath = (data: Row) => data.dataPath;
   width: 100%;
   resize: vertical;
   overflow: auto;
+}
+</style>
+
+<style lang="scss">
+.cell {
+  &-edited {
+    background-color: rgba(var(--v-theme-primary), 0.2);
+    color: var(--v-theme-on-background);
+  }
 }
 </style>

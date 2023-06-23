@@ -9,17 +9,18 @@
 import type { ICellRendererParams } from "@ag-grid-community/core";
 import { computed } from "vue";
 import { Child, type Row } from "./row";
+import { mdiAccountCashOutline, mdiCheckDecagramOutline, mdiCashMultiple } from "@mdi/js";
 
 const props = defineProps<{ readonly params: ICellRendererParams<Row> }>();
 
 const iconName = computed(() => {
   const data = props.params.data;
   if (data instanceof Child) {
-    return "checklist";
+    return mdiAccountCashOutline;
   } else if (data?.type === "Check") {
-    return "verified";
+    return mdiCheckDecagramOutline;
   } else {
-    return "payments";
+    return mdiCashMultiple;
   }
 });
 

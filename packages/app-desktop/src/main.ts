@@ -1,4 +1,4 @@
-import "@desktop/style.scss";
+import "@core/style.scss";
 import { createApp } from "vue";
 import App from "./App.vue";
 import { agGrid, vuetify } from "@core/plugins";

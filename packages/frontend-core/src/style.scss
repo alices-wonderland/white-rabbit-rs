@@ -1,7 +1,5 @@
 @use "@ag-grid-community/styles" as ag;
-@use 'vuetify' with ($utilities: false);
-
-@import "material-design-icons-iconfont/dist/material-design-icons.css";
+@use 'vuetify' with ($utilities: false, $color-pack: false);
 
 @include ag.grid-styles((themes: (alpine, alpine-dark)));
 

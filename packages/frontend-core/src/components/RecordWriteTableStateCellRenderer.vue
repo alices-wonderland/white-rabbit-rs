@@ -1,5 +1,7 @@
 <template>
-  <v-chip v-if="state">{{ state }}</v-chip>
+  <div class="flex gap-1 h-full items-center">
+    <v-chip v-if="state">{{ state }}</v-chip>
+  </div>
 </template>
 
 <script setup lang="ts">
