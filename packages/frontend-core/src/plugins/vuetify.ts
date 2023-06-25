@@ -1,15 +1,8 @@
 import { createVuetify } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
-import { createI18n, useI18n } from "vue-i18n";
+import { useI18n } from "vue-i18n";
 import { createVueI18nAdapter } from "vuetify/locale/adapters/vue-i18n";
-import messages from "@intlify/unplugin-vue-i18n/messages";
-
-const i18n = createI18n({
-  legacy: false,
-  locale: "zhHans",
-  fallbackLocale: "en",
-  messages,
-});
+import i18n from "./i18n";
 
 const vuetify = createVuetify({
   icons: {

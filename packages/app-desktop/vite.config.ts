@@ -13,7 +13,10 @@ export default defineConfig(() => {
       vue(),
       vueI18n({
         include: [
-          path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src/locales/**"),
+          path.resolve(
+            path.dirname(fileURLToPath(import.meta.url)),
+            "../frontend-core/src/locales/**"
+          ),
           path.resolve(
             path.dirname(fileURLToPath(import.meta.url)),
             "../frontend-core/src/locales/**"
