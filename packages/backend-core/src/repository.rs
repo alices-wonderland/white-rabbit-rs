@@ -22,7 +22,9 @@ pub enum Order {
 
 pub type Sort = Vec<(String, Order)>;
 
-pub trait Query: Default + Clone + Debug + Send + Into<Select<Self::Entity>> {
+pub trait Query:
+  Default + Clone + Debug + Send + Sync + Into<Select<Self::Entity>> + From<HashSet<Uuid>>
+{
   type Entity: EntityTrait<Column = Self::Column>;
   type Column: ColumnTrait;
 

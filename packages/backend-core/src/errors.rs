@@ -21,6 +21,13 @@ pub enum Error {
 
   #[error("Item with Account[id = {account}] in Record[id = {id}] must contain price")]
   RecordItemMustContainPrice { id: Uuid, account: Uuid },
+  #[error("{child_typ}[{}] is not related to {parent_typ}[{}]", .child_field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "), .parent_field_values.iter().map(|(field, value)| format!("{} = {}", field, value)).join(", "))]
+  NotRelatedEntity {
+    child_typ: String,
+    child_field_values: Vec<(String, String)>,
+    parent_typ: String,
+    parent_field_values: Vec<(String, String)>,
+  },
 
   #[error("Internal database error: {0}")]
   Database(
@@ -75,6 +82,28 @@ impl Error {
       typ: A::typ().to_string(),
       operator_id: operator.map(User::id),
       field_values: vec![(FIELD_ID.to_string(), aggregate_root.id().to_string())],
+    }
+  }
+
+  pub fn not_related_entity<A, B>(
+    child_field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>,
+    parent_field_values: impl IntoIterator<Item = (impl ToString, impl ToString)>,
+  ) -> Error
+  where
+    A: AggregateRoot,
+    B: AggregateRoot,
+  {
+    Error::NotRelatedEntity {
+      child_typ: A::typ().to_string(),
+      child_field_values: child_field_values
+        .into_iter()
+        .map(|(field, value)| (field.to_string(), value.to_string()))
+        .collect(),
+      parent_typ: B::typ().to_string(),
+      parent_field_values: parent_field_values
+        .into_iter()
+        .map(|(field, value)| (field.to_string(), value.to_string()))
+        .collect(),
     }
   }
 }

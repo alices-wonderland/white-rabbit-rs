@@ -1,13 +1,13 @@
 import type {
-  ReadApi,
-  ReadModel,
-  WriteApi,
-  WriteModel,
+  Command,
   FindAllArgs,
   FindPageArgs,
   Page,
   Query,
-  Command,
+  ReadApi,
+  ReadModel,
+  WriteApi,
+  WriteModel,
 } from "@core/services";
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -88,7 +88,9 @@ export abstract class AbstractWriteApi<
   }
 
   async handleCommand(command: C): Promise<M[]> {
-    console.log("Command: ", command);
-    return [];
+    const response = await invoke<Record<string, unknown>[]>(this.handleCommandKey, {
+      command,
+    });
+    return response.map(this.convert);
   }
 }

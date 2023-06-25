@@ -39,6 +39,8 @@ import {
   JOURNAL_API_KEY,
   JOURNAL_TYPE,
   RECORD_API_KEY,
+  type AccountApi,
+  ACCOUNT_API_KEY,
 } from "@core/services";
 import { computed, ref, watch } from "vue";
 import { useTheme } from "vuetify";
@@ -52,6 +54,7 @@ const theme = useTheme();
 const rows = ref<Row[]>([]);
 const recordApi = useInject<RecordApi>(RECORD_API_KEY);
 const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
+const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);
 const gridApi = ref<GridApi>();
 const columnApi = ref<ColumnApi>();
 
@@ -193,13 +196,31 @@ watch(rows, (newRows) => gridApi.value?.setRowData(newRows));
 
 const getDataPath = (data: Row) => data.dataPath;
 
-const saveEditedRows = () => {
-  const editedRows = rows.value.filter((row) => row.editedFields.length > 0);
-  console.log("There are #", editedRows.length, "rows being edited...");
-  for (const row of editedRows) {
-    console.log("  Row:", row);
-    console.log("    Fields: ", row.editedFields);
-  }
+const saveEditedRows = async () => {
+  const _editedRows = rows.value.filter((row) => row.editedFields.length > 0);
+  const [journals, _included] = await journalApi.findAll({ query: { name: ["Journal 1", false] } });
+  const [accounts, _aIncluded] = await accountApi.findAll({
+    query: { journal: journals.map((j) => j.id) },
+  });
+  const result = await recordApi.handleCommand({
+    commandType: "records:batchUpdate",
+    create: [
+      {
+        journal: journals[0].id,
+        name: "name 2",
+        description: "description 1",
+        type: "Record",
+        date: "2023-01-31",
+        tags: ["new 1", "old 2"],
+        items: accounts.map((a) => ({
+          account: a.id,
+          amount: 321,
+          price: 123,
+        })),
+      },
+    ],
+  });
+  console.log("After save: ", result);
 };
 </script>
 

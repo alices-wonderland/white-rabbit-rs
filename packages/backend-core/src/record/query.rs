@@ -58,3 +58,9 @@ impl crate::Query for Query {
   type Entity = Entity;
   type Column = Column;
 }
+
+impl From<HashSet<Uuid>> for Query {
+  fn from(value: HashSet<Uuid>) -> Self {
+    Query { id: value, ..Default::default() }
+  }
+}

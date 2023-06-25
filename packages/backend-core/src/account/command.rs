@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "commandType")]
 pub enum Command {
   #[serde(rename = "accounts:create")]
   Create(CommandCreate),

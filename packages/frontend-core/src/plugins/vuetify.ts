@@ -1,15 +1,11 @@
 import { createVuetify } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
-import { createI18n, useI18n } from "vue-i18n";
+import { useI18n } from "vue-i18n";
 import { createVueI18nAdapter } from "vuetify/locale/adapters/vue-i18n";
-import messages from "@intlify/unplugin-vue-i18n/messages";
-
-const i18n = createI18n({
-  legacy: false,
-  locale: "zhHans",
-  fallbackLocale: "en",
-  messages,
-});
+import i18n from "./i18n";
+import DateFnsAdapter from "@date-io/date-fns";
+import enUS from "date-fns/locale/en-US";
+import zhCN from "date-fns/locale/zh-CN";
 
 const vuetify = createVuetify({
   icons: {
@@ -17,6 +13,13 @@ const vuetify = createVuetify({
     aliases,
     sets: {
       mdi,
+    },
+  },
+  date: {
+    adapter: DateFnsAdapter,
+    locale: {
+      en: enUS,
+      "zh-Hans": zhCN,
     },
   },
   locale: {

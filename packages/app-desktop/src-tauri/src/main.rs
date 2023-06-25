@@ -35,17 +35,16 @@ macro_rules! generate_tauri_command {
         async fn [<$model _handle_command>](
           db: State<'_, DbConn>,
           command: ::backend_core::$model::Command,
-        ) -> Result<Option<::backend_core::$model::Presentation>, String> {
+        ) -> Result<Vec<::backend_core::$model::Presentation>, String> {
           Ok(
             db.inner()
               .transaction(|tx| {
                 Box::pin(async move {
                   let operator = test_get_operator(tx).await?;
                   let result = ::backend_core::$model::[< $model:camel >]::handle(tx, operator.as_ref(), command).await?;
-                  Ok(::backend_core::$model::Presentation::from_aggregate_roots(tx, operator.as_ref(), result).await?.into_iter().last())
+                  ::backend_core::$model::Presentation::from_aggregate_roots(tx, operator.as_ref(), result).await
                 })
               })
-              .map_ok(|models| models.into_iter().last())
               .map_err(Error::from)
               .await?,
           )

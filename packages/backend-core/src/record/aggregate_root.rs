@@ -1,11 +1,14 @@
 use crate::account::Account;
 use crate::journal::Journal;
 use crate::record::{
-  record_item, record_tag, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey,
-  Query, Type,
+  record_item, record_tag, ActiveModel, Column, Command, CommandBatchUpdate, CommandCreate,
+  CommandDelete, CommandUpdate, Entity, Model, Presentation, PrimaryKey, Query, Type,
 };
 use crate::user::User;
-use crate::{AggregateRoot, Permission, Repository, Result};
+use crate::{
+  account, journal, utils, AggregateRoot, Error, FindAllArgs, Permission, Repository, Result,
+  FIELD_ID,
+};
 use chrono::NaiveDate;
 use itertools::Itertools;
 use rust_decimal::Decimal;
@@ -14,6 +17,10 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
+
+pub const FIELD_ITEMS: &str = "items";
+pub const MIN_ITEMS: usize = 2;
+pub const MAX_ITEMS: usize = 8;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Record {
@@ -186,11 +193,33 @@ impl AggregateRoot for Record {
   }
 
   async fn handle(
-    _db: &(impl ConnectionTrait + StreamTrait),
-    _operator: Option<&User>,
-    _command: Self::Command,
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&User>,
+    command: Self::Command,
   ) -> Result<Vec<Self>> {
-    todo!()
+    match command {
+      Command::Create(command) => {
+        Record::batch_update(
+          db,
+          operator,
+          CommandBatchUpdate { create: vec![command], ..Default::default() },
+        )
+        .await
+      }
+      Command::Update(command) => {
+        Record::batch_update(
+          db,
+          operator,
+          CommandBatchUpdate { update: vec![command], ..Default::default() },
+        )
+        .await
+      }
+      Command::BatchUpdate(command) => Record::batch_update(db, operator, command).await,
+      Command::Delete(CommandDelete { id }) => {
+        Record::delete(db, operator, id).await?;
+        Ok(Vec::default())
+      }
+    }
   }
 
   async fn get_permission(
@@ -209,5 +238,156 @@ impl AggregateRoot for Record {
         })
         .collect(),
     )
+  }
+}
+
+impl Record {
+  fn validate_items(
+    items: &HashSet<RecordItem>,
+    journal: &Journal,
+    accounts: &HashMap<Uuid, Account>,
+  ) -> Result<()> {
+    if items.len() < MIN_ITEMS || items.len() > MAX_ITEMS {
+      return Err(Error::NotInRange {
+        field: FIELD_ITEMS.to_string(),
+        begin: MIN_ITEMS,
+        end: MAX_ITEMS,
+      });
+    }
+
+    for item in items {
+      if let Some(account) = accounts.get(&item.account) {
+        if account.journal != journal.id() {
+          return Err(Error::not_related_entity::<Account, Journal>(
+            vec![(FIELD_ID, account.id)],
+            vec![(FIELD_ID, journal.id)],
+          ));
+        }
+      } else {
+        return Err(Error::not_found::<Account>([(FIELD_ID, item.account)]));
+      }
+    }
+
+    Ok(())
+  }
+
+  fn do_create(
+    command: CommandCreate,
+    journal: &Journal,
+    accounts: &HashMap<Uuid, Account>,
+  ) -> Result<Record> {
+    Self::validate_items(&command.items, journal, accounts)?;
+
+    Ok(Record {
+      id: command.id.and_then(|s| Uuid::try_parse(&s).ok()).unwrap_or_else(Uuid::new_v4),
+      journal: journal.id,
+      name: command.name,
+      description: command.description,
+      typ: command.typ,
+      date: command.date,
+      tags: command.tags,
+      items: command.items,
+    })
+  }
+
+  fn do_update(
+    command: CommandUpdate,
+    record: Record,
+    journal: &Journal,
+    accounts: &HashMap<Uuid, Account>,
+  ) -> Result<Record> {
+    if let Some(items) = command.items {
+      Self::validate_items(&items, journal, accounts)?;
+    }
+
+    Ok(record)
+  }
+
+  async fn batch_update(
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&User>,
+    command: CommandBatchUpdate,
+  ) -> Result<Vec<Record>> {
+    let mut result = Vec::new();
+
+    let record_ids: HashSet<Uuid> = command.update.iter().map(|r| r.id).collect();
+    let records = utils::into_map(
+      Repository::<Record>::find_all(
+        db,
+        operator,
+        FindAllArgs { query: Query::from(record_ids), ..Default::default() },
+      )
+      .await?,
+    );
+    let mut account_ids = HashSet::<Uuid>::new();
+    let mut journal_ids = HashSet::<Uuid>::new();
+    for create in &command.create {
+      journal_ids.insert(create.journal);
+      for item in &create.items {
+        account_ids.insert(item.account);
+      }
+    }
+    for update in &command.update {
+      if let Some(items) = &update.items {
+        for item in items {
+          account_ids.insert(item.account);
+        }
+      }
+    }
+    let accounts = utils::into_map(
+      Repository::<Account>::find_all(
+        db,
+        operator,
+        FindAllArgs { query: account::Query::from(account_ids), ..Default::default() },
+      )
+      .await?,
+    );
+
+    for record in records.values() {
+      journal_ids.insert(record.journal);
+    }
+    let journals = utils::into_map(
+      Repository::<Journal>::find_all(
+        db,
+        operator,
+        FindAllArgs { query: journal::Query::from(journal_ids), ..Default::default() },
+      )
+      .await?,
+    );
+
+    for command in command.update {
+      if let Some(record) = records.get(&command.id) {
+        if let Some(journal) = journals.get(&record.journal) {
+          result.push(Self::do_update(command, record.clone(), journal, &accounts)?);
+        } else {
+          return Err(Error::not_found::<Journal>([(FIELD_ID, record.journal)]));
+        }
+      } else {
+        return Err(Error::not_found::<Record>([(FIELD_ID, command.id)]));
+      }
+    }
+
+    Self::check_writeable(db, operator, &result).await?;
+
+    for command in command.create {
+      if let Some(journal) = journals.get(&command.journal) {
+        result.push(Self::do_create(command, journal, &accounts)?);
+      } else {
+        return Err(Error::not_found::<Account>([(FIELD_ID, command.journal)]));
+      }
+    }
+
+    Repository::<Self>::save(db, result).await
+  }
+
+  async fn delete(
+    db: &(impl ConnectionTrait + StreamTrait),
+    operator: Option<&User>,
+    ids: HashSet<Uuid>,
+  ) -> Result<()> {
+    let models = Repository::find_by_ids(db, ids).await?;
+    Self::check_writeable(db, operator, &models).await?;
+    Repository::delete(db, models).await?;
+    Ok(())
   }
 }

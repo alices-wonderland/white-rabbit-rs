@@ -1,9 +1,9 @@
 import {
-  Record_,
   type AccountQuery,
   type JournalQuery,
   type Permission,
   type ReadModel,
+  Record_,
   type RecordApi,
   type RecordCommand,
   type RecordItem,
@@ -41,10 +41,7 @@ class RecordApiImpl extends AbstractWriteApi<Record_, RecordQuery, RecordCommand
     const accountIds = new Set(models.flatMap((model) => model.items).map((item) => item.account));
     const accounts = await accountApi.findAll({ query: { id: [...accountIds] } as AccountQuery });
 
-    const result = toMap([...journals[0], ...accounts[0]]);
-    console.log("Record included: ", result);
-
-    return result;
+    return toMap([...journals[0], ...accounts[0]]);
   }
 
   protected override convert(input: Record<string, unknown>): Record_ {

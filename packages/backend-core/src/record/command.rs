@@ -6,11 +6,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "commandType")]
 pub enum Command {
   #[serde(rename = "records:delete")]
   Create(CommandCreate),
   #[serde(rename = "records:update")]
   Update(CommandUpdate),
+  #[serde(rename = "records:batchUpdate")]
+  BatchUpdate(CommandBatchUpdate),
   #[serde(rename = "records:delete")]
   Delete(CommandDelete),
 }
@@ -47,6 +50,16 @@ pub struct CommandUpdate {
   pub tags: Option<HashSet<String>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub items: Option<HashSet<RecordItem>>,
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct CommandBatchUpdate {
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  #[serde(default)]
+  pub create: Vec<CommandCreate>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  #[serde(default)]
+  pub update: Vec<CommandUpdate>,
 }
 
 impl CommandUpdate {

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "commandType")]
 pub enum Command {
   #[serde(rename = "journals:create")]
   Create(CommandCreate),

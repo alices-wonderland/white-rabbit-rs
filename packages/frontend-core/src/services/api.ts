@@ -51,7 +51,7 @@ export type Permission = "ReadWrite" | "ReadOnly";
 
 export type Order = "Asc" | "Desc";
 
-export type Command<T extends string = string> = { commandType: T };
+export type Command<T extends string = string> = { readonly commandType: T };
 
 export interface Query {
   id?: string[];

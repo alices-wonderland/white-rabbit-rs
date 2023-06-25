@@ -76,9 +76,14 @@ export interface RecordCommandCreate extends Command<`${typeof RECORD_TYPE}:crea
   readonly name: string;
   readonly description: string;
   readonly type: RecordType;
-  readonly date: Date;
+  readonly date: string;
   readonly tags: string[];
   readonly items: RecordItem[];
+}
+
+export interface RecordCommandBatchUpdate extends Command<`${typeof RECORD_TYPE}:batchUpdate`> {
+  readonly create?: Omit<RecordCommandCreate, "commandType">[];
+  readonly update?: Omit<RecordCommandUpdate, "commandType">[];
 }
 
 export interface RecordCommandUpdate extends Command<`${typeof RECORD_TYPE}:update`> {
@@ -86,7 +91,7 @@ export interface RecordCommandUpdate extends Command<`${typeof RECORD_TYPE}:upda
   readonly name?: string;
   readonly description?: string;
   readonly type?: RecordType;
-  readonly date?: Date;
+  readonly date?: string;
   readonly tags?: string[];
   readonly items?: RecordItem[];
 }
@@ -95,6 +100,10 @@ export interface RecordCommandDelete extends Command<`${typeof RECORD_TYPE}:dele
   readonly id: string[];
 }
 
-export type RecordCommand = RecordCommandCreate | RecordCommandUpdate | RecordCommandDelete;
+export type RecordCommand =
+  | RecordCommandCreate
+  | RecordCommandUpdate
+  | RecordCommandBatchUpdate
+  | RecordCommandDelete;
 
 export type RecordApi = WriteApi<Record_, RecordQuery, RecordCommand, RecordSort>;

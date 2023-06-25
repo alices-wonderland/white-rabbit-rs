@@ -27,6 +27,16 @@ module.exports = {
         "plugin:vue/vue3-recommended",
         "prettier",
       ],
+      rules: {
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          {
+            argsIgnorePattern: "^_",
+            varsIgnorePattern: "^_",
+            caughtErrorsIgnorePattern: "^_",
+          },
+        ],
+      },
     },
   ],
 };

@@ -73,3 +73,9 @@ fn user_query(ids: HashSet<Uuid>, is_admin: bool) -> Option<SimpleExpr> {
     )
   }
 }
+
+impl From<HashSet<Uuid>> for Query {
+  fn from(value: HashSet<Uuid>) -> Self {
+    Query { id: value, ..Default::default() }
+  }
+}

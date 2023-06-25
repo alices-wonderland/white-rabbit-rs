@@ -13,7 +13,10 @@ export default defineConfig(() => {
       vue(),
       vueI18n({
         include: [
-          path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src/locales/**"),
+          path.resolve(
+            path.dirname(fileURLToPath(import.meta.url)),
+            "../frontend-core/src/locales/**"
+          ),
           path.resolve(
             path.dirname(fileURLToPath(import.meta.url)),
             "../frontend-core/src/locales/**"
@@ -55,6 +58,8 @@ export default defineConfig(() => {
               return "ag-charts";
             } else if (id.includes("@ag-grid-community/core")) {
               return "ag-grid-community-core";
+            } else if (id.includes("ag-grid")) {
+              return "ag-grid";
             }
             return null;
           },
