@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/frontend-core",
-  "packageManager": "yarn@3.6.0",
+  "packageManager": "yarn@3.6.1",
   "type": "module",
   "version": "0.1.0",
   "scripts": {
