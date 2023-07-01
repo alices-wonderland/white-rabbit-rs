@@ -1,7 +1,7 @@
 export interface ReadApi<
   M extends ReadModel = ReadModel,
   Q extends Query = Query,
-  S extends string = string
+  S extends string = string,
 > {
   findById(id: string, loadIncluded?: boolean): Promise<[M, Map<string, ReadModel>] | null>;
   findAll(args: FindAllArgs<Q, S>, loadIncluded?: boolean): Promise<[M[], Map<string, ReadModel>]>;
@@ -11,11 +11,11 @@ export interface WriteApi<
   M extends WriteModel = WriteModel,
   Q extends Query = Query,
   C extends Command = Command,
-  S extends string = string
+  S extends string = string,
 > extends ReadApi<M, Q, S> {
   findPage(
     args: FindPageArgs<Q, S>,
-    loadIncluded?: boolean
+    loadIncluded?: boolean,
   ): Promise<[Page<M>, Map<string, ReadModel>]>;
   handleCommand(command: C): Promise<M[]>;
 }

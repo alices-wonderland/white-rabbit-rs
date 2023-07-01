@@ -10,6 +10,7 @@ use chrono::{Duration, NaiveDate};
 use migration::sea_orm::DatabaseConnection;
 use migration::{Migrator, MigratorTrait};
 use rand::prelude::*;
+use std::collections::HashSet;
 
 #[macro_export]
 macro_rules! generate_tests {
@@ -92,10 +93,20 @@ async fn populate_data(db: &DatabaseConnection) -> Result<()> {
       })
     })
     .collect();
-  let mut accounts = Repository::<Account>::save(db, accounts).await.unwrap();
+  Repository::<Account>::save(db, accounts).await.unwrap();
 
   let mut records = Vec::new();
   for journal in &journals {
+    let mut accounts = Repository::<Account>::do_find_all(
+      db,
+      FindAllArgs {
+        query: account::Query { journal: HashSet::from_iter([journal.id]), ..Default::default() },
+        ..Default::default()
+      },
+      None,
+    )
+    .await
+    .unwrap();
     for idx in 0..5 {
       accounts.shuffle(&mut thread_rng());
       records.push(Record::new(

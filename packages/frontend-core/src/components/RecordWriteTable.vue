@@ -34,10 +34,8 @@ import {
   type RecordApi,
   type RecordType,
   Account,
-  Journal,
   ACCOUNT_TYPE,
   JOURNAL_API_KEY,
-  JOURNAL_TYPE,
   RECORD_API_KEY,
   type AccountApi,
   ACCOUNT_API_KEY,
@@ -47,11 +45,15 @@ import { useTheme } from "vuetify";
 import RecordWriteTableActionsCellRenderer from "./RecordWriteTableActionsCellRenderer.vue";
 import RecordWriteTableGroupCellRenderer from "./RecordWriteTableGroupCellRenderer.vue";
 import RecordWriteTableStateCellRenderer from "./RecordWriteTableStateCellRenderer.vue";
+import RecordWriteTableNameCellEditor from "./RecordWriteTableNameCellEditor.vue";
 import { Child, Parent, type Row } from "./row";
+import { toMap } from "@core/utils";
 
+const props = defineProps<{ journal: string }>();
 const theme = useTheme();
 
 const rows = ref<Row[]>([]);
+const accounts = ref<Account[]>([]);
 const recordApi = useInject<RecordApi>(RECORD_API_KEY);
 const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
 const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);
@@ -75,16 +77,28 @@ const columnDefs = ref<AbstractColDef[]>([
           innerRenderer: RecordWriteTableGroupCellRenderer,
           suppressDoubleClickExpand: true,
         },
-        editable: (params: EditableCallbackParams<Row>) => params.data instanceof Parent,
         valueGetter: (params: ValueGetterParams<Row>) =>
           params.data instanceof Parent ? params.data.name : params.data?.account?.id,
-        valueSetter(params: ValueSetterParams<Row>): boolean {
+        valueSetter(params: ValueSetterParams<Row, string>): boolean {
+          if (!params.newValue) {
+            return false;
+          }
           if (params.data instanceof Parent) {
             params.data.name = params.newValue;
             return true;
+          } else {
+            const account = accounts.value.find((a) => params.newValue === a.id);
+            if (account) {
+              params.data.account = account;
+            }
+            return !!account;
           }
-          return false;
         },
+        editable: true,
+        cellEditor: RecordWriteTableNameCellEditor,
+        cellEditorParams: () => ({
+          availableAccounts: accounts.value,
+        }),
         filter: true,
         showRowGroup: true,
         filterParams: {
@@ -170,29 +184,54 @@ const defaultColDef: ColDef = {
 };
 
 const onGridReady = async (params: GridReadyEvent) => {
-  const journals = await journalApi.findAll({ query: { name: ["Journal 1", false] } });
-  const records = await recordApi.findAll(
-    { query: { journal: journals[0].map((j) => j.id) } },
-    true
-  );
+  gridApi.value = params.api;
+  columnApi.value = params.columnApi;
+  await generateRows();
+};
+
+const height = computed(
+  () => `${150 + rows.value.filter((row) => row instanceof Parent).length * 50}px`,
+);
+
+const generateRows = async () => {
+  const result = await journalApi.findById(props.journal);
+  if (!result) {
+    return;
+  }
+  const [journal] = result;
+
+  const [accountValues, _a] = await accountApi.findAll({
+    query: { journal: [props.journal] },
+    sort: [["name", "Asc"]],
+  });
+  accounts.value = accountValues;
+  const accountMap = toMap<Account>(accountValues);
+  const records = await recordApi.findAll({ query: { journal: [props.journal] } });
   const newRows = records[0].flatMap((record) => {
-    const journal = records[1].get(`${JOURNAL_TYPE}:${record.journal}`) as Journal;
     const parent = new Parent(journal, record);
-    const children = record.items.map(
-      (item) =>
-        new Child(parent, item, records[1].get(`${ACCOUNT_TYPE}:${item.account}`) as Account)
-    );
+    const children = record.items
+      .map((item) => {
+        const account = accountMap.get(`${ACCOUNT_TYPE}:${item.account}`);
+        if (!account) {
+          return null;
+        }
+        return new Child(parent, item, account);
+      })
+      .filter((item): item is Child => !!item);
     parent.children = children;
     return [parent, ...children];
   });
   rows.value = newRows.sort((a, b) => a.compare(b));
-  gridApi.value = params.api;
-  columnApi.value = params.columnApi;
 };
 
-const height = computed(() => `${rows.value.filter((row) => row instanceof Parent).length * 60}px`);
+watch(props, async () => await generateRows());
+watch(rows, (newRows) => {
+  if (!newRows) {
+    return;
+  }
 
-watch(rows, (newRows) => gridApi.value?.setRowData(newRows));
+  gridApi.value?.setRowData(newRows);
+});
 
 const getDataPath = (data: Row) => data.dataPath;
 
@@ -237,8 +276,7 @@ const saveEditedRows = async () => {
 <style lang="scss">
 .cell {
   &-edited {
-    background-color: rgba(var(--v-theme-primary), 0.2);
-    color: var(--v-theme-on-background);
+    border: 1px dashed rgba(var(--v-theme-primary)) !important;
   }
 }
 </style>

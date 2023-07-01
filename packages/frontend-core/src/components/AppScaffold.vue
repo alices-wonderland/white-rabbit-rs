@@ -44,7 +44,7 @@ const toggleDark = () => {
 };
 
 const darkIcon = computed(() =>
-  theme.global.name.value === "dark" ? mdiWeatherNight : mdiWeatherSunny
+  theme.global.name.value === "dark" ? mdiWeatherNight : mdiWeatherSunny,
 );
 
 const localeOptions = ref([

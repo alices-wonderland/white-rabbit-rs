@@ -15,11 +15,7 @@ export default defineConfig(() => {
         include: [
           path.resolve(
             path.dirname(fileURLToPath(import.meta.url)),
-            "../frontend-core/src/locales/**"
-          ),
-          path.resolve(
-            path.dirname(fileURLToPath(import.meta.url)),
-            "../frontend-core/src/locales/**"
+            "../frontend-core/src/locales/**",
           ),
         ],
       }),
@@ -43,7 +39,7 @@ export default defineConfig(() => {
       coverage: {
         reporter: ["lcov", "html"],
       },
-      setupFiles: ["../../vitest.setup.ts", "vitest.setup.ts"],
+      setupFiles: ["vitest.setup.ts"],
     },
     build: {
       target: ["esnext"],
@@ -54,14 +50,12 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks: (id): string | null => {
-            if (id.includes("ag-charts")) {
-              return "ag-charts";
-            } else if (id.includes("@ag-grid-community/core")) {
+            if (id.includes("@ag-grid-community/core")) {
               return "ag-grid-community-core";
             } else if (id.includes("ag-grid")) {
               return "ag-grid";
             }
-            return null;
+            return "index";
           },
         },
       },

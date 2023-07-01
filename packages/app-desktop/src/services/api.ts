@@ -27,7 +27,7 @@ export abstract class AbstractReadApi<M extends ReadModel, Q extends Query, S ex
 
   async findAll(
     { query, sort }: FindAllArgs<Q, S>,
-    loadIncluded?: boolean
+    loadIncluded?: boolean,
   ): Promise<[M[], Map<string, ReadModel>]> {
     const response = await invoke<Record<string, unknown>[]>(this.findAllKey, {
       query,
@@ -55,7 +55,7 @@ export abstract class AbstractWriteApi<
     M extends WriteModel,
     Q extends Query,
     C extends Command,
-    S extends string
+    S extends string,
   >
   extends AbstractReadApi<M, Q, S>
   implements WriteApi<M, Q, C, S>
@@ -66,7 +66,7 @@ export abstract class AbstractWriteApi<
 
   async findPage(
     { query, sort, after, before, size }: FindPageArgs<Q, S>,
-    loadIncluded?: boolean
+    loadIncluded?: boolean,
   ): Promise<[Page<M>, Map<string, ReadModel>]> {
     const page = await invoke<Record<string, unknown>>(this.findPageKey, {
       query: query,

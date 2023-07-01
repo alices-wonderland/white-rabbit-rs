@@ -6,10 +6,10 @@ export default function usePage<
   M extends WriteModel,
   Q extends Query,
   S extends string,
-  A extends WriteApi<M, Q, Command, S>
+  A extends WriteApi<M, Q, Command, S>,
 >(
   key: symbol,
-  defaultArgs: FindPageArgs<Q, S>
+  defaultArgs: FindPageArgs<Q, S>,
 ): [Ref<FindPageArgs<Q, S>>, Ref<M[]>, Ref<Map<string, ReadModel>>, () => Promise<void>] {
   const api = useInject<A>(key);
 
