@@ -16,6 +16,7 @@ import { AbstractWriteApi } from "./api";
 import { journalApi } from "./journal";
 import { toMap } from "@core/utils";
 import { accountApi } from "./account";
+import { parseISO } from "date-fns";
 
 class RecordApiImpl extends AbstractWriteApi<Record_, RecordQuery, RecordCommand, RecordSort> {
   protected override get findAllKey(): string {
@@ -52,7 +53,7 @@ class RecordApiImpl extends AbstractWriteApi<Record_, RecordQuery, RecordCommand
       name: input.name as string,
       description: input.description as string,
       type: input.type as RecordType,
-      date: new Date(input.date as string),
+      date: parseISO(input.date as string),
       tags: input.tags as string[],
       items: input.items as RecordItem[],
       state: input.state as RecordState,

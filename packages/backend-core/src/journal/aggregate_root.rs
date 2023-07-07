@@ -2,9 +2,10 @@ use crate::journal::{
   journal_user, ActiveModel, Column, Command, Entity, Model, Presentation, PrimaryKey, Query,
 };
 use crate::user::{Role, User};
-use crate::{utils, AggregateRoot, Permission};
+use crate::{utils, AggregateRoot, Permission, Result};
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
+use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::IntoActiveModel;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -153,8 +154,16 @@ impl AggregateRoot for Journal {
       .unique_by(|root| root.id)
       .map(|root| Model::from(root.clone()).into_active_model())
       .collect::<Vec<_>>();
-    Entity::insert_many(journals).exec(db).await?;
+    let mut on_conflict = OnConflict::column(Self::primary_column());
+    on_conflict.update_columns([Column::Name, Column::Description, Column::Unit]);
+    Entity::insert_many(journals).on_conflict(on_conflict).exec(db).await?;
 
+    let journal_ids = utils::get_ids(&roots);
+
+    journal_user::Entity::delete_many()
+      .filter(journal_user::Column::JournalId.is_in(journal_ids.clone()))
+      .exec(db)
+      .await?;
     let journal_users = roots
       .iter()
       .flat_map(|root| HashSet::<journal_user::Model>::from(root.clone()))
@@ -162,6 +171,22 @@ impl AggregateRoot for Journal {
       .map(|model| model.into_active_model())
       .collect::<Vec<_>>();
     journal_user::Entity::insert_many(journal_users).exec(db).await?;
+
+    Ok(())
+  }
+
+  async fn do_delete(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
+    let ids = utils::get_ids(&roots);
+
+    let _ = journal_user::Entity::delete_many()
+      .filter(Expr::col(journal_user::Column::JournalId).is_in(ids.clone()))
+      .exec(db)
+      .await?;
+
+    let _ = Self::Entity::delete_many()
+      .filter(Expr::col(Self::primary_column()).is_in(ids.clone()))
+      .exec(db)
+      .await?;
 
     Ok(())
   }

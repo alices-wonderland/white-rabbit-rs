@@ -246,7 +246,8 @@ where
     if aggregate_roots.is_empty() {
       return Ok(Vec::default());
     }
-    A::pre_save(db, &aggregate_roots).await?;
+
+    let aggregate_roots = A::pre_save(db, aggregate_roots).await?;
     let ids = utils::get_ids(&aggregate_roots);
     A::do_save(db, aggregate_roots).await?;
 
@@ -258,9 +259,7 @@ where
       return Ok(());
     }
     A::pre_delete(db, &aggregate_roots).await?;
-    let ids = utils::get_ids(&aggregate_roots);
-    let _ =
-      A::Entity::delete_many().filter(Expr::col(A::primary_column()).is_in(ids)).exec(db).await?;
+    A::do_delete(db, aggregate_roots).await?;
     Ok(())
   }
 }

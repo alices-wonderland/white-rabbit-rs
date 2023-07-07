@@ -12,7 +12,10 @@ use crate::{
 use chrono::NaiveDate;
 use itertools::Itertools;
 use rust_decimal::Decimal;
-use sea_orm::{ConnectionTrait, EntityTrait, IntoActiveModel, LoaderTrait, StreamTrait};
+use sea_orm::sea_query::{Expr, OnConflict};
+use sea_orm::{
+  ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, LoaderTrait, QueryFilter, StreamTrait,
+};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -35,7 +38,9 @@ pub struct Record {
 }
 
 impl Record {
+  #![allow(clippy::too_many_arguments)]
   pub fn new(
+    id: Uuid,
     journal: &Journal,
     name: impl ToString,
     description: impl ToString,
@@ -45,13 +50,17 @@ impl Record {
     items: impl IntoIterator<Item = RecordItem>,
   ) -> Record {
     Self {
-      id: Uuid::new_v4(),
+      id,
       journal: journal.id(),
-      name: name.to_string(),
-      description: description.to_string(),
+      name: name.to_string().trim().to_string(),
+      description: description.to_string().trim().to_string(),
       typ,
       date,
-      tags: tags.into_iter().map(|tag| tag.to_string()).collect(),
+      tags: tags
+        .into_iter()
+        .map(|tag| tag.to_string().trim().to_string())
+        .filter(|tag| !tag.is_empty())
+        .collect(),
       items: HashSet::from_iter(items),
     }
   }
@@ -62,13 +71,35 @@ pub struct RecordItem {
   pub account: Uuid,
   #[serde(with = "rust_decimal::serde::arbitrary_precision")]
   pub amount: Decimal,
-  #[serde(with = "rust_decimal::serde::arbitrary_precision_option")]
+  #[serde(default, with = "rust_decimal::serde::arbitrary_precision_option")]
   pub price: Option<Decimal>,
 }
 
 impl RecordItem {
-  pub fn new(account: &Account, amount: Decimal, price: Option<Decimal>) -> RecordItem {
-    Self { account: account.id(), amount, price }
+  pub fn new(
+    journal: &Journal,
+    account: &Account,
+    amount: Decimal,
+    price: Option<Decimal>,
+  ) -> RecordItem {
+    Self {
+      account: account.id(),
+      amount,
+      price: price.and_then(|price| if journal.unit == account.unit { None } else { Some(price) }),
+    }
+  }
+
+  pub fn of(
+    journal: &Journal,
+    accounts: &HashMap<Uuid, Account>,
+    items: impl IntoIterator<Item = RecordItem>,
+  ) -> HashSet<RecordItem> {
+    items
+      .into_iter()
+      .map(|item: RecordItem| {
+        RecordItem::new(journal, accounts.get(&item.account).unwrap(), item.amount, item.price)
+      })
+      .collect()
   }
 }
 
@@ -171,8 +202,22 @@ impl AggregateRoot for Record {
       .unique_by(|root| root.id)
       .map(|root| Model::from(root.clone()).into_active_model())
       .collect::<Vec<_>>();
-    Entity::insert_many(records).exec(db).await?;
+    let mut on_conflict = OnConflict::column(Self::primary_column());
+    on_conflict.update_columns([
+      Column::JournalId,
+      Column::Name,
+      Column::Description,
+      Column::Typ,
+      Column::Date,
+    ]);
+    Entity::insert_many(records).on_conflict(on_conflict).exec(db).await?;
 
+    let record_ids = utils::get_ids(&roots);
+
+    record_tag::Entity::delete_many()
+      .filter(record_tag::Column::RecordId.is_in(record_ids.clone()))
+      .exec(db)
+      .await?;
     let record_tags = roots
       .iter()
       .flat_map(|root| HashSet::<record_tag::Model>::from(root.clone()))
@@ -181,6 +226,10 @@ impl AggregateRoot for Record {
       .collect::<Vec<_>>();
     record_tag::Entity::insert_many(record_tags).exec(db).await?;
 
+    record_item::Entity::delete_many()
+      .filter(record_item::Column::RecordId.is_in(record_ids.clone()))
+      .exec(db)
+      .await?;
     let record_items = roots
       .iter()
       .flat_map(|root| HashSet::<record_item::Model>::from(root.clone()))
@@ -189,6 +238,26 @@ impl AggregateRoot for Record {
       .collect::<Vec<_>>();
     record_item::Entity::insert_many(record_items).exec(db).await?;
 
+    Ok(())
+  }
+
+  async fn do_delete(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
+    let ids = utils::get_ids(&roots);
+
+    let _ = record_tag::Entity::delete_many()
+      .filter(Expr::col(record_tag::Column::RecordId).is_in(ids.clone()))
+      .exec(db)
+      .await?;
+
+    let _ = record_item::Entity::delete_many()
+      .filter(Expr::col(record_item::Column::RecordId).is_in(ids.clone()))
+      .exec(db)
+      .await?;
+
+    let _ = Self::Entity::delete_many()
+      .filter(Expr::col(Self::primary_column()).is_in(ids.clone()))
+      .exec(db)
+      .await?;
     Ok(())
   }
 
@@ -243,17 +312,12 @@ impl AggregateRoot for Record {
 
 impl Record {
   fn validate_items(
+    record_id: Uuid,
     items: &HashSet<RecordItem>,
     journal: &Journal,
     accounts: &HashMap<Uuid, Account>,
   ) -> Result<()> {
-    if items.len() < MIN_ITEMS || items.len() > MAX_ITEMS {
-      return Err(Error::NotInRange {
-        field: FIELD_ITEMS.to_string(),
-        begin: MIN_ITEMS,
-        end: MAX_ITEMS,
-      });
-    }
+    let mut account_ids = HashSet::new();
 
     for item in items {
       if let Some(account) = accounts.get(&item.account) {
@@ -262,10 +326,22 @@ impl Record {
             vec![(FIELD_ID, account.id)],
             vec![(FIELD_ID, journal.id)],
           ));
+        } else if account_ids.contains(&account.id) {
+          return Err(Error::RecordItemAccountAlreadyExist { id: record_id, account: account.id });
+        } else {
+          account_ids.insert(account.id);
         }
       } else {
         return Err(Error::not_found::<Account>([(FIELD_ID, item.account)]));
       }
+    }
+
+    if items.len() < MIN_ITEMS || items.len() > MAX_ITEMS {
+      return Err(Error::NotInRange {
+        field: FIELD_ITEMS.to_string(),
+        begin: MIN_ITEMS,
+        end: MAX_ITEMS,
+      });
     }
 
     Ok(())
@@ -276,18 +352,20 @@ impl Record {
     journal: &Journal,
     accounts: &HashMap<Uuid, Account>,
   ) -> Result<Record> {
-    Self::validate_items(&command.items, journal, accounts)?;
+    let id = command.id.and_then(|s| Uuid::try_parse(&s).ok()).unwrap_or_else(Uuid::new_v4);
 
-    Ok(Record {
-      id: command.id.and_then(|s| Uuid::try_parse(&s).ok()).unwrap_or_else(Uuid::new_v4),
-      journal: journal.id,
-      name: command.name,
-      description: command.description,
-      typ: command.typ,
-      date: command.date,
-      tags: command.tags,
-      items: command.items,
-    })
+    Self::validate_items(id, &command.items, journal, accounts)?;
+
+    Ok(Record::new(
+      id,
+      journal,
+      command.name,
+      command.description,
+      command.typ,
+      command.date,
+      command.tags,
+      RecordItem::of(journal, accounts, command.items),
+    ))
   }
 
   fn do_update(
@@ -296,11 +374,20 @@ impl Record {
     journal: &Journal,
     accounts: &HashMap<Uuid, Account>,
   ) -> Result<Record> {
-    if let Some(items) = command.items {
-      Self::validate_items(&items, journal, accounts)?;
+    if let Some(items) = &command.items {
+      Self::validate_items(command.id, items, journal, accounts)?;
     }
 
-    Ok(record)
+    Ok(Record::new(
+      record.id,
+      journal,
+      command.name.unwrap_or(record.name),
+      command.description.unwrap_or(record.description),
+      command.typ.unwrap_or(record.typ),
+      command.date.unwrap_or(record.date),
+      command.tags.unwrap_or(record.tags),
+      command.items.map(|items| RecordItem::of(journal, accounts, items)).unwrap_or(record.items),
+    ))
   }
 
   async fn batch_update(
@@ -346,14 +433,16 @@ impl Record {
     for record in records.values() {
       journal_ids.insert(record.journal);
     }
-    let journals = utils::into_map(
-      Repository::<Journal>::find_all(
-        db,
-        operator,
-        FindAllArgs { query: journal::Query::from(journal_ids), ..Default::default() },
-      )
-      .await?,
-    );
+
+    let journals = Repository::<Journal>::find_all(
+      db,
+      operator,
+      FindAllArgs { query: journal::Query::from(journal_ids), ..Default::default() },
+    )
+    .await?;
+    Journal::check_writeable(db, operator, &journals).await?;
+
+    let journals = utils::into_map(journals);
 
     for command in command.update {
       if let Some(record) = records.get(&command.id) {

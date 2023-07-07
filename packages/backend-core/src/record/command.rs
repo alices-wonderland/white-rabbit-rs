@@ -52,6 +52,17 @@ pub struct CommandUpdate {
   pub items: Option<HashSet<RecordItem>>,
 }
 
+impl CommandUpdate {
+  pub fn is_empty(&self) -> bool {
+    self.name.is_none()
+      && self.description.is_none()
+      && self.typ.is_none()
+      && self.date.is_none()
+      && self.tags.is_none()
+      && self.items.is_none()
+  }
+}
+
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CommandBatchUpdate {
   #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -62,14 +73,9 @@ pub struct CommandBatchUpdate {
   pub update: Vec<CommandUpdate>,
 }
 
-impl CommandUpdate {
+impl CommandBatchUpdate {
   pub fn is_empty(&self) -> bool {
-    self.name.is_none()
-      && self.description.is_none()
-      && self.typ.is_none()
-      && self.date.is_none()
-      && self.tags.is_none()
-      && self.items.is_none()
+    self.create.is_empty() && self.update.is_empty()
   }
 }
 

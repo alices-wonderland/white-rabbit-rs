@@ -7,10 +7,11 @@ use backend_core::record::{Record, RecordItem};
 use backend_core::user::User;
 use backend_core::{account, record, user, AggregateRoot, FindAllArgs, Repository};
 use chrono::{Duration, NaiveDate};
-use migration::sea_orm::DatabaseConnection;
+use migration::sea_orm::{DatabaseConnection, Iterable};
 use migration::{Migrator, MigratorTrait};
 use rand::prelude::*;
 use std::collections::HashSet;
+use uuid::Uuid;
 
 #[macro_export]
 macro_rules! generate_tests {
@@ -81,13 +82,13 @@ async fn populate_data(db: &DatabaseConnection) -> Result<()> {
   let accounts = journals
     .iter()
     .flat_map(|journal| {
-      (0..3).map(|idx| {
+      account::Type::iter().map(|typ| {
         Account::new(
-          format!("{} - Account {}", journal.name, idx),
-          format!("Desc {}", idx),
+          format!("{} - Account - {}", journal.name, typ),
+          format!("Desc {}", typ),
           "CNY",
-          if idx == 0 { account::Type::Asset } else { account::Type::Expense },
-          (0..3).map(|tag| format!("tag {}", tag + idx)),
+          typ.clone(),
+          (0..3).map(|tag| format!("tag {} {}", tag, typ)),
           journal,
         )
       })
@@ -110,15 +111,16 @@ async fn populate_data(db: &DatabaseConnection) -> Result<()> {
     for idx in 0..5 {
       accounts.shuffle(&mut thread_rng());
       records.push(Record::new(
+        Uuid::new_v4(),
         journal,
         format!("Journal {} - {}", &journal.name, idx),
         format!("Desc {}", idx),
         if idx % 3 == 0 { record::Type::Check } else { record::Type::Record },
         NaiveDate::from_ymd_opt(2023, 1, 1).unwrap() + Duration::days(idx * 30),
         (0..3).map(|tag| format!("tag {}", tag + idx)),
-        accounts[0..2]
-          .iter()
-          .map(|account| RecordItem::new(account, (10 * idx).into(), Some("1.5".parse().unwrap()))),
+        accounts[0..2].iter().map(|account| {
+          RecordItem::new(journal, account, (10 * idx).into(), Some("1.5".parse().unwrap()))
+        }),
       ));
     }
   }

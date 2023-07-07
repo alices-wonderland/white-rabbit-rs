@@ -1,12 +1,18 @@
-import type {
-  Journal,
+import {
+  type Journal,
   Record_,
-  Account,
-  RecordType,
-  RecordItem,
-  RecordStateItem,
+  type Account,
+  type RecordType,
+  type RecordItem,
+  type RecordStateItem,
+  type RecordCommandUpdate,
+  type RecordCommandCreate,
 } from "@core/services";
 import { v4 as uuidv4 } from "uuid";
+import { NULL_PLACEHOLDER } from "@core/utils";
+import format from "date-fns/format";
+
+type EditedField = [string | undefined, string | undefined];
 
 export interface BaseRow {
   deleted?: boolean;
@@ -19,7 +25,7 @@ export interface BaseRow {
   get dataPath(): string[];
   get state(): RecordStateItem | undefined;
 
-  get editedFields(): string[];
+  get editedFields(): Map<string, EditedField>;
 
   compare(another: Row): number;
 }
@@ -27,11 +33,11 @@ export interface BaseRow {
 export class Parent implements BaseRow {
   journal: Journal;
   record?: Record_;
-  deleted = false;
+  isDeleted = false;
   id: string;
   name: string;
 
-  description?: string;
+  description: string;
   type?: RecordType;
   date?: Date;
   tags?: string[];
@@ -43,7 +49,7 @@ export class Parent implements BaseRow {
 
     this.id = record?.id || uuidv4();
     this.name = record?.name || "";
-    this.description = record?.description;
+    this.description = record?.description ?? "";
     this.type = record?.type;
     this.date = record?.date;
     this.tags = record?.tags;
@@ -72,54 +78,96 @@ export class Parent implements BaseRow {
       return typeCompare;
     }
 
-    return (this.name ?? "").localeCompare(another.name ?? "");
+    return this.name.localeCompare(another.name);
   }
 
-  get editedFields(): string[] {
-    const results: string[] = [];
+  get editedFields(): Map<string, EditedField> {
+    const results = new Map<string, EditedField>();
 
-    if (this.name !== this.record?.name) {
-      results.push("name");
+    if (this.record?.name !== this.name) {
+      results.set("name", [this.record?.name ?? NULL_PLACEHOLDER, this.name]);
     }
 
-    if (this.date !== this.record?.date) {
-      results.push("date");
+    if (this.record?.date?.valueOf() !== this.date?.valueOf()) {
+      results.set("date", [
+        this.record?.date?.toDateString() ?? NULL_PLACEHOLDER,
+        this.date?.toDateString() ?? NULL_PLACEHOLDER,
+      ]);
     }
 
-    if (this.type !== this.record?.type) {
-      results.push("type");
+    if (this.record?.type !== this.type) {
+      results.set("type", [this.record?.type ?? NULL_PLACEHOLDER, this.type ?? NULL_PLACEHOLDER]);
     }
 
     for (const child of this.children) {
-      if (child.editedFields.length > 0) {
-        results.push(child.id);
+      for (const [k, v] of child.editedFields) {
+        results.set(`${child.id}::${k}`, v);
       }
     }
 
     return results;
   }
+
+  get isEdited() {
+    return (
+      this.isDeleted ||
+      this.editedFields.size > 0 ||
+      this.children.some((child) => child.isDeleted !== false)
+    );
+  }
+
+  generateCommand(): RecordCommandCreate | RecordCommandUpdate | undefined {
+    const children = this.children
+      .map((child) => child.generateModel())
+      .filter((item): item is RecordItem => !!item);
+
+    if (this.record) {
+      return {
+        commandType: "records:update",
+        id: this.id,
+        name: this.name,
+        description: this.description,
+        type: this.type,
+        date: this.date && format(this.date, "yyyy-MM-dd"),
+        tags: this.tags,
+        items: children,
+      };
+    } else if (this.type && this.date) {
+      return {
+        commandType: "records:create",
+        id: this.id,
+        journal: this.journal.id,
+        name: this.name,
+        description: this.description,
+        type: this.type,
+        date: format(this.date, "yyyy-MM-dd"),
+        tags: this.tags ?? [],
+        items: children,
+      };
+    }
+  }
 }
 
 export class Child implements BaseRow {
-  _deleted = false;
+  _isDeleted = false;
 
   parent: Parent;
-  recordItem: RecordItem;
+  recordItem?: RecordItem;
 
-  account: Account;
-  amount: number;
+  account?: Account;
+  amount?: number;
   price?: number;
 
-  constructor(parent: Parent, recordItem: RecordItem, account: Account) {
+  constructor(parent: Parent, recordItem?: RecordItem, account?: Account) {
     this.parent = parent;
     this.account = account;
     this.recordItem = recordItem;
-    this.amount = recordItem.amount;
-    this.price = recordItem.price;
+    this.amount = recordItem?.amount;
+    this.price = recordItem?.price;
   }
 
   get dataPath(): string[] {
-    return [this.parent.id, this.account.id];
+    return [this.parent.id, this.account?.id ?? NULL_PLACEHOLDER];
   }
 
   get id(): string {
@@ -131,26 +179,26 @@ export class Child implements BaseRow {
   }
 
   get name(): string {
-    return this.account.name;
+    return this.account?.name ?? "";
   }
 
   get record(): Record_ | undefined {
     return this.parent.record;
   }
 
-  get deleted(): boolean | undefined {
-    if (this.parent.deleted) {
+  get isDeleted(): boolean | undefined {
+    if (this.parent.isDeleted) {
       return undefined;
     }
-    return this._deleted;
+    return this._isDeleted;
   }
 
-  set deleted(value: boolean) {
-    this._deleted = value;
+  set isDeleted(value: boolean) {
+    this._isDeleted = value;
   }
 
   get state(): RecordStateItem | undefined {
-    return this.record?.type === "Check"
+    return this.record?.type === "Check" && this.account
       ? (this.record.state as Record<string, RecordStateItem>)[this.account.id]
       : undefined;
   }
@@ -165,25 +213,47 @@ export class Child implements BaseRow {
       return parentCompare;
     }
 
-    return this.account.type.localeCompare(another.account.type);
+    return (this.account?.type ?? "").localeCompare(another.account?.type ?? "");
   }
 
-  get editedFields(): string[] {
-    const results: string[] = [];
+  get editedFields(): Map<string, EditedField> {
+    const results = new Map<string, EditedField>();
 
-    if (this.recordItem.account !== this.account.id) {
-      results.push("name");
+    if (this.recordItem?.account !== this.account?.id) {
+      results.set("name", [this.recordItem?.account, this.account?.id]);
     }
 
-    if (this.amount !== this.recordItem.amount) {
-      results.push("amount");
+    if (this.recordItem?.amount !== this.amount) {
+      results.set("amount", [
+        this.recordItem?.amount.toString() ?? NULL_PLACEHOLDER,
+        this.amount?.toString() ?? NULL_PLACEHOLDER,
+      ]);
     }
 
-    if (this.price !== this.recordItem.price) {
-      results.push("price");
+    if (this.recordItem?.price !== this.price) {
+      results.set("price", [
+        this.recordItem?.price?.toFixed(2) ?? NULL_PLACEHOLDER,
+        this.price?.toFixed(2) ?? NULL_PLACEHOLDER,
+      ]);
     }
 
     return results;
+  }
+
+  get isEdited() {
+    return this._isDeleted || this.editedFields.size > 0;
+  }
+
+  generateModel(): RecordItem | undefined {
+    if (this.account && this.amount) {
+      return {
+        account: this.account?.id,
+        amount: this.amount,
+        price: typeof this.price === "number" ? this.price : undefined,
+      };
+    } else {
+      return undefined;
+    }
   }
 }
 

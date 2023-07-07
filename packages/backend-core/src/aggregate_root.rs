@@ -1,6 +1,7 @@
 use crate::user::User;
-use crate::{Error, Query, Result};
+use crate::{utils, Error, Query, Result};
 use sea_orm::entity::prelude::*;
+use sea_orm::sea_query::Expr;
 use sea_orm::{IntoActiveModel, StreamTrait};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -15,7 +16,7 @@ pub const FIELD_NAME_LENGTH: &str = "name.length";
 #[async_trait::async_trait]
 pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
   type Model: ModelTrait<Entity = Self::Entity> + IntoActiveModel<Self::ActiveModel> + Send;
-  type ActiveModel: ActiveModelTrait<Entity = Self::Entity> + Send;
+  type ActiveModel: ActiveModelBehavior<Entity = Self::Entity> + Send;
   type Entity: EntityTrait<
     Column = Self::Column,
     Model = Self::Model,
@@ -39,13 +40,22 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
 
   async fn from_models(db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>>;
 
-  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
-    Self::Entity::insert_many(
-      roots.into_iter().map(|root| root.into().into_active_model()).collect::<Vec<_>>(),
-    )
-    .exec(db)
-    .await?;
+  async fn pre_save(_db: &impl ConnectionTrait, models: Vec<Self>) -> Result<Vec<Self>> {
+    Ok(models)
+  }
 
+  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()>;
+
+  async fn pre_delete(_db: &impl ConnectionTrait, _models: &[Self]) -> Result<()> {
+    Ok(())
+  }
+
+  async fn do_delete(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
+    let ids = utils::get_ids(&roots);
+    let _ = Self::Entity::delete_many()
+      .filter(Expr::col(Self::primary_column()).is_in(ids))
+      .exec(db)
+      .await?;
     Ok(())
   }
 
@@ -72,14 +82,6 @@ pub trait AggregateRoot: Debug + Clone + Send + Sync + Into<Self::Model> {
         return Err(Error::no_write_permission(operator, model));
       }
     }
-    Ok(())
-  }
-
-  async fn pre_save(_db: &impl ConnectionTrait, _models: &[Self]) -> Result<()> {
-    Ok(())
-  }
-
-  async fn pre_delete(_db: &impl ConnectionTrait, _models: &[Self]) -> Result<()> {
     Ok(())
   }
 }

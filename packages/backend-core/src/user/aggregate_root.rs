@@ -6,8 +6,10 @@ use crate::{
   AggregateRoot, Error, FindAllArgs, Permission, Repository, Result, FIELD_ID, FIELD_NAME,
   FIELD_NAME_LENGTH,
 };
+use itertools::Itertools;
 use sea_orm::entity::prelude::*;
-use sea_orm::StreamTrait;
+use sea_orm::sea_query::OnConflict;
+use sea_orm::{IntoActiveModel, StreamTrait};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -58,6 +60,18 @@ impl AggregateRoot for User {
 
   async fn from_models(_db: &impl ConnectionTrait, models: Vec<Self::Model>) -> Result<Vec<Self>> {
     Ok(models)
+  }
+
+  async fn do_save(db: &impl ConnectionTrait, roots: Vec<Self>) -> Result<()> {
+    let users = roots
+      .iter()
+      .unique_by(|root| root.id)
+      .map(|root| root.clone().into_active_model())
+      .collect::<Vec<_>>();
+    let mut on_conflict = OnConflict::column(Self::primary_column());
+    on_conflict.update_columns([Column::Name, Column::Role]);
+    Entity::insert_many(users).on_conflict(on_conflict).exec(db).await?;
+    Ok(())
   }
 
   async fn handle(

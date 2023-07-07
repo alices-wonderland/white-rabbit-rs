@@ -1,12 +1,15 @@
 <template>
   <v-btn color="primary" size="small" @click="saveEditedRows">Save</v-btn>
   <ag-grid-vue
-    :style="{ minHeight: '150px', maxHeight: '80vh', height }"
+    ref="tableRef"
+    :style="{ minHeight: '150px', maxHeight: '80vh', height: heightPx }"
     :class="theme.global.name.value === 'dark' ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'"
     :column-defs="columnDefs"
     :default-col-def="defaultColDef"
     group-display-type="custom"
     :get-data-path="getDataPath"
+    :get-context-menu-items="getContextMenuItems"
+    group-default-expanded
     animate-rows
     tree-data
     enable-range-selection
@@ -24,6 +27,7 @@ import {
   type CellClassParams,
   type AbstractColDef,
   type ColGroupDef,
+  type GetContextMenuItems,
   ColumnApi,
   GridApi,
 } from "@ag-grid-community/core";
@@ -33,14 +37,16 @@ import {
   type JournalApi,
   type RecordApi,
   type RecordType,
-  Account,
+  type AccountApi,
   ACCOUNT_TYPE,
   JOURNAL_API_KEY,
   RECORD_API_KEY,
-  type AccountApi,
   ACCOUNT_API_KEY,
+  Journal,
+  type RecordCommandUpdate,
+  type RecordCommandCreate,
 } from "@core/services";
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useTheme } from "vuetify";
 import RecordWriteTableActionsCellRenderer from "./RecordWriteTableActionsCellRenderer.vue";
 import RecordWriteTableGroupCellRenderer from "./RecordWriteTableGroupCellRenderer.vue";
@@ -48,22 +54,34 @@ import RecordWriteTableStateCellRenderer from "./RecordWriteTableStateCellRender
 import RecordWriteTableNameCellEditor from "./RecordWriteTableNameCellEditor.vue";
 import { Child, Parent, type Row } from "./row";
 import { toMap } from "@core/utils";
+import { computedAsync } from "@vueuse/core";
+import { computed } from "vue";
 
-const props = defineProps<{ journal: string }>();
+const props = defineProps<{ journal: Journal }>();
 const theme = useTheme();
 
 const rows = ref<Row[]>([]);
-const accounts = ref<Account[]>([]);
 const recordApi = useInject<RecordApi>(RECORD_API_KEY);
-const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
+const _journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
 const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);
-const gridApi = ref<GridApi>();
+const gridApi = ref<GridApi<Row>>();
 const columnApi = ref<ColumnApi>();
+const tableRef = ref<HTMLElement>();
 
 const columnDefs = ref<AbstractColDef[]>([
   {
     headerName: "Actions",
     cellRenderer: RecordWriteTableActionsCellRenderer,
+    cellRendererParams: (params: CellClassParams<Row>) => ({
+      addChild: () => {
+        const data = params.data;
+        if (data instanceof Parent) {
+          const child = new Child(data);
+          data.children.push(child);
+          rows.value = [...rows.value, child];
+        }
+      },
+    }),
     pinned: "left",
     sortable: false,
   } as ColDef,
@@ -106,7 +124,7 @@ const columnDefs = ref<AbstractColDef[]>([
         },
         cellClassRules: {
           "cell cell-edited": (params: CellClassParams<Row>) =>
-            params.data?.editedFields?.includes("name"),
+            params.data?.editedFields?.has("name"),
         },
       } as ColDef,
       {
@@ -124,7 +142,14 @@ const columnDefs = ref<AbstractColDef[]>([
     editable: (params: EditableCallbackParams<Row, Date>) => params.data instanceof Parent,
     cellClassRules: {
       "cell cell-edited": (params: CellClassParams<Row>) =>
-        params.data?.editedFields?.includes("date") ?? false,
+        params.data?.editedFields?.has("date") ?? false,
+    },
+    valueSetter: (params: ValueSetterParams<Row, Date>) => {
+      if (params.newValue && params.data instanceof Parent) {
+        params.data.date = params.newValue;
+        return true;
+      }
+      return false;
     },
   } as ColDef,
   {
@@ -146,8 +171,7 @@ const columnDefs = ref<AbstractColDef[]>([
       return false;
     },
     cellClassRules: {
-      "cell cell-edited": (params: CellClassParams<Row>) =>
-        params.data?.editedFields?.includes("type"),
+      "cell cell-edited": (params: CellClassParams<Row>) => params.data?.editedFields?.has("type"),
     },
   } as ColDef,
   {
@@ -158,7 +182,7 @@ const columnDefs = ref<AbstractColDef[]>([
     cellEditor: "agNumberCellEditor",
     cellClassRules: {
       "cell cell-edited": (params: CellClassParams<Row>) =>
-        params.data?.editedFields?.includes("amount") ?? false,
+        params.data?.editedFields?.has("amount") ?? false,
     },
   } as ColDef,
   {
@@ -169,7 +193,7 @@ const columnDefs = ref<AbstractColDef[]>([
     cellEditor: "agNumberCellEditor",
     cellClassRules: {
       "cell cell-edited": (params: CellClassParams<Row>) =>
-        params.data?.editedFields?.includes("price") ?? false,
+        params.data?.editedFields?.has("price") ?? false,
     },
   } as ColDef,
 ]);
@@ -181,34 +205,37 @@ const defaultColDef: ColDef = {
   floatingFilter: true,
   resizable: true,
   suppressMovable: true,
+  suppressMenu: true,
 };
+
+const accounts = computedAsync(async () => {
+  const [results, _i] = await accountApi.findAll({
+    query: { journal: [props.journal.id] },
+  });
+  return results;
+});
+
+const records = computedAsync(async () => {
+  const [records, _i] = await recordApi.findAll({ query: { journal: [props.journal.id] } });
+  return records;
+});
 
 const onGridReady = async (params: GridReadyEvent) => {
   gridApi.value = params.api;
   columnApi.value = params.columnApi;
-  await generateRows();
 };
 
-const height = computed(
-  () => `${150 + rows.value.filter((row) => row instanceof Parent).length * 50}px`,
-);
+const height = ref<number>(400);
+const heightPx = computed(() => height.value + "px");
 
-const generateRows = async () => {
-  const result = await journalApi.findById(props.journal);
-  if (!result) {
-    return;
+const generateRows = () => {
+  if (!accounts.value || !records.value) {
+    return [];
   }
-  const [journal] = result;
 
-  const [accountValues, _a] = await accountApi.findAll({
-    query: { journal: [props.journal] },
-    sort: [["name", "Asc"]],
-  });
-  accounts.value = accountValues;
-  const accountMap = toMap<Account>(accountValues);
-  const records = await recordApi.findAll({ query: { journal: [props.journal] } });
-  const newRows = records[0].flatMap((record) => {
-    const parent = new Parent(journal, record);
+  const accountMap = toMap(accounts.value);
+  const newRows = records.value.flatMap((record) => {
+    const parent = new Parent(props.journal, record);
     const children = record.items
       .map((item) => {
         const account = accountMap.get(`${ACCOUNT_TYPE}:${item.account}`);
@@ -221,45 +248,65 @@ const generateRows = async () => {
     parent.children = children;
     return [parent, ...children];
   });
-  rows.value = newRows.sort((a, b) => a.compare(b));
+  return newRows.sort((a, b) => a.compare(b));
 };
 
-watch(props, async () => await generateRows());
+watch([accounts, records], () => {
+  rows.value = generateRows();
+});
+
 watch(rows, (newRows) => {
   if (!newRows) {
     return;
   }
 
+  const elHeight = tableRef.value?.clientHeight ?? height.value;
+
+  const expandedId = new Set<string>();
+  gridApi.value?.forEachNode((row) => {
+    if (row.expanded && row.data?.id) {
+      expandedId.add(row.data.id);
+    }
+  });
+
   gridApi.value?.setRowData(newRows);
+  gridApi.value?.forEachNode((row) => {
+    if (row.data?.id && expandedId.has(row.data.id)) {
+      row.setExpanded(true);
+    }
+  });
+
+  height.value = elHeight;
 });
 
 const getDataPath = (data: Row) => data.dataPath;
 
 const saveEditedRows = async () => {
-  const _editedRows = rows.value.filter((row) => row.editedFields.length > 0);
-  const [journals, _included] = await journalApi.findAll({ query: { name: ["Journal 1", false] } });
-  const [accounts, _aIncluded] = await accountApi.findAll({
-    query: { journal: journals.map((j) => j.id) },
-  });
+  const commands = rows.value
+    .filter((row): row is Parent => row instanceof Parent && row.isEdited)
+    .map((row) => row.generateCommand());
+  const update: RecordCommandUpdate[] = [];
+  const create: RecordCommandCreate[] = [];
+  for (const command of commands) {
+    if (!command) {
+      continue;
+    } else if (command.commandType === "records:create") {
+      create.push(command);
+    } else {
+      update.push(command);
+    }
+  }
+  console.log("RecordCommandBatchUpdate: ", { create, update });
   const result = await recordApi.handleCommand({
     commandType: "records:batchUpdate",
-    create: [
-      {
-        journal: journals[0].id,
-        name: "name 2",
-        description: "description 1",
-        type: "Record",
-        date: "2023-01-31",
-        tags: ["new 1", "old 2"],
-        items: accounts.map((a) => ({
-          account: a.id,
-          amount: 321,
-          price: 123,
-        })),
-      },
-    ],
+    update,
+    create,
   });
-  console.log("After save: ", result);
+  console.log("  Result: ", result);
+};
+
+const getContextMenuItems: GetContextMenuItems<Row> = (_params) => {
+  return ["copy"];
 };
 </script>
 

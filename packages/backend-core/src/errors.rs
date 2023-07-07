@@ -28,6 +28,8 @@ pub enum Error {
     parent_typ: String,
     parent_field_values: Vec<(String, String)>,
   },
+  #[error("Item with Account[id = {account}] in Record[id = {id}] already exists")]
+  RecordItemAccountAlreadyExist { id: Uuid, account: Uuid },
 
   #[error("Internal database error: {0}")]
   Database(
