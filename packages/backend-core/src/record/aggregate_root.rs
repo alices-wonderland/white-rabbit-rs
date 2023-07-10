@@ -71,7 +71,11 @@ pub struct RecordItem {
   pub account: Uuid,
   #[serde(with = "rust_decimal::serde::arbitrary_precision")]
   pub amount: Decimal,
-  #[serde(default, with = "rust_decimal::serde::arbitrary_precision_option")]
+  #[serde(
+    default,
+    skip_serializing_if = "Option::is_none",
+    with = "rust_decimal::serde::arbitrary_precision_option"
+  )]
   pub price: Option<Decimal>,
 }
 
@@ -313,6 +317,7 @@ impl AggregateRoot for Record {
 impl Record {
   fn validate_items(
     record_id: Uuid,
+    record_typ: Type,
     items: &HashSet<RecordItem>,
     journal: &Journal,
     accounts: &HashMap<Uuid, Account>,
@@ -336,12 +341,14 @@ impl Record {
       }
     }
 
-    if items.len() < MIN_ITEMS || items.len() > MAX_ITEMS {
+    if record_typ == Type::Record && (items.len() < MIN_ITEMS || items.len() > MAX_ITEMS) {
       return Err(Error::NotInRange {
         field: FIELD_ITEMS.to_string(),
         begin: MIN_ITEMS,
         end: MAX_ITEMS,
       });
+    } else if record_typ == Type::Check && items.is_empty() {
+      return Err(Error::NotInRange { field: FIELD_ITEMS.to_string(), begin: 1, end: usize::MAX });
     }
 
     Ok(())
@@ -354,7 +361,7 @@ impl Record {
   ) -> Result<Record> {
     let id = command.id.and_then(|s| Uuid::try_parse(&s).ok()).unwrap_or_else(Uuid::new_v4);
 
-    Self::validate_items(id, &command.items, journal, accounts)?;
+    Self::validate_items(id, command.typ, &command.items, journal, accounts)?;
 
     Ok(Record::new(
       id,
@@ -375,7 +382,7 @@ impl Record {
     accounts: &HashMap<Uuid, Account>,
   ) -> Result<Record> {
     if let Some(items) = &command.items {
-      Self::validate_items(command.id, items, journal, accounts)?;
+      Self::validate_items(command.id, record.typ, items, journal, accounts)?;
     }
 
     Ok(Record::new(

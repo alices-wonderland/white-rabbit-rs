@@ -26,7 +26,7 @@ const iconName = computed(() => {
 
 const name = computed(() =>
   props.params.data instanceof Child
-    ? `${props.params.data.account?.name} :: ${props.params.data.account?.unit}`
-    : `${props.params.data?.name} :: ${props.params.data?.journal?.unit}`,
+    ? `${props.params.data.account?.name}`
+    : `${props.params.data?.name}`,
 );
 </script>

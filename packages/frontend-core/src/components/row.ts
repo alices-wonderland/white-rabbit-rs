@@ -30,6 +30,19 @@ export interface BaseRow {
   compare(another: Row): number;
 }
 
+interface ParentArgs {
+  readonly journal: Journal;
+  readonly record?: Record_;
+  readonly isDeleted?: boolean;
+  readonly id?: string;
+  readonly name?: string;
+  readonly description?: string;
+  readonly type?: RecordType;
+  readonly date?: Date;
+  readonly tags?: string[];
+  readonly children?: Child[];
+}
+
 export class Parent implements BaseRow {
   journal: Journal;
   record?: Record_;
@@ -43,16 +56,17 @@ export class Parent implements BaseRow {
   tags?: string[];
   children: Child[] = [];
 
-  constructor(journal: Journal, record?: Record_) {
-    this.journal = journal;
-    this.record = record;
-
-    this.id = record?.id || uuidv4();
-    this.name = record?.name || "";
-    this.description = record?.description ?? "";
-    this.type = record?.type;
-    this.date = record?.date;
-    this.tags = record?.tags;
+  constructor(args: ParentArgs) {
+    this.journal = args.journal;
+    this.record = args.record;
+    this.isDeleted = args.isDeleted ?? false;
+    this.id = (args.record?.id ?? args.id) || uuidv4();
+    this.name = (args.record?.name ?? args.name) || "";
+    this.description = (args.record?.description ?? args.description) || "";
+    this.type = args.record?.type ?? args.type;
+    this.date = args.record?.date ?? args.date;
+    this.tags = args.record?.tags ?? args.tags;
+    this.children = args.children ?? [];
   }
 
   get dataPath(): string[] {
@@ -81,6 +95,7 @@ export class Parent implements BaseRow {
     return this.name.localeCompare(another.name);
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   get editedFields(): Map<string, EditedField> {
     const results = new Map<string, EditedField>();
 
@@ -99,9 +114,22 @@ export class Parent implements BaseRow {
       results.set("type", [this.record?.type ?? NULL_PLACEHOLDER, this.type ?? NULL_PLACEHOLDER]);
     }
 
-    for (const child of this.children) {
-      for (const [k, v] of child.editedFields) {
-        results.set(`${child.id}::${k}`, v);
+    for (const accountId of [
+      ...this.children.map((c) => c.account?.id).filter((id): id is string => !!id),
+      ...(this.record?.items?.map((i) => i.account) ?? []),
+    ]) {
+      const oldItem: RecordItem | undefined = this.record?.items?.find(
+        (i) => i.account === accountId,
+      );
+      const newItem: Child | undefined = this.children.find((c) => c.account?.id === accountId);
+      if (oldItem && !newItem) {
+        results.set(oldItem.account, ["true", undefined]);
+      } else if (!oldItem && newItem) {
+        results.set(newItem.id, [undefined, "true"]);
+      } else if (newItem && oldItem) {
+        for (const [k, v] of newItem.editedFields) {
+          results.set(`${newItem.id}::${k}`, v);
+        }
       }
     }
 
@@ -146,11 +174,41 @@ export class Parent implements BaseRow {
       };
     }
   }
+
+  clone(): Parent {
+    const parent = new Parent({
+      journal: this.journal,
+      record: undefined,
+      isDeleted: false,
+      id: uuidv4(),
+      name: this.name,
+      description: this.description,
+      type: this.type,
+      date: this.date,
+      tags: this.tags,
+      children: [],
+    });
+    for (const child of this.children) {
+      parent.children.push(child.clone(parent));
+    }
+    return parent;
+  }
+}
+
+interface ChildArgs {
+  readonly isDeleted?: boolean;
+  readonly id?: string;
+  readonly parent: Parent;
+  readonly recordItem?: RecordItem;
+  readonly account?: Account;
+  readonly amount?: number;
+  readonly price?: number;
 }
 
 export class Child implements BaseRow {
   _isDeleted = false;
 
+  id: string;
   parent: Parent;
   recordItem?: RecordItem;
 
@@ -158,20 +216,18 @@ export class Child implements BaseRow {
   amount?: number;
   price?: number;
 
-  constructor(parent: Parent, recordItem?: RecordItem, account?: Account) {
-    this.parent = parent;
-    this.account = account;
-    this.recordItem = recordItem;
-    this.amount = recordItem?.amount;
-    this.price = recordItem?.price;
+  constructor(args: ChildArgs) {
+    this._isDeleted = args.isDeleted ?? false;
+    this.id = args.id ?? args.account?.id ?? uuidv4();
+    this.parent = args.parent;
+    this.recordItem = args.recordItem;
+    this.account = args.account;
+    this.amount = args.recordItem?.amount ?? args.amount;
+    this.price = args.recordItem?.price ?? args.price;
   }
 
   get dataPath(): string[] {
-    return [this.parent.id, this.account?.id ?? NULL_PLACEHOLDER];
-  }
-
-  get id(): string {
-    return this.dataPath.join("::");
+    return [this.parent.id, this.id];
   }
 
   get journal(): Journal {
@@ -245,7 +301,7 @@ export class Child implements BaseRow {
   }
 
   generateModel(): RecordItem | undefined {
-    if (this.account && this.amount) {
+    if (this.account && typeof this.amount === "number") {
       return {
         account: this.account?.id,
         amount: this.amount,
@@ -254,6 +310,17 @@ export class Child implements BaseRow {
     } else {
       return undefined;
     }
+  }
+
+  clone(parent?: Parent): Child {
+    return new Child({
+      isDeleted: false,
+      id: uuidv4(),
+      parent: parent ?? this.parent,
+      account: this.account,
+      amount: this.amount,
+      price: this.price,
+    });
   }
 }
 
