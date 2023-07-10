@@ -53,7 +53,7 @@ import RecordWriteTableGroupCellRenderer from "./RecordWriteTableGroupCellRender
 import RecordWriteTableStateCellRenderer from "./RecordWriteTableStateCellRenderer.vue";
 import RecordWriteTableNameCellEditor from "./RecordWriteTableNameCellEditor.vue";
 import { Child, Parent, type Row } from "./row";
-import { toMap } from "@core/utils";
+import { NULL_PLACEHOLDER, toMap } from "@core/utils";
 import { computedAsync } from "@vueuse/core";
 import { computed } from "vue";
 
@@ -76,9 +76,18 @@ const columnDefs = ref<AbstractColDef[]>([
       addChild: () => {
         const data = params.data;
         if (data instanceof Parent) {
-          const child = new Child(data);
+          const child = new Child({ parent: data, isDeleted: false });
           data.children.push(child);
           rows.value = [...rows.value, child];
+        }
+      },
+      clone: () => {
+        const data = params.data;
+        if (data instanceof Parent) {
+          const parent = data.clone();
+          rows.value = [...rows.value, parent, ...parent.children];
+        } else if (data instanceof Child) {
+          rows.value = [...rows.value, data.clone()];
         }
       },
     }),
@@ -126,6 +135,15 @@ const columnDefs = ref<AbstractColDef[]>([
           "cell cell-edited": (params: CellClassParams<Row>) =>
             params.data?.editedFields?.has("name"),
         },
+      } as ColDef,
+      {
+        headerName: "Unit",
+        sortable: false,
+        columnGroupShow: "open",
+        valueGetter: (params: ValueGetterParams<Row>) =>
+          params.data instanceof Parent
+            ? params.data.journal.unit
+            : params.data?.account?.unit ?? NULL_PLACEHOLDER,
       } as ColDef,
       {
         headerName: "State",
@@ -192,8 +210,13 @@ const columnDefs = ref<AbstractColDef[]>([
     editable: (params: EditableCallbackParams<Row, number>) => params.data instanceof Child,
     cellEditor: "agNumberCellEditor",
     cellClassRules: {
-      "cell cell-edited": (params: CellClassParams<Row>) =>
-        params.data?.editedFields?.has("price") ?? false,
+      "cell cell-edited": (params: CellClassParams<Row>) => {
+        const isEdited = params.data?.editedFields?.has("price");
+        if (isEdited) {
+          console.log("edited: ", params.data?.editedFields?.get("price"));
+        }
+        return isEdited ?? false;
+      },
     },
   } as ColDef,
 ]);
@@ -235,14 +258,14 @@ const generateRows = () => {
 
   const accountMap = toMap(accounts.value);
   const newRows = records.value.flatMap((record) => {
-    const parent = new Parent(props.journal, record);
+    const parent = new Parent({ journal: props.journal, record });
     const children = record.items
       .map((item) => {
         const account = accountMap.get(`${ACCOUNT_TYPE}:${item.account}`);
         if (!account) {
           return null;
         }
-        return new Child(parent, item, account);
+        return new Child({ parent, recordItem: item, account });
       })
       .filter((item): item is Child => !!item);
     parent.children = children;

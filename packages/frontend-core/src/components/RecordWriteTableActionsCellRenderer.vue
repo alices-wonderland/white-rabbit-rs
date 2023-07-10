@@ -8,7 +8,7 @@
       :icon="deleted ? mdiUndo : mdiDelete"
       @click="toggleDelete"
     ></v-btn>
-    <v-btn size="x-small" variant="text" :icon="mdiContentCopy"></v-btn>
+    <v-btn size="x-small" variant="text" :icon="mdiContentCopy" @click="props.params.clone"></v-btn>
     <v-btn
       v-if="data instanceof Parent"
       size="x-small"
@@ -25,7 +25,9 @@ import { Parent, type Row } from "./row";
 import { computed, type ComputedRef } from "vue";
 import { mdiDelete, mdiUndo, mdiContentCopy, mdiPlus } from "@mdi/js";
 
-const props = defineProps<{ params: ICellRendererParams<Row> & { addChild: () => void } }>();
+const props = defineProps<{
+  params: ICellRendererParams<Row> & { addChild: () => void; clone: () => void };
+}>();
 
 const data = computed(() => props.params.data);
 
