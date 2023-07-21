@@ -54,6 +54,7 @@ impl ActiveModelBehavior for ActiveModel {}
   PartialEq,
   Ord,
   PartialOrd,
+  strum_macros::Display,
   Serialize,
   Deserialize,
   EnumIter,

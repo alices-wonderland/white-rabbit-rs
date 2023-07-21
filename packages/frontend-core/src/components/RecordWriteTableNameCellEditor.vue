@@ -14,7 +14,7 @@ import type { ICellEditorParams } from "@ag-grid-community/core";
 import type { Row } from "./row";
 import type { PropType } from "vue";
 import { Parent } from "./row";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Account } from "@core/services";
 
 type Params = PropType<ICellEditorParams<Row, string> & { availableAccounts: Account[] }>;
@@ -27,7 +27,10 @@ export default {
     },
   },
   setup(props) {
-    const value = ref(props.params.value);
+    const value = ref<string>();
+    watch(props, () => {
+      value.value = props.params.value || undefined;
+    });
     const getValue = () => value.value;
     const isParent = computed(() => props.params.data instanceof Parent);
     return { value, getValue, isParent };

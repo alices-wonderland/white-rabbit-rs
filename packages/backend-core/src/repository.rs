@@ -42,7 +42,7 @@ pub trait Query:
   ) -> Option<SimpleExpr> {
     match name.to_string().trim() {
       "" => None,
-      value => Some(if fulltext { column.like(&format!("%{}%", value)) } else { column.eq(value) }),
+      value => Some(if fulltext { column.like(format!("%{}%", value)) } else { column.eq(value) }),
     }
   }
 }
