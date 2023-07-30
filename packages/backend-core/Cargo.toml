@@ -25,6 +25,6 @@ uuid = { version = "1.4", features = ["serde", "v4"] }
 
 [dev-dependencies]
 anyhow = "*"
-rust_decimal_macros = "1.30"
+rust_decimal_macros = "1.31"
 sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 test-suite = { path = "../test-suite" }
