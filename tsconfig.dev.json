@@ -1,8 +1,0 @@
-{
-  "extends": "@vue/tsconfig/tsconfig.json",
-  "include": [".eslintrc.js", "commitlint.config.js"],
-  "exclude": [],
-  "compilerOptions": {
-    "composite": true
-  }
-}

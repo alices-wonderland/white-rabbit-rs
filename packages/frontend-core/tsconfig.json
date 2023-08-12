@@ -1,16 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": ["src/**/*"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
-    "baseUrl": ".",
+    "types": ["@intlify/unplugin-vue-i18n/messages"],
     "paths": {
       "@core/*": ["../frontend-core/src/*"]
     }
-  },
-  "references": [
-    {
-      "path": "./tsconfig.dev.json"
-    }
-  ]
+  }
 }

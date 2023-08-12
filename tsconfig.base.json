@@ -1,6 +1,0 @@
-{
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "compilerOptions": {
-    "types": ["@intlify/unplugin-vue-i18n/messages"]
-  }
-}

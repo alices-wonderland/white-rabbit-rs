@@ -30,7 +30,7 @@ export default defineConfig(() => {
     envPrefix: ["VITE_", "TAURI_"],
     resolve: {
       alias: {
-        "@desktop": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
+        "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "src"),
         "@core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../frontend-core/src"),
       },
     },

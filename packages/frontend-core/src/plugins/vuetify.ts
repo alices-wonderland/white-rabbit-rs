@@ -4,8 +4,7 @@ import { useI18n } from "vue-i18n";
 import { createVueI18nAdapter } from "vuetify/locale/adapters/vue-i18n";
 import i18n from "./i18n";
 import DateFnsAdapter from "@date-io/date-fns";
-import enUS from "date-fns/locale/en-US";
-import zhCN from "date-fns/locale/zh-CN";
+import { enUS, zhCN } from "date-fns/locale";
 
 const vuetify = createVuetify({
   icons: {

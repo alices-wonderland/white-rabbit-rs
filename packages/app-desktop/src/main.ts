@@ -3,7 +3,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { agGrid, vuetify, i18n } from "@core/plugins";
 import { ACCOUNT_API_KEY, JOURNAL_API_KEY, RECORD_API_KEY, USER_API_KEY } from "@core/services";
-import { accountApi, journalApi, recordApi, userApi } from "@desktop/services";
+import { accountApi, journalApi, recordApi, userApi } from "@/services";
 
 const app = createApp(App);
 

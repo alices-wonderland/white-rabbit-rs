@@ -46,7 +46,7 @@ import {
   type RecordCommandUpdate,
   type RecordCommandCreate,
 } from "@core/services";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useTheme } from "vuetify";
 import RecordWriteTableActionsCellRenderer from "./RecordWriteTableActionsCellRenderer.vue";
 import RecordWriteTableGroupCellRenderer from "./RecordWriteTableGroupCellRenderer.vue";
@@ -55,7 +55,6 @@ import RecordWriteTableNameCellEditor from "./RecordWriteTableNameCellEditor.vue
 import { Child, Parent, type Row } from "./row";
 import { NULL_PLACEHOLDER, toMap } from "@core/utils";
 import { computedAsync } from "@vueuse/core";
-import { computed } from "vue";
 
 const props = defineProps<{ journal: Journal }>();
 const theme = useTheme();

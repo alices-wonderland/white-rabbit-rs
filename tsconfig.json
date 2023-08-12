@@ -2,9 +2,6 @@
   "files": [],
   "references": [
     {
-      "path": "./tsconfig.dev.json"
-    },
-    {
       "path": "./packages/app-desktop/tsconfig.dev.json"
     },
     {
