@@ -962,12 +962,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intlify/bundle-utils@npm:^7.1.0":
-  version: 7.1.0
-  resolution: "@intlify/bundle-utils@npm:7.1.0"
+"@intlify/bundle-utils@npm:^7.2.0":
+  version: 7.2.0
+  resolution: "@intlify/bundle-utils@npm:7.2.0"
   dependencies:
-    "@intlify/message-compiler": 9.3.0-beta.27
-    "@intlify/shared": 9.3.0-beta.27
+    "@intlify/message-compiler": ^9.3.0
+    "@intlify/shared": ^9.3.0
     acorn: ^8.8.2
     escodegen: ^2.0.0
     estree-walker: ^2.0.2
@@ -981,7 +981,7 @@ __metadata:
       optional: true
     vue-i18n:
       optional: true
-  checksum: ff0192f27d9a83b43deefc8b53716cd8cb797fe54dc2395d74c28918f0fcdcc8264bbc60a7b69ec1964f7b180c0a43ee133ccb8e972b3269a8d2393deae79cd6
+  checksum: 4ec605b79b39201fd94bc91e88a9e61c7aaf406d6bceda2c2481cecacd2be22a7247565afa664605eb9bb305a9f8a02373de2a41e3742d32ebaef9bf7ea93e18
   languageName: node
   linkType: hard
 
@@ -1016,36 +1016,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intlify/message-compiler@npm:9.3.0-beta.27":
-  version: 9.3.0-beta.27
-  resolution: "@intlify/message-compiler@npm:9.3.0-beta.27"
+"@intlify/message-compiler@npm:^9.3.0":
+  version: 9.3.0
+  resolution: "@intlify/message-compiler@npm:9.3.0"
   dependencies:
-    "@intlify/shared": 9.3.0-beta.27
+    "@intlify/shared": 9.3.0
     source-map-js: ^1.0.2
-  checksum: 86619abae9923f2abd94a4eac9c18dd3cf8db3216920345b1a0a3ce621162baf4638a6d74c464dbbe4d8ae877080ab1e5fe6d7f8f9b082bb452b984d9f58dec9
+  checksum: 05577621902718c3054289a2d30bd60e45e1abae986ca8beb3c242a9ebe4788438b2362bcb497ce9aaa5373d99349a061a30303d8aa945600aff8ccf87a5ab3e
   languageName: node
   linkType: hard
 
-"@intlify/shared@npm:9.3.0-beta.14-77e850b, @intlify/shared@npm:^9.3.0-beta.27":
+"@intlify/shared@npm:9.3.0, @intlify/shared@npm:^9.3.0":
+  version: 9.3.0
+  resolution: "@intlify/shared@npm:9.3.0"
+  checksum: d2995615d7c12d025d0ad088c7428d3b600af5e6fb585b3638c00cd6f2ae3a5dfc3d3b3706db36b7d5021cdb9a0082d711a82b3d38b899cc9554fd72e8576365
+  languageName: node
+  linkType: hard
+
+"@intlify/shared@npm:9.3.0-beta.14-77e850b":
   version: 9.3.0-beta.14-77e850b
   resolution: "@intlify/shared@npm:9.3.0-beta.14-77e850b"
   checksum: 5de09845fb003603956116e77e67398bccc890ac136d1c4fcc95178ce458058784abf7fc9da15de902a7383edafddc20479d0be3b3d410c084b03f9082b3d771
   languageName: node
   linkType: hard
 
-"@intlify/shared@npm:9.3.0-beta.27":
-  version: 9.3.0-beta.27
-  resolution: "@intlify/shared@npm:9.3.0-beta.27"
-  checksum: e28141dc12c48b173b39140f5dacd44b846811f37a50f33712602301331da86e4f75a7926a671272e4ed5b1682afae9ab8ec3638b9896685f95c08ba48a8370e
-  languageName: node
-  linkType: hard
-
-"@intlify/unplugin-vue-i18n@npm:^0.13.0":
-  version: 0.13.0
-  resolution: "@intlify/unplugin-vue-i18n@npm:0.13.0"
+"@intlify/unplugin-vue-i18n@npm:^1.0.0":
+  version: 1.0.1
+  resolution: "@intlify/unplugin-vue-i18n@npm:1.0.1"
   dependencies:
-    "@intlify/bundle-utils": ^7.1.0
-    "@intlify/shared": ^9.3.0-beta.27
+    "@intlify/bundle-utils": ^7.2.0
+    "@intlify/shared": ^9.3.0
     "@rollup/pluginutils": ^5.0.2
     "@vue/compiler-sfc": ^3.2.47
     debug: ^4.3.3
@@ -1067,7 +1067,7 @@ __metadata:
       optional: true
     vue-i18n-bridge:
       optional: true
-  checksum: c4764a37242e80ece4fc5b7cb8e71a6d0c5766d83205a54933994dd364673e9aa68e12f9a5be47fefd7b2e33625dd8d993fdfbebaab3daaf1ba04aa489b81d4b
+  checksum: 1737c3624eba6cac3c781786a317127c46fd86481c47714085554f0115a9de4fb7d5cb86ce43fe05fb50bcbd87849a71f3c6f33365dcfc0b9bf975341f2a05d4
   languageName: node
   linkType: hard
 
@@ -9269,11 +9269,11 @@ __metadata:
 
 "typescript@patch:typescript@^5.2.2#~builtin<compat/typescript>":
   version: 5.2.2
-  resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=14eedb"
+  resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=f3b441"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 07106822b4305de3f22835cbba949a2b35451cad50888759b6818421290ff95d522b38ef7919e70fb381c5fe9c1c643d7dea22c8b31652a717ddbd57b7f4d554
+  checksum: 0f4da2f15e6f1245e49db15801dbee52f2bbfb267e1c39225afdab5afee1a72839cd86000e65ee9d7e4dfaff12239d28beaf5ee431357fcced15fb08583d72ca
   languageName: node
   linkType: hard
 
@@ -9880,7 +9880,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": ^17.7.1
     "@commitlint/config-conventional": ^17.7.0
-    "@intlify/unplugin-vue-i18n": ^0.13.0
+    "@intlify/unplugin-vue-i18n": ^1.0.0
     "@mdi/js": ^7.2.96
     "@types/eslint": ^8.44.2
     "@types/jsdom": ^21.1.2
