@@ -1,5 +1,4 @@
-use crate::journal::journal_user;
-use crate::{account, user};
+use crate::entity::{account, entry, journal_tag};
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
@@ -17,16 +16,12 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-  #[sea_orm(has_many = "journal_user::Entity")]
-  JournalUsers,
   #[sea_orm(has_many = "account::Entity")]
   Accounts,
-}
-
-impl Related<journal_user::Entity> for Entity {
-  fn to() -> RelationDef {
-    Relation::JournalUsers.def()
-  }
+  #[sea_orm(has_many = "entry::Entity")]
+  Entries,
+  #[sea_orm(has_many = "journal_tag::Entity")]
+  Tags,
 }
 
 impl Related<account::Entity> for Entity {
@@ -35,13 +30,15 @@ impl Related<account::Entity> for Entity {
   }
 }
 
-impl Related<user::Entity> for Entity {
+impl Related<entry::Entity> for Entity {
   fn to() -> RelationDef {
-    journal_user::Relation::User.def()
+    Relation::Entries.def()
   }
+}
 
-  fn via() -> Option<RelationDef> {
-    Some(journal_user::Relation::Journal.def().rev())
+impl Related<journal_tag::Entity> for Entity {
+  fn to() -> RelationDef {
+    Relation::Tags.def()
   }
 }
 

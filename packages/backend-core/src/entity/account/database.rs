@@ -1,5 +1,5 @@
-use crate::account::account_tag;
-use crate::journal;
+use crate::entity::account_tag;
+use crate::entity::journal;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -25,7 +25,9 @@ pub enum Relation {
   #[sea_orm(
     belongs_to = "journal::Entity",
     from = "Column::JournalId",
-    to = "crate::journal::Column::Id"
+    to = "journal::Column::Id",
+    on_update = "Cascade",
+    on_delete = "Cascade"
   )]
   Journal,
   #[sea_orm(has_many = "account_tag::Entity")]
@@ -48,6 +50,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(
   Debug,
+  Copy,
   Clone,
   Hash,
   Eq,

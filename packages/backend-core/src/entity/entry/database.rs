@@ -1,11 +1,10 @@
-use crate::journal;
-use crate::record::{record_item, record_tag};
+use crate::entity::{entry_item, entry_tag, journal};
 use chrono::NaiveDate;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "record")]
+#[sea_orm(table_name = "entry")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
@@ -22,16 +21,18 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-  #[sea_orm(has_many = "record_tag::Entity")]
-  Tag,
+  #[sea_orm(has_many = "entry_tag::Entity")]
+  Tags,
   #[sea_orm(
     belongs_to = "journal::Entity",
     from = "Column::JournalId",
-    to = "crate::journal::Column::Id"
+    to = "journal::Column::Id",
+    on_update = "Cascade",
+    on_delete = "Cascade"
   )]
   Journal,
-  #[sea_orm(has_many = "record_item::Entity")]
-  Item,
+  #[sea_orm(has_many = "entry_item::Entity")]
+  Items,
 }
 
 impl Related<journal::Entity> for Entity {
@@ -40,15 +41,15 @@ impl Related<journal::Entity> for Entity {
   }
 }
 
-impl Related<record_tag::Entity> for Entity {
+impl Related<entry_tag::Entity> for Entity {
   fn to() -> RelationDef {
-    Relation::Tag.def()
+    Relation::Tags.def()
   }
 }
 
-impl Related<record_item::Entity> for Entity {
+impl Related<entry_item::Entity> for Entity {
   fn to() -> RelationDef {
-    Relation::Item.def()
+    Relation::Items.def()
   }
 }
 

@@ -1,18 +1,29 @@
-use crate::account;
+use crate::entity::{account, entry};
+use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "account_tag")]
+#[sea_orm(table_name = "entry_item")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub account_id: Uuid,
+  pub entry_id: Uuid,
   #[sea_orm(primary_key)]
-  pub tag: String,
+  pub account_id: Uuid,
+  pub amount: Decimal,
+  pub price: Option<Decimal>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+  #[sea_orm(
+    belongs_to = "entry::Entity",
+    from = "Column::EntryId",
+    to = "entry::Column::Id",
+    on_update = "Cascade",
+    on_delete = "Cascade"
+  )]
+  Entry,
+
   #[sea_orm(
     belongs_to = "account::Entity",
     from = "Column::AccountId",
@@ -23,10 +34,16 @@ pub enum Relation {
   Account,
 }
 
+impl ActiveModelBehavior for ActiveModel {}
+
+impl Related<entry::Entity> for Entity {
+  fn to() -> RelationDef {
+    Relation::Entry.def()
+  }
+}
+
 impl Related<account::Entity> for Entity {
   fn to() -> RelationDef {
     Relation::Account.def()
   }
 }
-
-impl ActiveModelBehavior for ActiveModel {}

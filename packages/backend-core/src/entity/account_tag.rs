@@ -1,12 +1,12 @@
-use crate::record;
+use crate::entity::account;
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "record_tag")]
+#[sea_orm(table_name = "account_tag")]
 pub struct Model {
   #[sea_orm(primary_key)]
-  pub record_id: Uuid,
+  pub account_id: Uuid,
   #[sea_orm(primary_key)]
   pub tag: String,
 }
@@ -14,18 +14,18 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(
-    belongs_to = "record::Entity",
-    from = "Column::RecordId",
-    to = "crate::record::Column::Id",
+    belongs_to = "account::Entity",
+    from = "Column::AccountId",
+    to = "account::Column::Id",
     on_update = "Cascade",
     on_delete = "Cascade"
   )]
-  Record,
+  Account,
 }
 
-impl Related<record::Entity> for Entity {
+impl Related<account::Entity> for Entity {
   fn to() -> RelationDef {
-    Relation::Record.def()
+    Relation::Account.def()
   }
 }
 
