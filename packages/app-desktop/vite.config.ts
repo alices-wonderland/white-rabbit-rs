@@ -49,13 +49,12 @@ export default defineConfig(() => {
       sourcemap: !!process.env.TAURI_DEBUG,
       rollupOptions: {
         output: {
-          manualChunks: (id): string | null => {
+          manualChunks: (id): string | undefined => {
             if (id.includes("@ag-grid-community/core")) {
               return "ag-grid-community-core";
             } else if (id.includes("ag-grid")) {
               return "ag-grid";
             }
-            return "index";
           },
         },
       },
