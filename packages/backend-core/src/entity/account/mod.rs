@@ -4,7 +4,7 @@ mod query;
 
 use crate::entity::{
   account, account_tag, journal, normalize_description, normalize_name, normalize_tags,
-  normalize_unit, FIELD_ID, FIELD_NAME,
+  normalize_unit, FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
 };
 pub use command::*;
 pub use database::*;
@@ -94,7 +94,7 @@ impl Root {
     db: &DbConn,
     roots: impl IntoIterator<Item = Root>,
   ) -> crate::Result<Vec<Root>> {
-    let roots = roots.into_iter().collect::<Vec<_>>();
+    let roots: Vec<Root> = roots.into_iter().collect();
     if roots.is_empty() {
       return Ok(roots);
     }
@@ -235,7 +235,136 @@ impl Root {
     Self::save(db, roots).await
   }
 
-  pub async fn update(_db: &DbConn, _commands: Vec<CommandUpdate>) -> crate::Result<Vec<Root>> {
-    Ok(vec![])
+  async fn do_update(
+    db: &DbConn,
+    journal: &journal::Root,
+    accounts: &HashMap<Uuid, Root>,
+    commands: &[CommandUpdate],
+  ) -> crate::Result<Vec<Root>> {
+    if commands.is_empty() {
+      return Ok(vec![]);
+    }
+
+    let mut name_mappings = HashMap::new();
+    let mut model_ids = HashSet::new();
+
+    for command in commands {
+      if !command.name.is_empty() {
+        name_mappings.insert(command.name.clone(), command.id);
+      }
+      model_ids.insert(command.id);
+    }
+
+    let existings_by_name = if name_mappings.is_empty() {
+      vec![]
+    } else {
+      Self::find_all(
+        db,
+        Some(Query {
+          journal_id: HashSet::from_iter([journal.id]),
+          name: name_mappings.keys().cloned().collect(),
+          ..Default::default()
+        }),
+        None,
+      )
+      .await?
+    };
+
+    for model in existings_by_name {
+      if let Some(updating_id) = name_mappings.get(&model.name) {
+        if updating_id != &model.id && !name_mappings.values().contains(&model.id) {
+          return Err(crate::Error::ExistingEntity {
+            typ: TYPE.to_string(),
+            values: vec![
+              (FIELD_JOURNAL.to_string(), journal.id.to_string()),
+              (FIELD_NAME.to_string(), model.name.clone()),
+            ],
+          });
+        }
+      }
+    }
+
+    let mut updated = Vec::new();
+    for command in commands {
+      let model = accounts.get(&command.id).ok_or_else(|| crate::Error::NotFound {
+        typ: TYPE.to_string(),
+        values: vec![(FIELD_ID.to_string(), command.id.to_string())],
+      })?;
+
+      if command.name.is_empty()
+        && command.description.is_none()
+        && command.unit.is_empty()
+        && command.typ.is_none()
+        && command.tags.is_none()
+      {
+        continue;
+      }
+
+      let model = Self::new(
+        Some(model.id),
+        model.journal_id,
+        if command.name.is_empty() { model.name.clone() } else { command.name.clone() },
+        if let Some(description) = &command.description {
+          description.clone()
+        } else {
+          model.description.clone()
+        },
+        if command.unit.is_empty() { model.unit.clone() } else { command.unit.clone() },
+        if let Some(typ) = &command.typ { *typ } else { model.typ },
+        if let Some(tags) = &command.tags { tags.clone() } else { model.tags.clone() },
+      )?;
+
+      updated.push(model);
+    }
+    Ok(updated)
+  }
+
+  pub async fn update(db: &DbConn, commands: Vec<CommandUpdate>) -> crate::Result<Vec<Root>> {
+    let model_ids = commands.iter().map(|command| command.id).collect::<HashSet<_>>();
+    let models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
+      .await?
+      .into_iter()
+      .map(|model| (model.id, model))
+      .collect::<HashMap<_, _>>();
+    let journal_ids = models.values().map(|model| model.journal_id).collect::<HashSet<_>>();
+    let journals = journal::Root::find_all(
+      db,
+      Some(journal::Query { id: journal_ids, ..Default::default() }),
+      None,
+    )
+    .await?
+    .into_iter()
+    .map(|model| (model.id, model))
+    .collect::<HashMap<_, _>>();
+
+    let commands_by_journal: HashMap<Uuid, Vec<CommandUpdate>> = commands
+      .into_iter()
+      .filter_map(|command| {
+        if let Some(model) = models.get(&command.id) {
+          if let Some(journal) = journals.get(&model.journal_id) {
+            return Some((journal.id, command));
+          }
+        }
+        None
+      })
+      .fold(HashMap::new(), |mut acc, (journal_id, command)| {
+        if let Some(commands) = acc.get_mut(&journal_id) {
+          commands.push(command);
+        } else {
+          acc.insert(journal_id, vec![command]);
+        }
+        acc
+      });
+
+    let mut updated = Vec::new();
+    for (journal_id, commands) in commands_by_journal {
+      if let Some(journal) = journals.get(&journal_id) {
+        for model in Self::do_update(db, journal, &models, &commands).await? {
+          updated.push(model);
+        }
+      }
+    }
+
+    Self::save(db, updated).await
   }
 }

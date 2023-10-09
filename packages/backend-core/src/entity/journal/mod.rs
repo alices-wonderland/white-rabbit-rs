@@ -90,7 +90,7 @@ impl Root {
     db: &DbConn,
     roots: impl IntoIterator<Item = Root>,
   ) -> crate::Result<Vec<Root>> {
-    let roots = roots.into_iter().collect::<Vec<_>>();
+    let roots: Vec<Root> = roots.into_iter().collect();
     if roots.is_empty() {
       return Ok(roots);
     }
