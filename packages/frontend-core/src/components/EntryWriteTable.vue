@@ -34,24 +34,23 @@ import {
 import { AgGridVue } from "@ag-grid-community/vue3";
 import { useInject } from "@core/composable";
 import {
-  type JournalApi,
-  type RecordApi,
-  type RecordType,
+  type EntryApi,
+  type EntryType,
   type AccountApi,
   ACCOUNT_TYPE,
-  JOURNAL_API_KEY,
-  RECORD_API_KEY,
+  ENTRY_API_KEY,
   ACCOUNT_API_KEY,
   Journal,
-  type RecordCommandUpdate,
-  type RecordCommandCreate,
+  type EntryCommandUpdate,
+  type EntryCommandCreate,
+  ENTRY_TYPES,
 } from "@core/services";
 import { ref, watch, computed } from "vue";
 import { useTheme } from "vuetify";
-import RecordWriteTableActionsCellRenderer from "./RecordWriteTableActionsCellRenderer.vue";
-import RecordWriteTableGroupCellRenderer from "./RecordWriteTableGroupCellRenderer.vue";
-import RecordWriteTableStateCellRenderer from "./RecordWriteTableStateCellRenderer.vue";
-import RecordWriteTableNameCellEditor from "./RecordWriteTableNameCellEditor.vue";
+import EntryWriteTableActionsCellRenderer from "./EntryWriteTableActionsCellRenderer.vue";
+import EntryWriteTableGroupCellRenderer from "./EntryWriteTableGroupCellRenderer.vue";
+import EntryWriteTableStateCellRenderer from "./EntryWriteTableStateCellRenderer.vue";
+import EntryWriteTableNameCellEditor from "./EntryWriteTableNameCellEditor.vue";
 import { Child, Parent, type Row } from "./row";
 import { NULL_PLACEHOLDER, toMap } from "@core/utils";
 import { computedAsync } from "@vueuse/core";
@@ -60,8 +59,7 @@ const props = defineProps<{ journal: Journal }>();
 const theme = useTheme();
 
 const rows = ref<Row[]>([]);
-const recordApi = useInject<RecordApi>(RECORD_API_KEY);
-const _journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
+const entryApi = useInject<EntryApi>(ENTRY_API_KEY);
 const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);
 const gridApi = ref<GridApi<Row>>();
 const columnApi = ref<ColumnApi>();
@@ -70,7 +68,7 @@ const tableRef = ref<HTMLElement>();
 const columnDefs = ref<AbstractColDef[]>([
   {
     headerName: "Actions",
-    cellRenderer: RecordWriteTableActionsCellRenderer,
+    cellRenderer: EntryWriteTableActionsCellRenderer,
     cellRendererParams: (params: CellClassParams<Row>) => ({
       addChild: () => {
         const data = params.data;
@@ -94,13 +92,13 @@ const columnDefs = ref<AbstractColDef[]>([
     sortable: false,
   } as ColDef,
   {
-    headerName: "Record",
+    headerName: "Entry",
     children: [
       {
         headerName: "Name",
         cellRenderer: "agGroupCellRenderer",
         cellRendererParams: {
-          innerRenderer: RecordWriteTableGroupCellRenderer,
+          innerRenderer: EntryWriteTableGroupCellRenderer,
           suppressDoubleClickExpand: true,
         },
         valueGetter: (params: ValueGetterParams<Row>) =>
@@ -121,7 +119,7 @@ const columnDefs = ref<AbstractColDef[]>([
           }
         },
         editable: true,
-        cellEditor: RecordWriteTableNameCellEditor,
+        cellEditor: EntryWriteTableNameCellEditor,
         cellEditorParams: () => ({
           availableAccounts: accounts.value,
         }),
@@ -146,7 +144,7 @@ const columnDefs = ref<AbstractColDef[]>([
       } as ColDef,
       {
         headerName: "State",
-        cellRenderer: RecordWriteTableStateCellRenderer,
+        cellRenderer: EntryWriteTableStateCellRenderer,
         sortable: false,
         columnGroupShow: "open",
       } as ColDef,
@@ -173,14 +171,14 @@ const columnDefs = ref<AbstractColDef[]>([
     headerName: "Type",
     valueGetter: (params: ValueGetterParams<Row>) =>
       params.data instanceof Parent ? params.data.type : params.data?.account?.type,
-    editable: (params: EditableCallbackParams<Row, RecordType>) => params.data instanceof Parent,
+    editable: (params: EditableCallbackParams<Row, EntryType>) => params.data instanceof Parent,
     sortable: false,
     filter: true,
     cellEditor: "agSelectCellEditor",
     cellEditorParams: {
-      values: ["Record", "Check"] as RecordType[],
+      values: ENTRY_TYPES,
     },
-    valueSetter: (params: ValueSetterParams<Row, RecordType>) => {
+    valueSetter: (params: ValueSetterParams<Row, EntryType>) => {
       if (params.data instanceof Parent && params.newValue) {
         params.data.type = params.newValue;
         return true;
@@ -211,9 +209,6 @@ const columnDefs = ref<AbstractColDef[]>([
     cellClassRules: {
       "cell cell-edited": (params: CellClassParams<Row>) => {
         const isEdited = params.data?.editedFields?.has("price");
-        if (isEdited) {
-          console.log("edited: ", params.data?.editedFields?.get("price"));
-        }
         return isEdited ?? false;
       },
     },
@@ -232,14 +227,14 @@ const defaultColDef: ColDef = {
 
 const accounts = computedAsync(async () => {
   const [results, _i] = await accountApi.findAll({
-    query: { journal: [props.journal.id] },
+    query: { journalId: [props.journal.id] },
   });
   return results;
 });
 
-const records = computedAsync(async () => {
-  const [records, _i] = await recordApi.findAll({ query: { journal: [props.journal.id] } });
-  return records;
+const entries = computedAsync(async () => {
+  const [entries, _i] = await entryApi.findAll({ query: { journalId: [props.journal.id] } });
+  return entries;
 });
 
 const onGridReady = async (params: GridReadyEvent) => {
@@ -251,20 +246,20 @@ const height = ref<number>(400);
 const heightPx = computed(() => height.value + "px");
 
 const generateRows = () => {
-  if (!accounts.value || !records.value) {
+  if (!accounts.value || !entries.value) {
     return [];
   }
 
   const accountMap = toMap(accounts.value);
-  const newRows = records.value.flatMap((record) => {
-    const parent = new Parent({ journal: props.journal, record });
-    const children = record.items
+  const newRows = entries.value.flatMap((entry) => {
+    const parent = new Parent({ journal: props.journal, entry });
+    const children = entry.items
       .map((item) => {
         const account = accountMap.get(`${ACCOUNT_TYPE}:${item.account}`);
         if (!account) {
           return null;
         }
-        return new Child({ parent, recordItem: item, account });
+        return new Child({ parent, entryItem: item, account });
       })
       .filter((item): item is Child => !!item);
     parent.children = children;
@@ -273,7 +268,7 @@ const generateRows = () => {
   return newRows.sort((a, b) => a.compare(b));
 };
 
-watch([accounts, records], () => {
+watch([accounts, entries], () => {
   rows.value = generateRows();
 });
 
@@ -307,20 +302,20 @@ const saveEditedRows = async () => {
   const commands = rows.value
     .filter((row): row is Parent => row instanceof Parent && row.isEdited)
     .map((row) => row.generateCommand());
-  const update: RecordCommandUpdate[] = [];
-  const create: RecordCommandCreate[] = [];
+  const update: EntryCommandUpdate[] = [];
+  const create: EntryCommandCreate[] = [];
   for (const command of commands) {
     if (!command) {
       continue;
-    } else if (command.commandType === "records:create") {
+    } else if (command.commandType === "entries:create") {
       create.push(command);
     } else {
       update.push(command);
     }
   }
-  console.log("RecordCommandBatchUpdate: ", { create, update });
-  const result = await recordApi.handleCommand({
-    commandType: "records:batchUpdate",
+  console.log("EntryCommandBatchUpdate: ", { create, update });
+  const result = await entryApi.handleCommand({
+    commandType: "entries:batchUpdate",
     update,
     create,
   });
@@ -339,13 +334,9 @@ const getContextMenuItems: GetContextMenuItems<Row> = (_params) => {
   width: 100%;
   resize: vertical;
   overflow: auto;
-}
-</style>
 
-<style lang="scss">
-.cell {
-  &-edited {
-    border: 1px dashed rgba(var(--v-theme-primary)) !important;
+  :deep(.cell.cell-edited) {
+    border: 1px dashed rgba(var(--v-theme-primary));
   }
 }
 </style>

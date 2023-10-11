@@ -1,13 +1,13 @@
 <template>
   <AppScaffold>
     <v-select v-model="journalId" :items="journals" item-title="name" item-value="id"></v-select>
-    <RecordWriteTable v-if="journal" :journal="journal"></RecordWriteTable>
+    <EntryWriteTable v-if="journal" :journal="journal"></EntryWriteTable>
     <TestAgCharts></TestAgCharts>
   </AppScaffold>
 </template>
 
 <script setup lang="ts">
-import { RecordWriteTable, AppScaffold, TestAgCharts } from "@core/components";
+import { EntryWriteTable, AppScaffold, TestAgCharts } from "@core/components";
 import { useInject } from "@core/composable";
 import type { JournalApi } from "@core/services";
 import { JOURNAL_API_KEY } from "@core/services";

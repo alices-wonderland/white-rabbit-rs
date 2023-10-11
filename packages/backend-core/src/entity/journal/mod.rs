@@ -13,7 +13,7 @@ use crate::entity::{
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{BinOper, OnConflict};
-use sea_orm::{ColumnTrait, DbConn, EntityTrait, IntoActiveModel, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
@@ -52,7 +52,7 @@ impl Root {
   }
 
   pub async fn from_model(
-    db: &DbConn,
+    db: &impl ConnectionTrait,
     models: impl IntoIterator<Item = Model>,
   ) -> crate::Result<Vec<Root>> {
     let mut roots = Vec::new();
@@ -88,7 +88,7 @@ impl Root {
   }
 
   pub async fn save(
-    db: &DbConn,
+    db: &impl ConnectionTrait,
     roots: impl IntoIterator<Item = Root>,
   ) -> crate::Result<Vec<Root>> {
     let roots: Vec<Root> = roots.into_iter().collect();
@@ -144,17 +144,23 @@ impl Root {
     Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
   }
 
-  pub async fn delete(db: &DbConn, ids: impl IntoIterator<Item = Uuid>) -> crate::Result<()> {
+  pub async fn delete(
+    db: &impl ConnectionTrait,
+    ids: impl IntoIterator<Item = Uuid>,
+  ) -> crate::Result<()> {
     Entity::delete_many().filter(Column::Id.is_in(ids)).exec(db).await?;
     Ok(())
   }
 
-  pub async fn find_one(db: &DbConn, query: Option<Query>) -> crate::Result<Option<Root>> {
+  pub async fn find_one(
+    db: &impl ConnectionTrait,
+    query: Option<Query>,
+  ) -> crate::Result<Option<Root>> {
     Ok(Self::find_all(db, query, Some(1)).await?.into_iter().next())
   }
 
   pub async fn find_all(
-    db: &DbConn,
+    db: &impl ConnectionTrait,
     query: Option<Query>,
     limit: Option<u64>,
   ) -> crate::Result<Vec<Root>> {
@@ -164,7 +170,10 @@ impl Root {
     Self::from_model(db, models).await
   }
 
-  pub async fn create(db: &DbConn, commands: Vec<CommandCreate>) -> crate::Result<Vec<Root>> {
+  pub async fn create(
+    db: &impl ConnectionTrait,
+    commands: Vec<CommandCreate>,
+  ) -> crate::Result<Vec<Root>> {
     if commands.is_empty() {
       return Ok(vec![]);
     }
@@ -196,7 +205,10 @@ impl Root {
     Self::save(db, roots).await
   }
 
-  pub async fn update(db: &DbConn, commands: Vec<CommandUpdate>) -> crate::Result<Vec<Root>> {
+  pub async fn update(
+    db: &impl ConnectionTrait,
+    commands: Vec<CommandUpdate>,
+  ) -> crate::Result<Vec<Root>> {
     if commands.is_empty() {
       return Ok(vec![]);
     }

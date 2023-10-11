@@ -1,12 +1,12 @@
 import {
   type Journal,
-  Record_,
+  Entry,
   type Account,
-  type RecordType,
-  type RecordItem,
-  type RecordStateItem,
-  type RecordCommandUpdate,
-  type RecordCommandCreate,
+  type EntryType,
+  type EntryItem,
+  type EntryStateItem,
+  type EntryCommandUpdate,
+  type EntryCommandCreate,
 } from "@core/services";
 import { v4 as uuidv4 } from "uuid";
 import { NULL_PLACEHOLDER } from "@core/utils";
@@ -16,14 +16,14 @@ type EditedField = [string | undefined, string | undefined];
 
 export interface BaseRow {
   deleted?: boolean;
-  record?: Record_;
+  entry?: Entry;
 
   get journal(): Journal;
   get id(): string;
   get name(): string;
 
   get dataPath(): string[];
-  get state(): RecordStateItem | undefined;
+  get state(): EntryStateItem | undefined;
 
   get editedFields(): Map<string, EditedField>;
 
@@ -32,12 +32,12 @@ export interface BaseRow {
 
 interface ParentArgs {
   readonly journal: Journal;
-  readonly record?: Record_;
+  readonly entry?: Entry;
   readonly isDeleted?: boolean;
   readonly id?: string;
   readonly name?: string;
   readonly description?: string;
-  readonly type?: RecordType;
+  readonly type?: EntryType;
   readonly date?: Date;
   readonly tags?: string[];
   readonly children?: Child[];
@@ -45,27 +45,27 @@ interface ParentArgs {
 
 export class Parent implements BaseRow {
   journal: Journal;
-  record?: Record_;
+  entry?: Entry;
   isDeleted = false;
   id: string;
   name: string;
 
   description: string;
-  type?: RecordType;
+  type?: EntryType;
   date?: Date;
   tags?: string[];
   children: Child[] = [];
 
   constructor(args: ParentArgs) {
     this.journal = args.journal;
-    this.record = args.record;
+    this.entry = args.entry;
     this.isDeleted = args.isDeleted ?? false;
-    this.id = (args.record?.id ?? args.id) || uuidv4();
-    this.name = (args.record?.name ?? args.name) || "";
-    this.description = (args.record?.description ?? args.description) || "";
-    this.type = args.record?.type ?? args.type;
-    this.date = args.record?.date ?? args.date;
-    this.tags = args.record?.tags ?? args.tags;
+    this.id = args.entry?.id ?? args.id ?? uuidv4();
+    this.name = args.entry?.name ?? args.name ?? "";
+    this.description = args.entry?.description ?? args.description ?? "";
+    this.type = args.entry?.type ?? args.type;
+    this.date = args.entry?.date ?? args.date;
+    this.tags = args.entry?.tags ?? args.tags;
     this.children = args.children ?? [];
   }
 
@@ -73,8 +73,8 @@ export class Parent implements BaseRow {
     return [this.id];
   }
 
-  get state(): RecordStateItem | undefined {
-    return this.record?.type === "Record" ? (this.record.state as RecordStateItem) : undefined;
+  get state(): EntryStateItem | undefined {
+    return this.entry?.type === "Record" ? (this.entry.state as EntryStateItem) : undefined;
   }
 
   compare(another: Row): number {
@@ -99,26 +99,26 @@ export class Parent implements BaseRow {
   get editedFields(): Map<string, EditedField> {
     const results = new Map<string, EditedField>();
 
-    if (this.record?.name !== this.name) {
-      results.set("name", [this.record?.name ?? NULL_PLACEHOLDER, this.name]);
+    if (this.entry?.name !== this.name) {
+      results.set("name", [this.entry?.name ?? NULL_PLACEHOLDER, this.name]);
     }
 
-    if (this.record?.date?.valueOf() !== this.date?.valueOf()) {
+    if (this.entry?.date?.valueOf() !== this.date?.valueOf()) {
       results.set("date", [
-        this.record?.date?.toDateString() ?? NULL_PLACEHOLDER,
+        this.entry?.date?.toDateString() ?? NULL_PLACEHOLDER,
         this.date?.toDateString() ?? NULL_PLACEHOLDER,
       ]);
     }
 
-    if (this.record?.type !== this.type) {
-      results.set("type", [this.record?.type ?? NULL_PLACEHOLDER, this.type ?? NULL_PLACEHOLDER]);
+    if (this.entry?.type !== this.type) {
+      results.set("type", [this.entry?.type ?? NULL_PLACEHOLDER, this.type ?? NULL_PLACEHOLDER]);
     }
 
     for (const accountId of [
       ...this.children.map((c) => c.account?.id).filter((id): id is string => !!id),
-      ...(this.record?.items?.map((i) => i.account) ?? []),
+      ...(this.entry?.items?.map((i) => i.account) ?? []),
     ]) {
-      const oldItem: RecordItem | undefined = this.record?.items?.find(
+      const oldItem: EntryItem | undefined = this.entry?.items?.find(
         (i) => i.account === accountId,
       );
       const newItem: Child | undefined = this.children.find((c) => c.account?.id === accountId);
@@ -144,14 +144,14 @@ export class Parent implements BaseRow {
     );
   }
 
-  generateCommand(): RecordCommandCreate | RecordCommandUpdate | undefined {
+  generateCommand(): EntryCommandCreate | EntryCommandUpdate | undefined {
     const children = this.children
       .map((child) => child.generateModel())
-      .filter((item): item is RecordItem => !!item);
+      .filter((item): item is EntryItem => !!item);
 
-    if (this.record) {
+    if (this.entry) {
       return {
-        commandType: "records:update",
+        commandType: "entries:update",
         id: this.id,
         name: this.name,
         description: this.description,
@@ -162,7 +162,7 @@ export class Parent implements BaseRow {
       };
     } else if (this.type && this.date) {
       return {
-        commandType: "records:create",
+        commandType: "entries:create",
         id: this.id,
         journal: this.journal.id,
         name: this.name,
@@ -178,7 +178,7 @@ export class Parent implements BaseRow {
   clone(): Parent {
     const parent = new Parent({
       journal: this.journal,
-      record: undefined,
+      entry: undefined,
       isDeleted: false,
       id: uuidv4(),
       name: this.name,
@@ -199,7 +199,7 @@ interface ChildArgs {
   readonly isDeleted?: boolean;
   readonly id?: string;
   readonly parent: Parent;
-  readonly recordItem?: RecordItem;
+  readonly entryItem?: EntryItem;
   readonly account?: Account;
   readonly amount?: number;
   readonly price?: number;
@@ -210,7 +210,7 @@ export class Child implements BaseRow {
 
   id: string;
   parent: Parent;
-  recordItem?: RecordItem;
+  entryItem?: EntryItem;
 
   account?: Account;
   amount?: number;
@@ -220,10 +220,10 @@ export class Child implements BaseRow {
     this._isDeleted = args.isDeleted ?? false;
     this.id = args.id ?? args.account?.id ?? uuidv4();
     this.parent = args.parent;
-    this.recordItem = args.recordItem;
+    this.entryItem = args.entryItem;
     this.account = args.account;
-    this.amount = args.recordItem?.amount ?? args.amount;
-    this.price = args.recordItem?.price ?? args.price;
+    this.amount = args.entryItem?.amount ?? args.amount;
+    this.price = args.entryItem?.price ?? args.price;
   }
 
   get dataPath(): string[] {
@@ -238,8 +238,8 @@ export class Child implements BaseRow {
     return this.account?.name ?? "";
   }
 
-  get record(): Record_ | undefined {
-    return this.parent.record;
+  get entry(): Entry | undefined {
+    return this.parent.entry;
   }
 
   get isDeleted(): boolean | undefined {
@@ -253,9 +253,9 @@ export class Child implements BaseRow {
     this._isDeleted = value;
   }
 
-  get state(): RecordStateItem | undefined {
-    return this.record?.type === "Check" && this.account
-      ? (this.record.state as Record<string, RecordStateItem>)[this.account.id]
+  get state(): EntryStateItem | undefined {
+    return this.entry?.type === "Check" && this.account
+      ? (this.entry.state as Record<string, EntryStateItem>)[this.account.id]
       : undefined;
   }
 
@@ -275,22 +275,21 @@ export class Child implements BaseRow {
   get editedFields(): Map<string, EditedField> {
     const results = new Map<string, EditedField>();
 
-    if (this.recordItem?.account !== this.account?.id) {
-      results.set("name", [this.recordItem?.account, this.account?.id]);
+    if (this.entryItem?.account !== this.account?.id) {
+      results.set("name", [this.entryItem?.account, this.account?.id]);
     }
 
-    if (this.recordItem?.amount !== this.amount) {
+    if (this.entryItem?.amount !== this.amount) {
       results.set("amount", [
-        this.recordItem?.amount.toString() ?? NULL_PLACEHOLDER,
+        this.entryItem?.amount.toString() ?? NULL_PLACEHOLDER,
         this.amount?.toString() ?? NULL_PLACEHOLDER,
       ]);
     }
 
-    if (this.recordItem?.price !== this.price) {
-      results.set("price", [
-        this.recordItem?.price?.toFixed(2) ?? NULL_PLACEHOLDER,
-        this.price?.toFixed(2) ?? NULL_PLACEHOLDER,
-      ]);
+    const oldPrice = this.entryItem?.price?.toFixed(2) ?? NULL_PLACEHOLDER;
+    const newPrice = this.price?.toFixed(2) ?? NULL_PLACEHOLDER;
+    if (oldPrice !== newPrice) {
+      results.set("price", [oldPrice, newPrice]);
     }
 
     return results;
@@ -300,7 +299,7 @@ export class Child implements BaseRow {
     return this._isDeleted || this.editedFields.size > 0;
   }
 
-  generateModel(): RecordItem | undefined {
+  generateModel(): EntryItem | undefined {
     if (this.account && typeof this.amount === "number") {
       return {
         account: this.account?.id,

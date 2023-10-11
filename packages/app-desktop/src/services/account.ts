@@ -6,8 +6,7 @@ import {
   type AccountSort,
   type AccountType,
   type JournalQuery,
-  type Permission,
-  type ReadModel,
+  type Model,
 } from "@core/services";
 import { toMap } from "@core/utils";
 import { AbstractWriteApi } from "./api";
@@ -22,15 +21,11 @@ class AccountApiImpl extends AbstractWriteApi<Account, AccountQuery, AccountComm
     return "account_find_by_id";
   }
 
-  protected override get findPageKey(): string {
-    return "account_find_page";
-  }
-
   protected override get handleCommandKey(): string {
     return "account_handle_command";
   }
 
-  protected override async loadIncluded(models: Account[]): Promise<Map<string, ReadModel>> {
+  protected override async loadIncluded(models: Account[]): Promise<Map<string, Model>> {
     const journalIds = new Set(models.map((model) => model.journal));
     const journals = await journalApi.findAll({ query: { id: [...journalIds] } as JournalQuery });
     return toMap(journals[0]);
@@ -39,7 +34,6 @@ class AccountApiImpl extends AbstractWriteApi<Account, AccountQuery, AccountComm
   protected override convert(input: Record<string, unknown>): Account {
     return new Account({
       id: input.id as string,
-      permission: input.permission as Permission,
       name: input.name as string,
       description: input.description as string,
       unit: input.unit as string,

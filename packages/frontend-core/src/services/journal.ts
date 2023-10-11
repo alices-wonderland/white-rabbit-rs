@@ -1,34 +1,22 @@
-import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
+import type { Command, Model, Query, WriteApi } from "@core/services";
 
 export const JOURNAL_TYPE = "journals";
 
 export const JOURNAL_API_KEY = Symbol("JOURNAL_API_KEY");
 
-export class Journal implements WriteModel<typeof JOURNAL_TYPE> {
+export class Journal implements Model<typeof JOURNAL_TYPE> {
   id: string;
-  permission: Permission;
   name: string;
   description: string;
   unit: string;
-  admins: string[];
-  members: string[];
+  tags: string[];
 
-  constructor({
-    id,
-    permission,
-    name,
-    description,
-    unit,
-    admins,
-    members,
-  }: Omit<Journal, "modelType">) {
+  constructor({ id, name, description, unit, tags }: Omit<Journal, "modelType">) {
     this.id = id;
-    this.permission = permission;
     this.name = name;
     this.description = description;
     this.unit = unit;
-    this.admins = admins;
-    this.members = members;
+    this.tags = tags;
   }
 
   get modelType(): typeof JOURNAL_TYPE {
@@ -40,11 +28,9 @@ export type JournalSort = "name" | "unit";
 
 export interface JournalQuery extends Query {
   readonly id?: string[];
-  readonly name?: [string, boolean];
-  readonly description?: string;
+  readonly name?: string[];
   readonly unit?: string;
-  readonly admins?: string[];
-  readonly members?: string[];
+  readonly fullText?: [string, string[]];
 }
 
 export interface JournalCommandCreate extends Command<`${typeof JOURNAL_TYPE}:create`> {
@@ -52,8 +38,6 @@ export interface JournalCommandCreate extends Command<`${typeof JOURNAL_TYPE}:cr
   readonly name: string;
   readonly description: string;
   readonly unit: string;
-  readonly admins: string[];
-  readonly members: string[];
 }
 
 export interface JournalCommandUpdate extends Command<`${typeof JOURNAL_TYPE}:update`> {
@@ -61,8 +45,6 @@ export interface JournalCommandUpdate extends Command<`${typeof JOURNAL_TYPE}:up
   readonly name?: string;
   readonly description?: string;
   readonly unit?: string;
-  readonly admins?: string[];
-  readonly members?: string[];
 }
 
 export interface JournalCommandDelete extends Command<`${typeof JOURNAL_TYPE}:delete`> {

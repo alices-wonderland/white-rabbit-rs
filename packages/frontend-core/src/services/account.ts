@@ -1,12 +1,11 @@
-import type { Command, Permission, Query, WriteApi, WriteModel } from "@core/services";
+import type { Command, Model, Query, WriteApi } from "@core/services";
 
 export const ACCOUNT_API_KEY = Symbol("ACCOUNT_API_KEY");
 
 export const ACCOUNT_TYPE = "accounts";
 
-export class Account implements WriteModel<typeof ACCOUNT_TYPE> {
+export class Account implements Model<typeof ACCOUNT_TYPE> {
   id: string;
-  permission: Permission;
   journal: string;
   name: string;
   description: string;
@@ -14,18 +13,8 @@ export class Account implements WriteModel<typeof ACCOUNT_TYPE> {
   type: AccountType;
   tags: string[];
 
-  constructor({
-    id,
-    permission,
-    journal,
-    name,
-    description,
-    unit,
-    type,
-    tags,
-  }: Omit<Account, "modelType">) {
+  constructor({ id, journal, name, description, unit, type, tags }: Omit<Account, "modelType">) {
     this.id = id;
-    this.permission = permission;
     this.journal = journal;
     this.name = name;
     this.description = description;
@@ -45,11 +34,11 @@ export type AccountSort = "name" | "unit" | "type" | "journal";
 
 export interface AccountQuery extends Query {
   readonly id?: string[];
-  readonly journal?: string[];
-  readonly name?: [string, boolean];
-  readonly description?: string;
+  readonly journalId?: string[];
+  readonly name?: string;
+  readonly unit?: string;
   readonly type?: AccountType;
-  readonly tag?: string;
+  readonly fullText?: [string, string[]];
 }
 
 export interface AccountCommandCreate extends Command<`${typeof ACCOUNT_TYPE}:create`> {
