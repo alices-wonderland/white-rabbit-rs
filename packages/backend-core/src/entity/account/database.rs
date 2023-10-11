@@ -10,14 +10,14 @@ pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
   #[sea_orm(indexed)]
+  pub journal_id: Uuid,
+  #[sea_orm(indexed)]
   pub name: String,
   pub description: String,
   #[sea_orm(indexed)]
   pub unit: String,
   #[sea_orm(indexed)]
   pub typ: Type,
-  #[sea_orm(indexed)]
-  pub journal_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

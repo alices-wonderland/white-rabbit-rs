@@ -2,15 +2,16 @@ mod command;
 mod database;
 mod query;
 
-use crate::entity::{
-  account, account_tag, journal, normalize_description, normalize_name, normalize_tags,
-  normalize_unit, FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
-};
 pub use command::*;
 pub use database::*;
-use itertools::Itertools;
 pub use query::*;
-use sea_orm::sea_query::OnConflict;
+
+use crate::entity::{
+  account_tag, journal, normalize_description, normalize_name, normalize_tags, normalize_unit,
+  FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
+};
+use itertools::Itertools;
+use sea_orm::sea_query::{BinOper, Expr, OnConflict};
 use sea_orm::{ColumnTrait, DbConn, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -37,7 +38,7 @@ impl super::Root for Root {
 impl Root {
   pub fn new(
     id: Option<Uuid>,
-    journal_id: Uuid,
+    journal: &journal::Root,
     name: impl ToString,
     description: impl ToString,
     unit: impl ToString,
@@ -49,7 +50,15 @@ impl Root {
     let unit = normalize_unit(TYPE, unit)?;
     let tags = normalize_tags(TYPE, tags)?;
 
-    Ok(Root { id: id.unwrap_or_else(Uuid::new_v4), journal_id, name, description, unit, typ, tags })
+    Ok(Root {
+      id: id.unwrap_or_else(Uuid::new_v4),
+      journal_id: journal.id,
+      name,
+      description,
+      unit,
+      typ,
+      tags,
+    })
   }
 
   pub async fn from_model(
@@ -137,8 +146,21 @@ impl Root {
       Column::JournalId,
     ]);
 
+    // Update unique column name to temp value
+    Entity::update_many()
+      .col_expr(
+        Column::Name,
+        Expr::col(Column::Name).binary(BinOper::Custom("||"), Expr::current_timestamp()),
+      )
+      .filter(Column::Id.is_in(model_ids.clone()))
+      .exec(db)
+      .await?;
+
     Entity::insert_many(models).on_conflict(on_conflict).exec(db).await?;
-    account_tag::Entity::insert_many(tags).exec(db).await?;
+
+    if !tags.is_empty() {
+      account_tag::Entity::insert_many(tags).exec(db).await?;
+    }
 
     Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
   }
@@ -171,7 +193,7 @@ impl Root {
     let journals = journal::Root::find_all(
       db,
       Some(journal::Query {
-        id: commands.iter().map(|c| c.journal_id).collect::<HashSet<_>>(),
+        id: commands.iter().map(|c| c.journal_id).collect(),
         ..Default::default()
       }),
       None,
@@ -199,7 +221,7 @@ impl Root {
 
       let existings = Root::find_all(
         db,
-        Some(account::Query {
+        Some(Query {
           journal_id: HashSet::from_iter([journal_id]),
           name: HashSet::from_iter(names),
           ..Default::default()
@@ -212,23 +234,30 @@ impl Root {
 
         return Err(crate::Error::ExistingEntity {
           typ: TYPE.to_string(),
-          values: vec![(FIELD_NAME.to_string(), existing_names)],
+          values: vec![
+            (FIELD_JOURNAL.to_string(), journal_id.to_string()),
+            (FIELD_NAME.to_string(), existing_names),
+          ],
         });
       }
     }
 
     let roots: Vec<_> = commands
       .into_iter()
-      .map(|command| {
-        Root::new(
-          None,
-          command.journal_id,
-          command.name,
-          command.description,
-          command.unit,
-          command.typ,
-          command.tags,
-        )
+      .filter_map(|command| {
+        if let Some(journal) = journals.get(&command.journal_id) {
+          Some(Root::new(
+            None,
+            journal,
+            command.name,
+            command.description,
+            command.unit,
+            command.typ,
+            command.tags,
+          ))
+        } else {
+          None
+        }
       })
       .try_collect()?;
 
@@ -238,7 +267,7 @@ impl Root {
   async fn do_update(
     db: &DbConn,
     journal: &journal::Root,
-    accounts: &HashMap<Uuid, Root>,
+    accounts: &mut HashMap<Uuid, Root>,
     commands: &[CommandUpdate],
   ) -> crate::Result<Vec<Root>> {
     if commands.is_empty() {
@@ -284,7 +313,7 @@ impl Root {
       }
     }
 
-    let mut updated = Vec::new();
+    let mut updated = HashMap::new();
     for command in commands {
       let model = accounts.get(&command.id).ok_or_else(|| crate::Error::NotFound {
         typ: TYPE.to_string(),
@@ -302,7 +331,7 @@ impl Root {
 
       let model = Self::new(
         Some(model.id),
-        model.journal_id,
+        journal,
         if command.name.is_empty() { model.name.clone() } else { command.name.clone() },
         if let Some(description) = &command.description {
           description.clone()
@@ -314,14 +343,15 @@ impl Root {
         if let Some(tags) = &command.tags { tags.clone() } else { model.tags.clone() },
       )?;
 
-      updated.push(model);
+      accounts.insert(model.id, model.clone());
+      updated.insert(model.id, model);
     }
-    Ok(updated)
+    Ok(updated.into_values().collect())
   }
 
   pub async fn update(db: &DbConn, commands: Vec<CommandUpdate>) -> crate::Result<Vec<Root>> {
     let model_ids = commands.iter().map(|command| command.id).collect::<HashSet<_>>();
-    let models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
+    let mut models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
       .await?
       .into_iter()
       .map(|model| (model.id, model))
@@ -356,15 +386,15 @@ impl Root {
         acc
       });
 
-    let mut updated = Vec::new();
+    let mut updated = HashMap::new();
     for (journal_id, commands) in commands_by_journal {
       if let Some(journal) = journals.get(&journal_id) {
-        for model in Self::do_update(db, journal, &models, &commands).await? {
-          updated.push(model);
+        for model in Self::do_update(db, journal, &mut models, &commands).await? {
+          updated.insert(model.id, model);
         }
       }
     }
 
-    Self::save(db, updated).await
+    Self::save(db, updated.into_values()).await
   }
 }

@@ -127,7 +127,7 @@ mod tests {
     };
 
     assert_eq!(
-      [r#"SELECT "account"."id", "account"."name", "account"."description", "account"."unit", "account"."typ", "account"."journal_id" FROM "account""#,
+      [r#"SELECT "account"."id", "account"."journal_id", "account"."name", "account"."description", "account"."unit", "account"."typ" FROM "account""#,
         r#"WHERE "account"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
         r#"AND "account"."name" IN ('Name 1') AND "account"."unit" = 'Unit 1'"#,
         r#"AND "account"."typ" = 'A' AND "account"."journal_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,

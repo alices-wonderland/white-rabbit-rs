@@ -2,16 +2,17 @@ mod command;
 mod database;
 mod query;
 
+pub use command::*;
+pub use database::*;
+pub use query::*;
+
 use crate::entity::{
   journal_tag, normalize_description, normalize_name, normalize_tags, normalize_unit, FIELD_ID,
   FIELD_NAME,
 };
-pub use command::*;
-pub use database::*;
 use itertools::Itertools;
-pub use query::*;
 use sea_orm::entity::prelude::*;
-use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::{BinOper, OnConflict};
 use sea_orm::{ColumnTrait, DbConn, EntityTrait, IntoActiveModel, QuerySelect};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -117,16 +118,28 @@ impl Root {
       }
     }
 
-    Entity::delete_many()
-      .filter(Query { id: model_ids.clone(), ..Default::default() })
+    journal_tag::Entity::delete_many()
+      .filter(journal_tag::Column::JournalId.is_in(model_ids.clone()))
+      .exec(db)
+      .await?;
+
+    // Update unique column name to temp value
+    Entity::update_many()
+      .col_expr(
+        Column::Name,
+        Expr::col(Column::Name).binary(BinOper::Custom("||"), Expr::current_timestamp()),
+      )
+      .filter(Column::Id.is_in(model_ids.clone()))
       .exec(db)
       .await?;
 
     let mut on_conflict = OnConflict::column(Column::Id);
     on_conflict.update_columns([Column::Name, Column::Description, Column::Unit]);
-
     Entity::insert_many(models).on_conflict(on_conflict).exec(db).await?;
-    journal_tag::Entity::insert_many(tags).exec(db).await?;
+
+    if !tags.is_empty() {
+      journal_tag::Entity::insert_many(tags).exec(db).await?;
+    }
 
     Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
   }
@@ -224,13 +237,13 @@ impl Root {
       }
     }
 
-    let models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
+    let mut models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
       .await?
       .into_iter()
       .map(|model| (model.id, model))
       .collect::<HashMap<_, _>>();
 
-    let mut updated = Vec::new();
+    let mut updated = HashMap::new();
     for command in commands {
       let model = models.get(&command.id).ok_or_else(|| crate::Error::NotFound {
         typ: TYPE.to_string(),
@@ -257,9 +270,34 @@ impl Root {
         if let Some(tags) = command.tags { tags } else { model.tags.clone() },
       )?;
 
-      updated.push(model);
+      models.insert(model.id, model.clone());
+      updated.insert(model.id, model);
     }
 
-    Self::save(db, updated).await
+    Self::save(db, updated.into_values()).await
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::entity::journal::{Column, Entity};
+  use sea_orm::sea_query::{BinOper, Expr};
+  use sea_orm::{ColumnTrait, DatabaseBackend, EntityTrait, QueryFilter, QueryTrait};
+
+  #[test]
+  fn test_update_name() -> anyhow::Result<()> {
+    assert_eq!(
+      Entity::update_many()
+        .col_expr(
+          Column::Name,
+          Expr::col(Column::Name).binary(BinOper::Custom("||"), Expr::current_timestamp()),
+        )
+        .filter(Column::Id.is_in(vec!["id1", "id2"]))
+        .build(DatabaseBackend::Sqlite)
+        .to_string(),
+      r#"UPDATE "journal" SET "name" = "name" || CURRENT_TIMESTAMP WHERE "journal"."id" IN ('id1', 'id2')"#
+    );
+
+    Ok(())
   }
 }

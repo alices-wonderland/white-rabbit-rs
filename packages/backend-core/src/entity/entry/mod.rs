@@ -2,17 +2,26 @@ mod command;
 mod database;
 mod query;
 
-use crate::entity::{entry_item, entry_tag};
-use chrono::NaiveDate;
+pub use command::*;
 pub use database::*;
-use itertools::Itertools;
 pub use query::*;
+
+use crate::entity::{
+  account, entry_item, entry_tag, journal, normalize_description, normalize_name, normalize_tags,
+  FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
+};
+use chrono::NaiveDate;
+use itertools::Itertools;
 use rust_decimal::Decimal;
-use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::{BinOper, Expr, OnConflict};
 use sea_orm::{ColumnTrait, DbConn, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
+
+pub const TYPE: &str = "Entry";
+pub const FIELD_AMOUNT: &str = "amount";
+pub const FIELD_PRICE: &str = "price";
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Root {
@@ -33,27 +42,67 @@ impl super::Root for Root {
 
 impl Root {
   pub fn new(
-    journal_id: Uuid,
+    id: Option<Uuid>,
+    journal: &journal::Root,
     name: impl ToString,
     description: impl ToString,
     typ: Type,
     date: NaiveDate,
     tags: impl IntoIterator<Item = impl ToString>,
     items: impl IntoIterator<Item = (Uuid, (Decimal, Option<Decimal>))>,
+    accounts: &HashMap<Uuid, account::Root>,
   ) -> crate::Result<Root> {
+    let name = normalize_name(TYPE, name)?;
+    let description = normalize_description(TYPE, description)?;
+    let tags = normalize_tags(TYPE, tags)?;
+    let mut filtered_items = HashMap::new();
+
+    for (account_id, (amount, price)) in items {
+      if let Some(account) = accounts.get(&account_id) {
+        if account.journal_id != journal.id {
+          return Err(crate::Error::NotFound {
+            typ: account::TYPE.to_string(),
+            values: vec![
+              (FIELD_JOURNAL.to_string(), journal.id.to_string()),
+              (FIELD_ID.to_string(), account_id.to_string()),
+            ],
+          });
+        } else if amount.is_sign_negative() {
+          return Err(crate::Error::OutOfRange {
+            typ: TYPE.to_string(),
+            field: FIELD_AMOUNT.to_string(),
+            start: Some(0.to_string()),
+            end: None,
+          });
+        } else if let Some(price) = price {
+          if price.is_sign_negative() {
+            return Err(crate::Error::OutOfRange {
+              typ: TYPE.to_string(),
+              field: FIELD_PRICE.to_string(),
+              start: Some(0.to_string()),
+              end: None,
+            });
+          }
+        }
+
+        filtered_items.insert(account.id, (amount, price));
+      } else {
+        return Err(crate::Error::NotFound {
+          typ: account::TYPE.to_string(),
+          values: vec![(FIELD_ID.to_string(), account_id.to_string())],
+        });
+      }
+    }
+
     Ok(Root {
-      id: Uuid::new_v4(),
-      journal_id,
-      name: name.to_string().trim().to_string(),
-      description: description.to_string().trim().to_string(),
+      id: id.unwrap_or_else(Uuid::new_v4),
+      journal_id: journal.id,
+      name,
+      description,
       typ,
       date,
-      tags: tags
-        .into_iter()
-        .map(|tag| tag.to_string().trim().to_string())
-        .filter(|tag: &String| !tag.is_empty())
-        .collect(),
-      items: items.into_iter().collect(),
+      tags,
+      items: filtered_items,
     })
   }
 
@@ -120,7 +169,7 @@ impl Root {
     db: &DbConn,
     roots: impl IntoIterator<Item = Root>,
   ) -> crate::Result<Vec<Root>> {
-    let roots = roots.into_iter().collect::<Vec<_>>();
+    let roots: Vec<Root> = roots.into_iter().collect();
     if roots.is_empty() {
       return Ok(roots);
     }
@@ -178,9 +227,25 @@ impl Root {
       Column::Date,
     ]);
 
+    // Update unique column name to temp value
+    Entity::update_many()
+      .col_expr(
+        Column::Name,
+        Expr::col(Column::Name).binary(BinOper::Custom("||"), Expr::current_timestamp()),
+      )
+      .filter(Column::Id.is_in(model_ids.clone()))
+      .exec(db)
+      .await?;
+
     Entity::insert_many(models).on_conflict(on_conflict).exec(db).await?;
-    entry_tag::Entity::insert_many(tags).exec(db).await?;
-    entry_item::Entity::insert_many(items).exec(db).await?;
+
+    if !tags.is_empty() {
+      entry_tag::Entity::insert_many(tags).exec(db).await?;
+    }
+
+    if !items.is_empty() {
+      entry_item::Entity::insert_many(items).exec(db).await?;
+    }
 
     Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
   }
@@ -203,5 +268,99 @@ impl Root {
       if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
     let models = select.limit(limit).all(db).await?;
     Self::from_model(db, models).await
+  }
+
+  pub async fn create(db: &DbConn, commands: Vec<CommandCreate>) -> crate::Result<Vec<Root>> {
+    if commands.is_empty() {
+      return Ok(vec![]);
+    }
+
+    let journals = journal::Root::find_all(
+      db,
+      Some(journal::Query {
+        id: commands.iter().map(|c| c.journal_id).collect(),
+        ..Default::default()
+      }),
+      None,
+    )
+    .await?
+    .into_iter()
+    .map(|journal| (journal.id, journal))
+    .collect::<HashMap<_, _>>();
+
+    let accounts = account::Root::find_all(
+      db,
+      Some(account::Query {
+        id: commands.iter().flat_map(|c| c.items.keys()).copied().collect(),
+        ..Default::default()
+      }),
+      None,
+    )
+    .await?
+    .into_iter()
+    .map(|account| (account.id, account))
+    .collect::<HashMap<_, _>>();
+
+    let names_by_journal = commands
+      .iter()
+      .map(|command| (command.journal_id, command.name.clone()))
+      .into_group_map_by(|p| p.0)
+      .into_iter()
+      .map(|(k, vec)| (k, vec.into_iter().map(|(_, v)| v).unique().collect::<Vec<_>>()))
+      .collect::<HashMap<_, _>>();
+
+    for (journal_id, names) in names_by_journal {
+      if !journals.contains_key(&journal_id) {
+        return Err(crate::Error::NotFound {
+          typ: journal::TYPE.to_string(),
+          values: vec![(FIELD_ID.to_string(), journal_id.to_string())],
+        });
+      }
+
+      let existings = Root::find_all(
+        db,
+        Some(Query {
+          journal_id: HashSet::from_iter([journal_id]),
+          name: HashSet::from_iter(names),
+          ..Default::default()
+        }),
+        None,
+      )
+      .await?;
+      if !existings.is_empty() {
+        let existing_names = existings.iter().map(|model| model.name.clone()).sorted().join(", ");
+
+        return Err(crate::Error::ExistingEntity {
+          typ: TYPE.to_string(),
+          values: vec![
+            (FIELD_JOURNAL.to_string(), journal_id.to_string()),
+            (FIELD_NAME.to_string(), existing_names),
+          ],
+        });
+      }
+    }
+
+    let roots: Vec<_> = commands
+      .into_iter()
+      .filter_map(|command| {
+        if let Some(journal) = journals.get(&command.journal_id) {
+          Some(Root::new(
+            None,
+            journal,
+            command.name,
+            command.description,
+            command.typ,
+            command.date,
+            command.tags,
+            command.items,
+            &accounts,
+          ))
+        } else {
+          None
+        }
+      })
+      .try_collect()?;
+
+    Self::save(db, roots).await
   }
 }

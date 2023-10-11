@@ -21,10 +21,24 @@ impl MigrationTrait for Migration {
     manager.create_table(schema.create_table_from_entity(entry_item::Entity)).await?;
     manager.create_table(schema.create_table_from_entity(entry_tag::Entity)).await?;
 
-    Ok(())
-  }
+    let idx = Index::create()
+      .name("idx-account-journal_id-name")
+      .table(account::Entity)
+      .col(account::Column::JournalId)
+      .col(account::Column::Name)
+      .unique()
+      .to_owned();
+    manager.create_index(idx).await?;
 
-  async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
+    let idx = Index::create()
+      .name("idx-entry-journal_id-name")
+      .table(entry::Entity)
+      .col(entry::Column::JournalId)
+      .col(entry::Column::Name)
+      .unique()
+      .to_owned();
+    manager.create_index(idx).await?;
+
     Ok(())
   }
 }
