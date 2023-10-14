@@ -1,10 +1,5 @@
-import {
-  Journal,
-  type JournalApi,
-  type JournalCommand,
-  type JournalQuery,
-  type JournalSort,
-} from "@core/services";
+import type { JournalApi, JournalCommand, JournalQuery, JournalSort } from "@core/services";
+import { Journal } from "@core/services";
 import { AbstractWriteApi } from "./api";
 
 class JournalApiImpl extends AbstractWriteApi<Journal, JournalQuery, JournalCommand, JournalSort> {

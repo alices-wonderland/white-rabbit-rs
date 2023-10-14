@@ -11,6 +11,9 @@ pub enum Error {
   #[error("Field[{field}] of Entity[{typ}] should in Range[start = {start:?}, end = {end:?}]")]
   OutOfRange { typ: String, field: String, start: Option<String>, end: Option<String> },
 
+  #[error("Field[{field}] of Entity[{typ}] is required")]
+  RequiredField { typ: String, field: String },
+
   #[error("Database Error: {0}")]
   Database(#[from] sea_orm::DbErr),
 }

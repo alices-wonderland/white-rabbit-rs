@@ -21,8 +21,10 @@
 
 <script setup lang="ts">
 import type { ICellRendererParams } from "@ag-grid-community/core";
-import { Parent, type Row } from "./row";
-import { computed, type ComputedRef } from "vue";
+import { Parent } from "./row";
+import type { Row } from "./row";
+import { computed } from "vue";
+import type { ComputedRef } from "vue";
 import { mdiDelete, mdiUndo, mdiContentCopy, mdiPlus } from "@mdi/js";
 
 const props = defineProps<{

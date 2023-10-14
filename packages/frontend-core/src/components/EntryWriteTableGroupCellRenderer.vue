@@ -8,7 +8,8 @@
 <script setup lang="ts">
 import type { ICellRendererParams } from "@ag-grid-community/core";
 import { computed } from "vue";
-import { Child, type Row } from "./row";
+import { Child } from "./row";
+import type { Row } from "./row";
 import { mdiAccountCashOutline, mdiCheckDecagramOutline, mdiCashMultiple } from "@mdi/js";
 
 const props = defineProps<{ readonly params: ICellRendererParams<Row> }>();

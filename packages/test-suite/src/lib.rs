@@ -14,8 +14,7 @@ use migration::{Migrator, MigratorTrait};
 use rand::seq::{IteratorRandom, SliceRandom};
 use rand::Rng;
 use rust_decimal::Decimal;
-use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
+use std::collections::HashSet;
 
 fn gen_tags() -> HashSet<String> {
   Words(0..16)
@@ -26,14 +25,14 @@ fn gen_tags() -> HashSet<String> {
     .collect()
 }
 
-fn gen_entry_items(accounts: &[account::Root]) -> HashMap<Uuid, (Decimal, Option<Decimal>)> {
+fn gen_entry_items(accounts: &[account::Root]) -> Vec<entry::Item> {
   let mut rng = rand::thread_rng();
   accounts
     .choose_multiple(&mut rng, 3)
     .map(|account| {
       let price: Option<Decimal> =
         if rng.gen_bool(0.5) { None } else { Some(rng.gen_range(1..100).into()) };
-      (account.id, (rng.gen_range(10..100).into(), price))
+      entry::Item { account: account.id, amount: rng.gen_range(10..100).into(), price }
     })
     .collect()
 }

@@ -1,16 +1,16 @@
-import {
-  type AccountQuery,
-  type JournalQuery,
-  Entry,
-  type EntryApi,
-  type EntryCommand,
-  type EntryItem,
-  type EntryQuery,
-  type EntrySort,
-  type EntryState,
-  type EntryType,
-  type Model,
+import type {
+  AccountQuery,
+  JournalQuery,
+  EntryApi,
+  EntryCommand,
+  EntryItem,
+  EntryQuery,
+  EntrySort,
+  EntryState,
+  EntryType,
+  Model,
 } from "@core/services";
+import { Entry } from "@core/services";
 import { AbstractWriteApi } from "./api";
 import { journalApi } from "./journal";
 import { toMap } from "@core/utils";
@@ -41,10 +41,10 @@ class EntryApiImpl extends AbstractWriteApi<Entry, EntryQuery, EntryCommand, Ent
   }
 
   protected override convert(input: Record<string, unknown>): Entry {
-    const items: EntryItem[] = Object.entries(
-      input.items as Record<string, [string, string | undefined]>,
-    ).map(([accountId, [amount, price]]) => ({
-      account: accountId,
+    const items: EntryItem[] = (
+      input.items as Array<{ account: string; price?: string; amount: string }>
+    ).map(({ account, amount, price }) => ({
+      account: account,
       amount: parseFloat(amount),
       price: price ? parseFloat(price) : undefined,
     }));

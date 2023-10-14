@@ -1,13 +1,13 @@
-import {
-  Account,
-  type AccountApi,
-  type AccountCommand,
-  type AccountQuery,
-  type AccountSort,
-  type AccountType,
-  type JournalQuery,
-  type Model,
+import type {
+  AccountApi,
+  AccountCommand,
+  AccountQuery,
+  AccountSort,
+  AccountType,
+  JournalQuery,
+  Model,
 } from "@core/services";
+import { Account } from "@core/services";
 import { toMap } from "@core/utils";
 import { AbstractWriteApi } from "./api";
 import { journalApi } from "./journal";

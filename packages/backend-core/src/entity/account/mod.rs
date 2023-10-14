@@ -8,7 +8,7 @@ pub use query::*;
 
 use crate::entity::{
   account_tag, journal, normalize_description, normalize_name, normalize_tags, normalize_unit,
-  FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
+  FIELD_ID, FIELD_JOURNAL, FIELD_NAME, FIELD_TYPE,
 };
 use itertools::Itertools;
 use sea_orm::sea_query::{BinOper, Expr, OnConflict};
@@ -21,6 +21,83 @@ use uuid::Uuid;
 
 pub const TYPE: &str = "Account";
 
+#[derive(Debug, Default)]
+pub struct Builder {
+  id: Option<Uuid>,
+  journal_id: Option<Uuid>,
+  name: String,
+  description: String,
+  unit: String,
+  typ: Option<Type>,
+  tags: HashSet<String>,
+}
+
+impl From<Root> for Builder {
+  fn from(value: Root) -> Self {
+    Builder {
+      id: Some(value.id),
+      journal_id: Some(value.journal_id),
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      typ: Some(value.typ),
+      tags: value.tags,
+    }
+  }
+}
+
+impl Builder {
+  pub fn build(self) -> crate::Result<Root> {
+    let name = normalize_name(TYPE, self.name)?;
+    let description = normalize_description(TYPE, self.description)?;
+    let unit = normalize_unit(TYPE, self.unit)?;
+    let tags = normalize_tags(TYPE, self.tags)?;
+    Ok(Root {
+      id: self.id.unwrap_or_else(Uuid::new_v4),
+      journal_id: self.journal_id.ok_or_else(|| crate::Error::RequiredField {
+        typ: TYPE.to_string(),
+        field: FIELD_JOURNAL.to_string(),
+      })?,
+      name,
+      description,
+      unit,
+      typ: self.typ.ok_or_else(|| crate::Error::RequiredField {
+        typ: TYPE.to_string(),
+        field: FIELD_TYPE.to_string(),
+      })?,
+      tags,
+    })
+  }
+
+  pub fn id(self, id: Uuid) -> Builder {
+    Builder { id: Some(id), ..self }
+  }
+
+  pub fn journal_id(self, journal_id: Uuid) -> Builder {
+    Builder { journal_id: Some(journal_id), ..self }
+  }
+
+  pub fn name(self, name: impl ToString) -> Builder {
+    Builder { name: name.to_string(), ..self }
+  }
+
+  pub fn description(self, description: impl ToString) -> Builder {
+    Builder { description: description.to_string(), ..self }
+  }
+
+  pub fn unit(self, unit: impl ToString) -> Builder {
+    Builder { unit: unit.to_string(), ..self }
+  }
+
+  pub fn typ(self, typ: Type) -> Builder {
+    Builder { typ: Some(typ), ..self }
+  }
+
+  pub fn tags(self, tags: impl IntoIterator<Item = impl ToString>) -> Builder {
+    Builder { tags: tags.into_iter().map(|s| s.to_string()).collect(), ..self }
+  }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Root {
   pub id: Uuid,
@@ -31,6 +108,7 @@ pub struct Root {
   pub typ: Type,
   pub tags: HashSet<String>,
 }
+
 impl super::Root for Root {
   fn id(&self) -> Uuid {
     self.id
@@ -38,31 +116,6 @@ impl super::Root for Root {
 }
 
 impl Root {
-  pub fn new(
-    id: Option<Uuid>,
-    journal: &journal::Root,
-    name: impl ToString,
-    description: impl ToString,
-    unit: impl ToString,
-    typ: Type,
-    tags: impl IntoIterator<Item = impl ToString>,
-  ) -> crate::Result<Root> {
-    let name = normalize_name(TYPE, name)?;
-    let description = normalize_description(TYPE, description)?;
-    let unit = normalize_unit(TYPE, unit)?;
-    let tags = normalize_tags(TYPE, tags)?;
-
-    Ok(Root {
-      id: id.unwrap_or_else(Uuid::new_v4),
-      journal_id: journal.id,
-      name,
-      description,
-      unit,
-      typ,
-      tags,
-    })
-  }
-
   pub async fn from_model(
     db: &impl ConnectionTrait,
     models: impl IntoIterator<Item = Model>,
@@ -152,7 +205,7 @@ impl Root {
     Entity::update_many()
       .col_expr(
         Column::Name,
-        Expr::col(Column::Name).binary(BinOper::Custom("||"), Expr::current_timestamp()),
+        Expr::col((Entity, Column::Name)).binary(BinOper::Custom("||"), Expr::current_timestamp()),
       )
       .filter(Column::Id.is_in(model_ids.clone()))
       .exec(db)
@@ -191,6 +244,30 @@ impl Root {
       if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
     let models = select.limit(limit).all(db).await?;
     Self::from_model(db, models).await
+  }
+
+  pub async fn handle(db: &impl ConnectionTrait, command: Command) -> crate::Result<Vec<Root>> {
+    match command {
+      Command::Create(command) => Self::create(db, vec![command]).await,
+      Command::Update(command) => Self::update(db, vec![command]).await,
+      Command::Delete(CommandDelete { id }) => {
+        Self::delete(db, id).await?;
+        Ok(Vec::default())
+      }
+      Command::Batch(CommandBatch { create, update, delete }) => {
+        let mut ids = HashSet::<Uuid>::new();
+        for root in Self::create(db, create).await? {
+          ids.insert(root.id);
+        }
+        for root in Self::update(db, update).await? {
+          ids.insert(root.id);
+        }
+
+        Self::delete(db, delete).await?;
+
+        Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None).await
+      }
+    }
   }
 
   pub async fn create(
@@ -257,15 +334,16 @@ impl Root {
       .into_iter()
       .filter_map(|command| {
         if let Some(journal) = journals.get(&command.journal_id) {
-          Some(Root::new(
-            None,
-            journal,
-            command.name,
-            command.description,
-            command.unit,
-            command.typ,
-            command.tags,
-          ))
+          Some(
+            Builder::default()
+              .journal_id(journal.id)
+              .name(command.name)
+              .description(command.description)
+              .unit(command.unit)
+              .typ(command.typ)
+              .tags(command.tags)
+              .build(),
+          )
         } else {
           None
         }
@@ -340,19 +418,24 @@ impl Root {
         continue;
       }
 
-      let model = Self::new(
-        Some(model.id),
-        journal,
-        if command.name.is_empty() { model.name.clone() } else { command.name.clone() },
-        if let Some(description) = &command.description {
-          description.clone()
-        } else {
-          model.description.clone()
-        },
-        if command.unit.is_empty() { model.unit.clone() } else { command.unit.clone() },
-        if let Some(typ) = &command.typ { *typ } else { model.typ },
-        if let Some(tags) = &command.tags { tags.clone() } else { model.tags.clone() },
-      )?;
+      let mut builder = Builder::from(model.clone());
+      if !command.name.is_empty() {
+        builder = builder.name(command.name.clone());
+      }
+
+      if let Some(description) = &command.description {
+        builder = builder.description(description.clone());
+      }
+
+      if !command.unit.is_empty() {
+        builder = builder.unit(command.unit.clone());
+      }
+
+      if let Some(tags) = &command.tags {
+        builder = builder.tags(tags.clone());
+      }
+
+      let model = builder.build()?;
 
       accounts.insert(model.id, model.clone());
       updated.insert(model.id, model);

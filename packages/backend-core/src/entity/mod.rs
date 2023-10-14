@@ -16,6 +16,7 @@ pub const FIELD_TAGS: &str = "tags";
 pub const FIELD_TAG_EACH: &str = "tags.each";
 pub const FIELD_UNIT: &str = "unit";
 pub const FIELD_JOURNAL: &str = "journal";
+pub const FIELD_TYPE: &str = "type";
 
 pub const MIN_NAME_LENGTH: usize = 6;
 pub const MAX_NAME_LENGTH: usize = 63;

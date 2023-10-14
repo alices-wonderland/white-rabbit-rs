@@ -18,40 +18,36 @@
 </template>
 
 <script setup lang="ts">
-import {
-  type ColDef,
-  type EditableCallbackParams,
-  type GridReadyEvent,
-  type ValueGetterParams,
-  type ValueSetterParams,
-  type CellClassParams,
-  type AbstractColDef,
-  type ColGroupDef,
-  type GetContextMenuItems,
-  ColumnApi,
-  GridApi,
+import { ColumnApi, GridApi } from "@ag-grid-community/core";
+import type {
+  ColDef,
+  EditableCallbackParams,
+  GridReadyEvent,
+  ValueGetterParams,
+  ValueSetterParams,
+  CellClassParams,
+  AbstractColDef,
+  ColGroupDef,
+  GetContextMenuItems,
 } from "@ag-grid-community/core";
 import { AgGridVue } from "@ag-grid-community/vue3";
 import { useInject } from "@core/composable";
-import {
-  type EntryApi,
-  type EntryType,
-  type AccountApi,
-  ACCOUNT_TYPE,
-  ENTRY_API_KEY,
-  ACCOUNT_API_KEY,
-  Journal,
-  type EntryCommandUpdate,
-  type EntryCommandCreate,
-  ENTRY_TYPES,
+import type {
+  EntryApi,
+  EntryType,
+  AccountApi,
+  EntryCommandUpdate,
+  EntryCommandCreate,
 } from "@core/services";
+import { ACCOUNT_TYPE, ENTRY_API_KEY, ACCOUNT_API_KEY, Journal, ENTRY_TYPES } from "@core/services";
 import { ref, watch, computed } from "vue";
 import { useTheme } from "vuetify";
 import EntryWriteTableActionsCellRenderer from "./EntryWriteTableActionsCellRenderer.vue";
 import EntryWriteTableGroupCellRenderer from "./EntryWriteTableGroupCellRenderer.vue";
 import EntryWriteTableStateCellRenderer from "./EntryWriteTableStateCellRenderer.vue";
 import EntryWriteTableNameCellEditor from "./EntryWriteTableNameCellEditor.vue";
-import { Child, Parent, type Row } from "./row";
+import { Child, Parent } from "./row";
+import type { Row } from "./row";
 import { NULL_PLACEHOLDER, toMap } from "@core/utils";
 import { computedAsync } from "@vueuse/core";
 
@@ -313,9 +309,9 @@ const saveEditedRows = async () => {
       update.push(command);
     }
   }
-  console.log("EntryCommandBatchUpdate: ", { create, update });
+  console.log("EntryCommandBatch: ", { create, update });
   const result = await entryApi.handleCommand({
-    commandType: "entries:batchUpdate",
+    commandType: "entries:batch",
     update,
     create,
   });

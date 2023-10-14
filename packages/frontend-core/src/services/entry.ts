@@ -92,7 +92,7 @@ export interface EntryCommandUpdate extends Command<`${typeof ENTRY_TYPE}:update
   readonly items?: EntryItem[];
 }
 
-export interface EntryCommandBatchUpdate extends Command<`${typeof ENTRY_TYPE}:batchUpdate`> {
+export interface EntryCommandBatch extends Command<`${typeof ENTRY_TYPE}:batch`> {
   readonly create?: Omit<EntryCommandCreate, "commandType">[];
   readonly update?: Omit<EntryCommandUpdate, "commandType">[];
 }
@@ -104,7 +104,7 @@ export interface EntryCommandDelete extends Command<`${typeof ENTRY_TYPE}:delete
 export type EntryCommand =
   | EntryCommandCreate
   | EntryCommandUpdate
-  | EntryCommandBatchUpdate
+  | EntryCommandBatch
   | EntryCommandDelete;
 
 export type EntryApi = WriteApi<Entry, EntryQuery, EntryCommand, EntrySort>;

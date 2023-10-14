@@ -1,8 +1,8 @@
 use crate::entity::entry;
 use chrono::NaiveDate;
-use rust_decimal::Decimal;
+
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -31,7 +31,7 @@ pub struct CommandCreate {
   #[serde(default)]
   pub tags: HashSet<String>,
   #[serde(default)]
-  pub items: HashMap<Uuid, (Decimal, Option<Decimal>)>,
+  pub items: Vec<entry::Item>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,7 +50,7 @@ pub struct CommandUpdate {
   #[serde(default)]
   pub tags: Option<HashSet<String>>,
   #[serde(default)]
-  pub items: HashMap<Uuid, (Decimal, Option<Decimal>)>,
+  pub items: Vec<entry::Item>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -75,7 +75,7 @@ mod tests {
   use chrono::NaiveDate;
   use rust_decimal_macros::dec;
   use serde_json::json;
-  use std::collections::{HashMap, HashSet};
+  use std::collections::HashSet;
   use uuid::uuid;
 
   #[test]
@@ -88,10 +88,11 @@ mod tests {
         typ: entry::Type::Check,
         date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
         tags: HashSet::from_iter(["tag1".to_string()]),
-        items: HashMap::from_iter([(
-          uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
-          (dec!(1.2), None),
-        )]),
+        items: vec![entry::Item {
+          account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
+          amount: dec!(1.2),
+          price: None,
+        }],
       }),
       entry::Command::Update(entry::CommandUpdate {
         id: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d21"),
@@ -100,7 +101,7 @@ mod tests {
         typ: Some(entry::Type::Record),
         date: Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
         tags: None,
-        items: HashMap::default(),
+        items: Vec::default(),
       }),
       entry::Command::Delete(entry::CommandDelete {
         id: HashSet::from_iter([uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d21")]),
@@ -114,10 +115,11 @@ mod tests {
             typ: entry::Type::Check,
             date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
             tags: HashSet::from_iter(["tag1".to_string()]),
-            items: HashMap::from_iter([(
-              uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
-              (dec!(1.2), None),
-            )]),
+            items: vec![entry::Item {
+              account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
+              amount: dec!(1.2),
+              price: None,
+            }],
           },
           entry::CommandCreate {
             journal_id: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
@@ -126,10 +128,11 @@ mod tests {
             typ: entry::Type::Record,
             date: NaiveDate::from_ymd_opt(2023, 2, 1).unwrap(),
             tags: HashSet::from_iter(["tag1".to_string()]),
-            items: HashMap::from_iter([(
-              uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
-              (dec!(1.1), Some(dec!(2.2))),
-            )]),
+            items: vec![entry::Item {
+              account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
+              amount: dec!(1.1),
+              price: Some(dec!(2.2)),
+            }],
           },
         ],
         update: vec![
@@ -140,7 +143,7 @@ mod tests {
             typ: Some(entry::Type::Record),
             date: Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
             tags: None,
-            items: HashMap::default(),
+            items: Vec::default(),
           },
           entry::CommandUpdate {
             id: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d25"),
@@ -149,7 +152,7 @@ mod tests {
             typ: Some(entry::Type::Record),
             date: Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
             tags: None,
-            items: HashMap::default(),
+            items: Vec::default(),
           },
         ],
         delete: HashSet::from_iter([uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d21")]),
@@ -167,9 +170,9 @@ mod tests {
           "type": "Check",
           "date": "2023-01-01",
           "tags": ["tag1"],
-          "items": {
-            "7aaec70c-adbc-47d1-8b74-a3e21f387d22": [ "1.2", null ],
-          }
+          "items": [
+            { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": null }
+          ]
         },
         {
           "commandType": "entries:update",
@@ -179,7 +182,7 @@ mod tests {
           "type": "Record",
           "date": "2023-02-01",
           "tags": null,
-          "items": {  }
+          "items": []
         },
         {
           "commandType": "entries:delete",
@@ -195,9 +198,9 @@ mod tests {
               "type": "Check",
               "date": "2023-01-01",
               "tags": ["tag1"],
-              "items": {
-                "7aaec70c-adbc-47d1-8b74-a3e21f387d22": [ "1.2", null ],
-              }
+              "items": [
+                { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": null }
+              ]
             },
             {
               "journalId": "7aaec70c-adbc-47d1-8b74-a3e21f387d22",
@@ -206,9 +209,9 @@ mod tests {
               "type": "Record",
               "date": "2023-02-01",
               "tags": ["tag1"],
-              "items": {
-                "7aaec70c-adbc-47d1-8b74-a3e21f387d22": [ "1.1", "2.2" ],
-              }
+              "items": [
+                { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.1", "price": "2.2" }
+              ]
             }
           ],
           "update": [
@@ -219,7 +222,7 @@ mod tests {
               "type": "Record",
               "date": "2023-02-01",
               "tags": null,
-              "items": {  }
+              "items": []
             },
             {
               "id": "7aaec70c-adbc-47d1-8b74-a3e21f387d25",
@@ -228,7 +231,7 @@ mod tests {
               "type": "Record",
               "date": "2023-02-01",
               "tags": null,
-              "items": {  }
+              "items": []
             },
           ],
           "delete": [ "7aaec70c-adbc-47d1-8b74-a3e21f387d21" ]
