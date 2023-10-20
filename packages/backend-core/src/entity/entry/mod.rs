@@ -66,7 +66,7 @@ impl Builder {
     let name = normalize_name(TYPE, self.name)?;
     let description = normalize_description(TYPE, self.description)?;
     let tags = normalize_tags(TYPE, self.tags)?;
-    let mut filtered_items = Vec::new();
+    let mut filtered_items = HashMap::new();
     let journal_id = self.journal_id.ok_or_else(|| crate::Error::RequiredField {
       typ: TYPE.to_string(),
       field: FIELD_JOURNAL.to_string(),
@@ -100,7 +100,7 @@ impl Builder {
           }
         }
 
-        filtered_items.push(Item { account: account.id, amount, price });
+        filtered_items.insert(account.id, (amount, price));
       } else {
         return Err(crate::Error::NotFound {
           typ: account::TYPE.to_string(),
@@ -120,7 +120,10 @@ impl Builder {
       })?,
       date: self.date,
       tags,
-      items: filtered_items,
+      items: filtered_items
+        .into_iter()
+        .map(|(account, (amount, price))| Item { account, amount, price })
+        .collect(),
     })
   }
 

@@ -3,14 +3,16 @@ import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { fileURLToPath } from "url";
 import { visualizer } from "rollup-plugin-visualizer";
-import vuetify from "vite-plugin-vuetify";
 import vueI18n from "@intlify/unplugin-vue-i18n/vite";
+import { quasar, transformAssetUrls } from "@quasar/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
     plugins: [
-      vue(),
+      vue({
+        template: { transformAssetUrls },
+      }),
       vueI18n({
         include: [
           path.resolve(
@@ -19,7 +21,7 @@ export default defineConfig(() => {
           ),
         ],
       }),
-      vuetify(),
+      quasar(),
       visualizer(),
     ],
     clearScreen: false,

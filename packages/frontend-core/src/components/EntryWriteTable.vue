@@ -1,9 +1,9 @@
 <template>
-  <v-btn color="primary" size="small" @click="saveEditedRows">Save</v-btn>
+  <q-btn color="primary" size="sm" @click="saveEditedRows">Save</q-btn>
   <ag-grid-vue
     ref="tableRef"
     :style="{ minHeight: '150px', maxHeight: '80vh', height: heightPx }"
-    :class="theme.global.name.value === 'dark' ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'"
+    :class="theme"
     :column-defs="columnDefs"
     :default-col-def="defaultColDef"
     group-display-type="custom"
@@ -41,7 +41,6 @@ import type {
 } from "@core/services";
 import { ACCOUNT_TYPE, ENTRY_API_KEY, ACCOUNT_API_KEY, Journal, ENTRY_TYPES } from "@core/services";
 import { ref, watch, computed } from "vue";
-import { useTheme } from "vuetify";
 import EntryWriteTableActionsCellRenderer from "./EntryWriteTableActionsCellRenderer.vue";
 import EntryWriteTableGroupCellRenderer from "./EntryWriteTableGroupCellRenderer.vue";
 import EntryWriteTableStateCellRenderer from "./EntryWriteTableStateCellRenderer.vue";
@@ -50,10 +49,14 @@ import { Child, Parent } from "./row";
 import type { Row } from "./row";
 import { NULL_PLACEHOLDER, toMap } from "@core/utils";
 import { computedAsync } from "@vueuse/core";
+import { useQuasar } from "quasar";
 
 const props = defineProps<{ journal: Journal }>();
-const theme = useTheme();
+const quasar = useQuasar();
 
+const theme = computed(() => {
+  return quasar.dark.isActive ? "ag-theme-alpine-dark" : "ag-theme-alpine";
+});
 const rows = ref<Row[]>([]);
 const entryApi = useInject<EntryApi>(ENTRY_API_KEY);
 const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);

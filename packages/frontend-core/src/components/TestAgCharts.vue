@@ -2,12 +2,12 @@
 import { AgChartsVue } from "ag-charts-vue3";
 import type { AgChartOptions } from "ag-charts-community";
 import { computed } from "vue";
-import { useTheme } from "vuetify";
+import { useQuasar } from "quasar";
 
-const theme = useTheme();
+const quasar = useQuasar();
 
 const chartTheme = computed(() => {
-  return theme.global.name.value === "dark" ? "ag-default-dark" : "ag-default";
+  return quasar.dark.isActive ? "ag-default-dark" : "ag-default";
 });
 
 const options = computed<AgChartOptions>(() => ({
