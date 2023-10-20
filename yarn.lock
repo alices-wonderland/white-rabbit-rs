@@ -1088,13 +1088,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mdi/js@npm:^7.3.67":
-  version: 7.3.67
-  resolution: "@mdi/js@npm:7.3.67"
-  checksum: bba88d6f1305a02c3b7372930746314aec1ddc31f04372c4da419a345661de3be34181a749afa00b1c0cd8281d9f443efe1876ee9ba683032e88f35466886900
-  languageName: node
-  linkType: hard
-
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -1156,6 +1149,25 @@ __metadata:
     picocolors: ^1.0.0
     tslib: ^2.6.0
   checksum: 24e04c121269317d259614cd32beea3af38277151c4002df5883c4be920b8e3490bb897748e844f9d46bf68230f86dabd4e8f093773130e7e60529a769a132fc
+  languageName: node
+  linkType: hard
+
+"@quasar/extras@npm:^1.16.7":
+  version: 1.16.7
+  resolution: "@quasar/extras@npm:1.16.7"
+  checksum: 7c08d0ed03b7ef211da17ec46db3ed7a13d5e7349679abbf97b0bd7f3180dad698411d66e9543f6477bb8d1fba1a7c736c17bbbf3bf200dfd521ac76d53584c6
+  languageName: node
+  linkType: hard
+
+"@quasar/vite-plugin@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "@quasar/vite-plugin@npm:1.5.0"
+  peerDependencies:
+    "@vitejs/plugin-vue": ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0-beta.0
+    quasar: ^2.8.0
+    vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0-beta.0
+    vue: ^3.0.0
+  checksum: f2e6ba8b933c3cdcd3aca39194d1339ccc93562e04da63868fcf48631883f5fa10f16cfd00bcbcc275245415aacba067fd738af26211aac6807d9d6284abc96d
   languageName: node
   linkType: hard
 
@@ -2138,19 +2150,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuetify/loader-shared@npm:^1.7.1":
-  version: 1.7.1
-  resolution: "@vuetify/loader-shared@npm:1.7.1"
-  dependencies:
-    find-cache-dir: ^3.3.2
-    upath: ^2.0.1
-  peerDependencies:
-    vue: ^3.0.0
-    vuetify: ^3.0.0-beta.4
-  checksum: 5777955e593afbb947c8be28a8625021846901e16ab982edfbbb74d9beb15f95490390ab1b0c6ec47e8b05389547eb69c79173cca04389f0203795071bb04994
-  languageName: node
-  linkType: hard
-
 "@vueuse/core@npm:^10.5.0":
   version: 10.5.0
   resolution: "@vueuse/core@npm:10.5.0"
@@ -2214,11 +2213,13 @@ __metadata:
     "@ag-grid-enterprise/side-bar": ^30.2.0
     "@ag-grid-enterprise/status-bar": ^30.2.0
     "@date-io/date-fns": ^2.17.0
+    "@quasar/extras": ^1.16.7
     "@types/uuid": ^9.0.6
     "@vueuse/core": ^10.5.0
     ag-charts-community: ^8.2.0
     ag-charts-vue3: ^8.2.0
     date-fns: ^2.30.0
+    quasar: ^2.13.0
     rimraf: ^5.0.5
     tailwindcss: ^3.3.3
     uuid: ^9.0.1
@@ -2229,7 +2230,6 @@ __metadata:
     vue-i18n: ^9.5.0
     vue-router: ^4.2.5
     vue-tsc: ^1.8.19
-    vuetify: ^3.3.22
   languageName: unknown
   linkType: soft
 
@@ -3086,13 +3086,6 @@ __metadata:
   bin:
     commitlint: cli.js
   checksum: 36408947008e5a36853621b7faf7cb0836eeef2921614c35fadd597edcdfac9550ca3ccff09f15687ff30d73c0b380c5bfeada8da22666465b6d2390f1eb654f
-  languageName: node
-  linkType: hard
-
-"commondir@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "commondir@npm:1.0.1"
-  checksum: 59715f2fc456a73f68826285718503340b9f0dd89bfffc42749906c5cf3d4277ef11ef1cca0350d0e79204f00f1f6d83851ececc9095dc88512a697ac0b9bdcb
   languageName: node
   linkType: hard
 
@@ -4535,17 +4528,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"find-cache-dir@npm:^3.3.2":
-  version: 3.3.2
-  resolution: "find-cache-dir@npm:3.3.2"
-  dependencies:
-    commondir: ^1.0.1
-    make-dir: ^3.0.2
-    pkg-dir: ^4.1.0
-  checksum: 1e61c2e64f5c0b1c535bd85939ae73b0e5773142713273818cc0b393ee3555fb0fd44e1a5b161b8b6c3e03e98c2fcc9c227d784850a13a90a8ab576869576817
-  languageName: node
-  linkType: hard
-
 "find-node-modules@npm:^2.1.2":
   version: 2.1.3
   resolution: "find-node-modules@npm:2.1.3"
@@ -4563,7 +4545,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"find-up@npm:^4.0.0, find-up@npm:^4.1.0":
+"find-up@npm:^4.1.0":
   version: 4.1.0
   resolution: "find-up@npm:4.1.0"
   dependencies:
@@ -6160,15 +6142,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"make-dir@npm:^3.0.2":
-  version: 3.1.0
-  resolution: "make-dir@npm:3.1.0"
-  dependencies:
-    semver: ^6.0.0
-  checksum: 484200020ab5a1fdf12f393fe5f385fc8e4378824c940fba1729dcd198ae4ff24867bc7a5646331e50cead8abff5d9270c456314386e629acec6dff4b8016b78
-  languageName: node
-  linkType: hard
-
 "make-dir@npm:^4.0.0":
   version: 4.0.0
   resolution: "make-dir@npm:4.0.0"
@@ -7113,15 +7086,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pkg-dir@npm:^4.1.0":
-  version: 4.2.0
-  resolution: "pkg-dir@npm:4.2.0"
-  dependencies:
-    find-up: ^4.0.0
-  checksum: 9863e3f35132bf99ae1636d31ff1e1e3501251d480336edb1c211133c8d58906bed80f154a1d723652df1fda91e01c7442c2eeaf9dc83157c7ae89087e43c8d6
-  languageName: node
-  linkType: hard
-
 "pkg-types@npm:^1.0.3":
   version: 1.0.3
   resolution: "pkg-types@npm:1.0.3"
@@ -7322,6 +7286,13 @@ __metadata:
   version: 2.3.0
   resolution: "punycode@npm:2.3.0"
   checksum: 39f760e09a2a3bbfe8f5287cf733ecdad69d6af2fe6f97ca95f24b8921858b91e9ea3c9eeec6e08cede96181b3bb33f95c6ffd8c77e63986508aa2e8159fa200
+  languageName: node
+  linkType: hard
+
+"quasar@npm:^2.13.0":
+  version: 2.13.0
+  resolution: "quasar@npm:2.13.0"
+  checksum: 528a68b015abd0da5bbe34b81eb185cb3e9679f444a75b21e704041b8dce44e866134e7cb1f82a5d9c17acc0b3302bf6c27c10fa63c5dfbd5a80274462360398
   languageName: node
   linkType: hard
 
@@ -7804,7 +7775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^6.0.0, semver@npm:^6.1.0, semver@npm:^6.3.1":
+"semver@npm:^6.1.0, semver@npm:^6.3.1":
   version: 6.3.1
   resolution: "semver@npm:6.3.1"
   bin:
@@ -8892,13 +8863,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"upath@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "upath@npm:2.0.1"
-  checksum: 2db04f24a03ef72204c7b969d6991abec9e2cb06fb4c13a1fd1c59bc33b46526b16c3325e55930a11ff86a77a8cbbcda8f6399bf914087028c5beae21ecdb33c
-  languageName: node
-  linkType: hard
-
 "update-browserslist-db@npm:^1.0.13":
   version: 1.0.13
   resolution: "update-browserslist-db@npm:1.0.13"
@@ -8989,20 +8953,6 @@ __metadata:
   bin:
     vite-node: vite-node.mjs
   checksum: 46eba82bf8b69c7dfeed901502533b172cc6303212f0f49f82c2f64758fa4b60acd1b1e37cb96aff944e36b510b0d1beedb50d9cb25ef39e0159b2b9d1136b1f
-  languageName: node
-  linkType: hard
-
-"vite-plugin-vuetify@npm:^1.0.2":
-  version: 1.0.2
-  resolution: "vite-plugin-vuetify@npm:1.0.2"
-  dependencies:
-    "@vuetify/loader-shared": ^1.7.1
-    debug: ^4.3.3
-    upath: ^2.0.1
-  peerDependencies:
-    vite: ^2.7.0 || ^3.0.0 || ^4.0.0
-    vuetify: ^3.0.0-beta.4
-  checksum: 262759ee5bb364fac453c71a2523bf4476421d50c4c80e0a54569e7a7c0dc12fe70ccd890ebfed19adb3d37e9f2b82b7691e99bfea0e01b32f1493a9d76d942f
   languageName: node
   linkType: hard
 
@@ -9275,28 +9225,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.3.22":
-  version: 3.3.22
-  resolution: "vuetify@npm:3.3.22"
-  peerDependencies:
-    typescript: ">=4.7"
-    vite-plugin-vuetify: ^1.0.0-alpha.12
-    vue: ^3.2.0
-    vue-i18n: ^9.0.0
-    webpack-plugin-vuetify: ^2.0.0-alpha.11
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-    vite-plugin-vuetify:
-      optional: true
-    vue-i18n:
-      optional: true
-    webpack-plugin-vuetify:
-      optional: true
-  checksum: bdc425fbb3f454d36086793350c2d543f0fb77a3d2f00814146f6f242fca18916e848acc9248b91f9e1293ce3fdc90e28295004445f2f272f7caf6e0c75b736f
-  languageName: node
-  linkType: hard
-
 "w3c-xmlserializer@npm:^4.0.0":
   version: 4.0.0
   resolution: "w3c-xmlserializer@npm:4.0.0"
@@ -9417,7 +9345,7 @@ __metadata:
     "@commitlint/cli": ^17.8.0
     "@commitlint/config-conventional": ^17.8.0
     "@intlify/unplugin-vue-i18n": ^1.4.0
-    "@mdi/js": ^7.3.67
+    "@quasar/vite-plugin": ^1.5.0
     "@types/eslint": ^8.44.6
     "@types/jsdom": ^21.1.4
     "@types/node": ^20.8.7
@@ -9467,7 +9395,6 @@ __metadata:
     tailwindcss: ^3.3.3
     typescript: ^5.2.2
     vite: ^4.5.0
-    vite-plugin-vuetify: ^1.0.2
     vitest: ^0.34.6
     vue: ^3.3.5
     vue-eslint-parser: ^9.3.2

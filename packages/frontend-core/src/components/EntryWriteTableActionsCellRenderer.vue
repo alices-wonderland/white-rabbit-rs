@@ -1,21 +1,23 @@
 <template>
   <div class="flex gap-1 h-full items-center">
-    <v-btn
+    <q-btn
       v-if="isDeletable"
-      size="x-small"
-      variant="text"
+      size="sm"
+      flat
       color="error"
-      :icon="deleted ? mdiUndo : mdiDelete"
+      round
+      :icon="deleted ? 'undo' : 'delete'"
       @click="toggleDelete"
-    ></v-btn>
-    <v-btn size="x-small" variant="text" :icon="mdiContentCopy" @click="props.params.clone"></v-btn>
-    <v-btn
+    ></q-btn>
+    <q-btn size="sm" flat icon="content_copy" round @click="props.params.clone"></q-btn>
+    <q-btn
       v-if="data instanceof Parent"
-      size="x-small"
-      variant="text"
-      :icon="mdiPlus"
+      size="sm"
+      flat
+      icon="add"
+      round
       @click="props.params.addChild"
-    ></v-btn>
+    ></q-btn>
   </div>
 </template>
 
@@ -25,7 +27,6 @@ import { Parent } from "./row";
 import type { Row } from "./row";
 import { computed } from "vue";
 import type { ComputedRef } from "vue";
-import { mdiDelete, mdiUndo, mdiContentCopy, mdiPlus } from "@mdi/js";
 
 const props = defineProps<{
   params: ICellRendererParams<Row> & { addChild: () => void; clone: () => void };

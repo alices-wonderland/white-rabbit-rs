@@ -1,6 +1,6 @@
 <template>
   <div class="flex gap-1 h-full items-center">
-    <v-chip v-if="state">{{ state }}</v-chip>
+    <q-chip v-if="state">{{ state }}</q-chip>
   </div>
 </template>
 

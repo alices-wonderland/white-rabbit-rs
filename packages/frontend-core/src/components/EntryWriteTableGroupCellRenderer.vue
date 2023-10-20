@@ -1,6 +1,6 @@
 <template>
   <div class="flex gap-1 h-full items-center w-fit">
-    <v-icon :icon="iconName"></v-icon>
+    <q-icon :name="iconName" size="xs"></q-icon>
     <span>{{ name }}</span>
   </div>
 </template>
@@ -10,18 +10,17 @@ import type { ICellRendererParams } from "@ag-grid-community/core";
 import { computed } from "vue";
 import { Child } from "./row";
 import type { Row } from "./row";
-import { mdiAccountCashOutline, mdiCheckDecagramOutline, mdiCashMultiple } from "@mdi/js";
 
 const props = defineProps<{ readonly params: ICellRendererParams<Row> }>();
 
 const iconName = computed(() => {
   const data = props.params.data;
   if (data instanceof Child) {
-    return mdiAccountCashOutline;
+    return "savings";
   } else if (data?.type === "Check") {
-    return mdiCheckDecagramOutline;
+    return "verified";
   } else {
-    return mdiCashMultiple;
+    return "payments";
   }
 });
 

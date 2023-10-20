@@ -1,12 +1,14 @@
 <template>
-  <v-text-field v-if="isParent" v-model="value"></v-text-field>
-  <v-select
+  <q-input v-if="isParent" v-model="value" label="Name" filled></q-input>
+  <q-select
     v-else
     v-model="value"
-    :items="params.availableAccounts"
-    item-value="id"
-    item-title="name"
-  ></v-select>
+    :options="params.availableAccounts"
+    option-value="id"
+    option-label="name"
+    emit-value
+    map-options
+  ></q-select>
 </template>
 
 <script lang="ts">
@@ -14,7 +16,7 @@ import type { ICellEditorParams } from "@ag-grid-community/core";
 import type { Row } from "./row";
 import type { PropType } from "vue";
 import { Parent } from "./row";
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Account } from "@core/services";
 
 type Params = PropType<ICellEditorParams<Row, string> & { availableAccounts: Account[] }>;
@@ -28,7 +30,10 @@ export default {
   },
   setup(props) {
     const value = ref<string>();
-    watch(props, () => {
+    watch(value, (newValue) => {
+      console.log("New Value:", newValue);
+    });
+    onMounted(() => {
       value.value = props.params.value || undefined;
     });
     const getValue = () => value.value;

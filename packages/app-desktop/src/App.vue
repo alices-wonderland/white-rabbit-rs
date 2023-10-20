@@ -1,6 +1,13 @@
 <template>
   <AppScaffold>
-    <v-select v-model="journalId" :items="journals" item-title="name" item-value="id"></v-select>
+    <q-select
+      v-model="journalId"
+      :options="journals"
+      option-label="name"
+      option-value="id"
+      map-options
+      emit-value
+    ></q-select>
     <EntryWriteTable v-if="journal" :journal="journal"></EntryWriteTable>
     <TestAgCharts></TestAgCharts>
   </AppScaffold>
