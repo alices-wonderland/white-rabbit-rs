@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/frontend-core",
-  "packageManager": "yarn@3.6.4",
+  "packageManager": "yarn@4.0.0",
   "version": "0.1.0",
   "scripts": {
     "test": "vitest run --coverage",
@@ -46,6 +46,6 @@
     "rimraf": "^5.0.5",
     "vite": "^4.5.0",
     "vitest": "^0.34.6",
-    "vue-tsc": "^1.8.19"
+    "vue-tsc": "^1.8.20"
   }
 }
