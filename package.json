@@ -2,7 +2,7 @@
   "name": "white-rabbit",
   "version": "0.1.0",
   "license": "MIT",
-  "packageManager": "yarn@3.6.4",
+  "packageManager": "yarn@4.0.0",
   "engines": {
     "yarn": ">=3",
     "node": ">=20"

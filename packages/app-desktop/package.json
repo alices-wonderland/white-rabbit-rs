@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/app-desktop",
-  "packageManager": "yarn@3.6.4",
+  "packageManager": "yarn@4.0.0",
   "version": "0.1.0",
   "scripts": {
     "dev": "yarn tauri dev",
