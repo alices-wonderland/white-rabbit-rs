@@ -29,11 +29,13 @@ macro_rules! generate_handlers {
       #[tauri::command]
       async fn [<$entity _find_all>](
         db: ::tauri::State<'_, ::sea_orm::DbConn>,
-        query: ::backend_core::entity::$entity::Query,
+        query: Option<::backend_core::entity::$entity::Query>,
+        size: Option<u64>,
+        sort: Option<::backend_core::entity::$entity::Sort>,
       ) -> Result<Vec<::backend_core::entity::$entity::Root>, String> {
         db.inner()
           .transaction(|tx| {
-            Box::pin(async move { ::backend_core::entity::$entity::Root::find_all(tx, Some(query), None).await })
+            Box::pin(async move { ::backend_core::entity::$entity::Root::find_all(tx, query, size, sort).await })
           })
           .map_err(|err| err.to_string())
           .await

@@ -15,7 +15,8 @@ use itertools::Itertools;
 use rust_decimal::Decimal;
 use sea_orm::sea_query::{BinOper, Expr, OnConflict};
 use sea_orm::{
-  ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect,
+  ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, Order, QueryFilter, QueryOrder,
+  QuerySelect,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -156,6 +157,23 @@ impl Builder {
 
   pub fn items(self, items: Vec<Item>) -> Builder {
     Builder { items, ..self }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sort {
+  #[serde(rename = "name")]
+  Name,
+  #[serde(rename = "-name")]
+  MinusName,
+}
+
+impl From<Sort> for (Column, Order) {
+  fn from(value: Sort) -> Self {
+    match value {
+      Sort::Name => (Column::Name, Order::Asc),
+      Sort::MinusName => (Column::Name, Order::Desc),
+    }
   }
 }
 
@@ -321,7 +339,7 @@ impl Root {
       entry_item::Entity::insert_many(items).exec(db).await?;
     }
 
-    Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
+    Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None, None).await
   }
 
   pub async fn delete(
@@ -336,16 +354,23 @@ impl Root {
     db: &impl ConnectionTrait,
     query: Option<Query>,
   ) -> crate::Result<Option<Root>> {
-    Ok(Self::find_all(db, query, Some(1)).await?.into_iter().next())
+    Ok(Self::find_all(db, query, Some(1), None).await?.into_iter().next())
   }
 
   pub async fn find_all(
     db: &impl ConnectionTrait,
     query: Option<Query>,
     limit: Option<u64>,
+    sort: Option<Sort>,
   ) -> crate::Result<Vec<Root>> {
     let select =
       if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
+    let select = if let Some(sort) = sort {
+      let (field, order) = Into::<(Column, Order)>::into(sort);
+      select.order_by(field, order)
+    } else {
+      select
+    };
     let models = select.limit(limit).all(db).await?;
     Self::from_model(db, models).await
   }
@@ -369,7 +394,7 @@ impl Root {
 
         Self::delete(db, delete).await?;
 
-        Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None).await
+        Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None, None).await
       }
     }
   }
@@ -389,6 +414,7 @@ impl Root {
         ..Default::default()
       }),
       None,
+      None,
     )
     .await?
     .into_iter()
@@ -401,6 +427,7 @@ impl Root {
         id: commands.iter().flat_map(|c| c.items.iter()).map(|item| item.account).collect(),
         ..Default::default()
       }),
+      None,
       None,
     )
     .await?
@@ -431,6 +458,7 @@ impl Root {
           name: HashSet::from_iter(names),
           ..Default::default()
         }),
+        None,
         None,
       )
       .await?;
@@ -485,6 +513,7 @@ impl Root {
       db,
       Some(account::Query { journal_id: HashSet::from_iter([journal.id]), ..Default::default() }),
       None,
+      None,
     )
     .await?
     .into_iter()
@@ -511,6 +540,7 @@ impl Root {
           name: name_mappings.keys().cloned().collect(),
           ..Default::default()
         }),
+        None,
         None,
       )
       .await?
@@ -585,15 +615,17 @@ impl Root {
     commands: Vec<CommandUpdate>,
   ) -> crate::Result<Vec<Root>> {
     let model_ids = commands.iter().map(|command| command.id).collect::<HashSet<_>>();
-    let mut models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
-      .await?
-      .into_iter()
-      .map(|model| (model.id, model))
-      .collect::<HashMap<_, _>>();
+    let mut models =
+      Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None, None)
+        .await?
+        .into_iter()
+        .map(|model| (model.id, model))
+        .collect::<HashMap<_, _>>();
     let journal_ids = models.values().map(|model| model.journal_id).collect::<HashSet<_>>();
     let journals = journal::Root::find_all(
       db,
       Some(journal::Query { id: journal_ids, ..Default::default() }),
+      None,
       None,
     )
     .await?

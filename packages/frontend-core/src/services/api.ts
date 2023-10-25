@@ -22,12 +22,10 @@ export interface Model<T extends string = string> {
 }
 
 export interface FindAllArgs<Q extends Query, S extends string> {
-  query: Q;
-  sort?: Array<[S, Order]>;
+  query?: Q;
+  sort?: S;
   size?: number;
 }
-
-export type Order = "Asc" | "Desc";
 
 export type Command<T extends string = string> = { readonly commandType: T };
 

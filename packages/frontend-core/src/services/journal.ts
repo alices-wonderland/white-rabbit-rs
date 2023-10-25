@@ -4,6 +4,8 @@ export const JOURNAL_TYPE = "journals";
 
 export const JOURNAL_API_KEY = Symbol("JOURNAL_API_KEY");
 
+export const JOURNAL_ICON = "book";
+
 export class Journal implements Model<typeof JOURNAL_TYPE> {
   id: string;
   name: string;
@@ -24,7 +26,7 @@ export class Journal implements Model<typeof JOURNAL_TYPE> {
   }
 }
 
-export type JournalSort = "name" | "unit";
+export type JournalSort = "name" | "unit" | "-name" | "-unit";
 
 export interface JournalQuery extends Query {
   readonly id?: string[];

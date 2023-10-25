@@ -6,7 +6,7 @@ use std::collections::HashSet;
 #[tokio::test]
 pub async fn test_create() -> anyhow::Result<()> {
   let db = test_suite::init().await?;
-  let journals = journal::Root::find_all(&db, None, Some(2)).await?;
+  let journals = journal::Root::find_all(&db, None, Some(2), None).await?;
 
   let commands = vec![
     account::CommandCreate {
@@ -57,6 +57,7 @@ pub async fn test_swap_name() -> anyhow::Result<()> {
     &db,
     Some(account::Query { journal_id: HashSet::from_iter([journal.id]), ..Default::default() }),
     Some(2),
+    None,
   )
   .await?;
 
@@ -104,6 +105,7 @@ pub async fn test_swap_name2() -> anyhow::Result<()> {
     &db,
     Some(account::Query { journal_id: HashSet::from_iter([journal.id]), ..Default::default() }),
     Some(2),
+    None,
   )
   .await?;
 

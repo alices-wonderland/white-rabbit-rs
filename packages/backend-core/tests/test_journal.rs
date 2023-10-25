@@ -5,10 +5,11 @@ use std::collections::HashSet;
 #[tokio::test]
 pub async fn test_swap_name() -> anyhow::Result<()> {
   let db = test_suite::init().await?;
-  let journals = journal::Root::find_all(&db, None, Some(2)).await?;
+  let journals = journal::Root::find_all(&db, None, Some(2), None).await?;
   let accounts = account::Root::find_all(
     &db,
     Some(account::Query { journal_id: HashSet::from_iter([journals[0].id]), ..Default::default() }),
+    None,
     None,
   )
   .await?;
@@ -37,6 +38,7 @@ pub async fn test_swap_name() -> anyhow::Result<()> {
     &db,
     Some(account::Query { journal_id: HashSet::from_iter([journals[0].id]), ..Default::default() }),
     None,
+    None,
   )
   .await?;
 
@@ -58,7 +60,7 @@ pub async fn test_swap_name() -> anyhow::Result<()> {
 #[tokio::test]
 pub async fn test_swap_name2() -> anyhow::Result<()> {
   let db = test_suite::init().await?;
-  let journals = journal::Root::find_all(&db, None, Some(3)).await?;
+  let journals = journal::Root::find_all(&db, None, Some(3), None).await?;
 
   if let Err(Error::ExistingEntity { values, .. }) = journal::Root::update(
     &db,

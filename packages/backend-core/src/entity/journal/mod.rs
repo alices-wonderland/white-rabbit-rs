@@ -13,7 +13,7 @@ use crate::entity::{
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{BinOper, OnConflict};
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, Order, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
@@ -68,6 +68,29 @@ impl Builder {
 
   pub fn tags(self, tags: impl IntoIterator<Item = impl ToString>) -> Builder {
     Builder { tags: tags.into_iter().map(|s| s.to_string()).collect(), ..self }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sort {
+  #[serde(rename = "name")]
+  Name,
+  #[serde(rename = "unit")]
+  Unit,
+  #[serde(rename = "-name")]
+  MinusName,
+  #[serde(rename = "-unit")]
+  MinusUnit,
+}
+
+impl From<Sort> for (Column, Order) {
+  fn from(value: Sort) -> Self {
+    match value {
+      Sort::Name => (Column::Name, Order::Asc),
+      Sort::Unit => (Column::Unit, Order::Asc),
+      Sort::MinusName => (Column::Name, Order::Desc),
+      Sort::MinusUnit => (Column::Unit, Order::Desc),
+    }
   }
 }
 
@@ -177,7 +200,7 @@ impl Root {
       journal_tag::Entity::insert_many(tags).exec(db).await?;
     }
 
-    Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None).await
+    Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None, None).await
   }
 
   pub async fn delete(
@@ -192,16 +215,23 @@ impl Root {
     db: &impl ConnectionTrait,
     query: Option<Query>,
   ) -> crate::Result<Option<Root>> {
-    Ok(Self::find_all(db, query, Some(1)).await?.into_iter().next())
+    Ok(Self::find_all(db, query, Some(1), None).await?.into_iter().next())
   }
 
   pub async fn find_all(
     db: &impl ConnectionTrait,
     query: Option<Query>,
     limit: Option<u64>,
+    sort: Option<Sort>,
   ) -> crate::Result<Vec<Root>> {
     let select =
       if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
+    let select = if let Some(sort) = sort {
+      let (field, order) = Into::<(Column, Order)>::into(sort);
+      select.order_by(field, order)
+    } else {
+      select
+    };
     let models = select.limit(limit).all(db).await?;
     Self::from_model(db, models).await
   }
@@ -225,7 +255,7 @@ impl Root {
 
         Self::delete(db, delete).await?;
 
-        Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None).await
+        Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None, None).await
       }
     }
   }
@@ -247,7 +277,8 @@ impl Root {
     }
 
     let existings =
-      Self::find_all(db, Some(Query { name: existing_names, ..Default::default() }), None).await?;
+      Self::find_all(db, Some(Query { name: existing_names, ..Default::default() }), None, None)
+        .await?;
 
     if !existings.is_empty() {
       let existing_names = existings.iter().map(|model| model.name.clone()).sorted().join(", ");
@@ -297,6 +328,7 @@ impl Root {
         db,
         Some(Query { name: name_mappings.keys().cloned().collect(), ..Default::default() }),
         None,
+        None,
       )
       .await?
     };
@@ -316,11 +348,12 @@ impl Root {
       }
     }
 
-    let mut models = Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None)
-      .await?
-      .into_iter()
-      .map(|model| (model.id, model))
-      .collect::<HashMap<_, _>>();
+    let mut models =
+      Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None, None)
+        .await?
+        .into_iter()
+        .map(|model| (model.id, model))
+        .collect::<HashMap<_, _>>();
 
     let mut updated = HashMap::new();
     for command in commands {
@@ -366,9 +399,11 @@ impl Root {
 
 #[cfg(test)]
 mod tests {
-  use crate::entity::journal::{Column, Entity};
+  use crate::entity::journal::{Column, Entity, Sort};
   use sea_orm::sea_query::{BinOper, Expr};
-  use sea_orm::{ColumnTrait, DatabaseBackend, EntityTrait, QueryFilter, QueryTrait};
+  use sea_orm::{
+    ColumnTrait, DatabaseBackend, EntityTrait, Order, QueryFilter, QueryOrder, QueryTrait,
+  };
 
   #[test]
   fn test_update_name() -> anyhow::Result<()> {
@@ -383,6 +418,18 @@ mod tests {
         .build(DatabaseBackend::Sqlite)
         .to_string(),
       r#"UPDATE "journal" SET "name" = "journal"."name" || CURRENT_TIMESTAMP WHERE "journal"."id" IN ('id1', 'id2')"#
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_select_query() -> anyhow::Result<()> {
+    let (field, order): (Column, Order) = (Sort::Name).into();
+
+    assert_eq!(
+      Entity::find().order_by(field, order).build(DatabaseBackend::Sqlite).to_string(),
+      r#"SELECT "journal"."id", "journal"."name", "journal"."description", "journal"."unit" FROM "journal" ORDER BY "journal"."name" ASC"#
     );
 
     Ok(())
