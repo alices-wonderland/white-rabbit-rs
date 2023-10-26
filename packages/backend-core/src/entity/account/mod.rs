@@ -125,10 +125,12 @@ impl From<Sort> for (Column, Order) {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Root {
   pub id: Uuid,
+  #[serde(rename = "journalId")]
   pub journal_id: Uuid,
   pub name: String,
   pub description: String,
   pub unit: String,
+  #[serde(rename = "type")]
   pub typ: Type,
   pub tags: HashSet<String>,
 }

@@ -26,7 +26,7 @@ class AccountApiImpl extends AbstractWriteApi<Account, AccountQuery, AccountComm
   }
 
   protected override async loadIncluded(models: Account[]): Promise<Map<string, Model>> {
-    const journalIds = new Set(models.map((model) => model.journal));
+    const journalIds = new Set(models.map((model) => model.journalId));
     const journals = await journalApi.findAll({ query: { id: [...journalIds] } as JournalQuery });
     return toMap(journals[0]);
   }
@@ -39,7 +39,7 @@ class AccountApiImpl extends AbstractWriteApi<Account, AccountQuery, AccountComm
       unit: input.unit as string,
       type: input.type as AccountType,
       tags: input.tags as string[],
-      journal: input.journal as string,
+      journalId: input.journalId as string,
     });
   }
 }

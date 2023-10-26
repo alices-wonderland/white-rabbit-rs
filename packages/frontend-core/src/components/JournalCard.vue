@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Journal, JOURNAL_ICON } from "@core/services";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import sortBy from "lodash/sortBy";
 import { useRouter } from "vue-router";
 
@@ -11,19 +11,32 @@ const props = defineProps<{
   readonly readonly?: boolean;
 }>();
 
-const name = ref<string>();
-const description = ref<string>();
-const unit = ref<string>();
-const tags = ref<string[]>([]);
+watch(props, () => {
+  reset();
+});
 
 onMounted(() => {
+  reset();
+});
+
+const name = ref<string>("");
+const description = ref<string>("");
+const unit = ref<string>("");
+const tags = ref<string[]>([]);
+
+const reset = () => {
   if (props.modelValue) {
     name.value = props.modelValue.name;
     description.value = props.modelValue.description;
     unit.value = props.modelValue.unit;
     tags.value = sortBy(props.modelValue.tags);
+  } else {
+    name.value = "";
+    description.value = "";
+    unit.value = "";
+    tags.value = [];
   }
-});
+};
 </script>
 
 <template>

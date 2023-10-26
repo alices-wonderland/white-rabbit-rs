@@ -28,8 +28,8 @@ import {
 
 export type UseAllArgs<Q extends Query, S extends string> =
   | FindAllArgs<Q, S>
-  | Ref<FindAllArgs<Q, S>>
-  | undefined;
+  | undefined
+  | Ref<FindAllArgs<Q, S> | undefined>;
 
 type UseAllResult<M extends Model> = {
   readonly models: Ref<M[]>;

@@ -6,16 +6,16 @@ export const ACCOUNT_TYPE = "accounts";
 
 export class Account implements Model<typeof ACCOUNT_TYPE> {
   id: string;
-  journal: string;
+  journalId: string;
   name: string;
   description: string;
   unit: string;
   type: AccountType;
   tags: string[];
 
-  constructor({ id, journal, name, description, unit, type, tags }: Omit<Account, "modelType">) {
+  constructor({ id, journalId, name, description, unit, type, tags }: Omit<Account, "modelType">) {
     this.id = id;
-    this.journal = journal;
+    this.journalId = journalId;
     this.name = name;
     this.description = description;
     this.unit = unit;
@@ -28,7 +28,9 @@ export class Account implements Model<typeof ACCOUNT_TYPE> {
   }
 }
 
-export type AccountType = "Income" | "Expense" | "Asset" | "Liability" | "Equity";
+export const ACCOUNT_TYPES = ["Income", "Expense", "Asset", "Liability", "Equity"] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 export type AccountSort = "name" | "unit" | "type" | "journal";
 
@@ -43,7 +45,7 @@ export interface AccountQuery extends Query {
 
 export interface AccountCommandCreate extends Command<`${typeof ACCOUNT_TYPE}:create`> {
   readonly id?: string;
-  readonly journal: string;
+  readonly journalId: string;
   readonly name: string;
   readonly description: string;
   readonly unit: string;
