@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { useAccounts, useJournals } from "@core/composable";
 import { useRoute } from "vue-router";
 import { computed, ref } from "vue";
+import { useAccounts, useJournals } from "@core/composable";
 import JournalCard from "@core/components/JournalCard.vue";
-import type { AccountQuery, AccountSort, FindAllArgs } from "@core/services";
 import { AccountTable } from "@core/components/AccountTable";
+import type { AccountQuery, AccountSort, FindAllArgs } from "@core/services";
 
 const route = useRoute();
 
 const { models: journals, loading: journalsLoading } = useJournals({});
-const journalMap = computed(() => new Map(journals.value.map((journal) => [journal.id, journal])));
 
 const journal = computed(() => journals.value.find((model) => model.id === route.params["id"]));
 
@@ -50,7 +49,7 @@ const tab = ref<Tab>("Accounts");
         <q-separator />
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="Accounts">
-            <AccountTable :model-value="accounts" :journals="journalMap"></AccountTable>
+            <AccountTable :model-value="accounts" :journal="journal"></AccountTable>
           </q-tab-panel>
           <q-tab-panel name="Entries">
             <div class="text-h6">Entries</div>

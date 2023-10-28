@@ -3,13 +3,15 @@ import type { AccountType } from "@core/services";
 import { v4 as uuidv4 } from "uuid";
 import sortBy from "lodash/sortBy";
 import sortedUniq from "lodash/sortedUniq";
-import type { EditableValue } from "@core/components/AppTable";
+import { AbstractRow } from "@core/components/AppTable";
+import type { CellState } from "@core/components/AppTable";
+import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 
-export class Row {
-  readonly existing?: Account;
+const UPDATABLE_FIELDS = ["name", "description", "unit", "type", "tags"] as const;
+type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
 
-  id: string;
+export class Row extends AbstractRow<Account, UpdatableField> {
   _name: string = "";
   _description: string = "";
   _unit: string = "";
@@ -17,36 +19,48 @@ export class Row {
   _tags: string[] = [];
 
   constructor(account?: Account) {
-    this.existing = account;
-    this.id = account?.id ?? uuidv4();
+    super(account?.id ?? uuidv4(), account);
+    this.reset();
+  }
 
-    if (account) {
-      this.name = account.name;
-      this.description = account.description;
-      this.unit = account.unit;
-      this.type = account.type;
-      this.tags = account.tags;
+  override reset() {
+    if (this._existing) {
+      this.name = this._existing.name;
+      this.description = this._existing.description;
+      this.unit = this._existing.unit;
+      this.type = this._existing.type;
+      this.tags = this._existing.tags;
     }
   }
 
-  get nameValue(): EditableValue<string> {
-    if (!this.existing) {
-      return {
-        state: "NEW",
-        value: this.name,
-      };
-    } else if (!isEqual(this.existing.name, this.name)) {
-      return {
-        state: "UPDATED",
-        value: this.name,
-        existing: this.existing.name,
-      };
-    } else {
-      return {
-        state: "NORMAL",
-        value: this.name,
-      };
+  override get updatableFields(): readonly UpdatableField[] {
+    return UPDATABLE_FIELDS;
+  }
+
+  getCellState<V>(field: UpdatableField): CellState<V> {
+    const value = get(this, field) as V;
+
+    if (this._existing) {
+      let existing: V;
+      if (field === "tags") {
+        existing = sortedUniq(sortBy(get(this._existing, "tags"))) as V;
+      } else {
+        existing = get(this._existing, field) as V;
+      }
+
+      if (!isEqual(value, existing)) {
+        return {
+          state: "UPDATED",
+          value: value as V,
+          existing,
+        };
+      }
     }
+
+    return {
+      state: "NORMAL",
+      value: value as V,
+    };
   }
 
   get name() {
@@ -59,25 +73,6 @@ export class Row {
   get description() {
     return this._description;
   }
-  get descriptionValue(): EditableValue<string> {
-    if (!this.existing) {
-      return {
-        state: "NEW",
-        value: this.description,
-      };
-    } else if (!isEqual(this.existing.description, this.description)) {
-      return {
-        state: "UPDATED",
-        value: this.description,
-        existing: this.existing.description,
-      };
-    } else {
-      return {
-        state: "NORMAL",
-        value: this.description,
-      };
-    }
-  }
 
   set description(value: string) {
     this._description = value.trim();
@@ -87,68 +82,8 @@ export class Row {
     return this._unit;
   }
 
-  get unitValue(): EditableValue<string> {
-    if (!this.existing) {
-      return {
-        state: "NEW",
-        value: this.unit,
-      };
-    } else if (!isEqual(this.existing.unit, this.unit)) {
-      return {
-        state: "UPDATED",
-        value: this.unit,
-        existing: this.existing.unit,
-      };
-    } else {
-      return {
-        state: "NORMAL",
-        value: this.unit,
-      };
-    }
-  }
-
   set unit(value: string) {
     this._unit = value.trim();
-  }
-
-  get typeValue(): EditableValue<string> {
-    if (!this.existing) {
-      return {
-        state: "NEW",
-        value: this.type,
-      };
-    } else if (!isEqual(this.existing.type, this.type)) {
-      return {
-        state: "UPDATED",
-        value: this.type,
-        existing: this.existing.type,
-      };
-    } else {
-      return {
-        state: "NORMAL",
-        value: this.type,
-      };
-    }
-  }
-
-  get tagsValue(): EditableValue<string[]> {
-    if (!this.existing) {
-      return {
-        state: "NEW",
-        value: this.tags,
-      };
-    } else if (!isEqual(sortBy(this.existing.tags), this.tags)) {
-      return {
-        state: "UPDATED",
-        value: this.tags,
-        existing: this.existing.tags,
-      };
-    } else {
-      return {
-        state: "NORMAL",
-        value: this.tags,
-      };
-    }
   }
 
   get tags() {
