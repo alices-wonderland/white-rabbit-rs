@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/frontend-core",
-  "packageManager": "yarn@4.0.0",
+  "packageManager": "yarn@4.0.1",
   "version": "0.1.0",
   "scripts": {
     "test": "vitest run --coverage",
@@ -39,7 +39,7 @@
     "uuid": "^9.0.1",
     "vue": "^3.3.7",
     "vue-class-component": "^8.0.0-rc.1",
-    "vue-i18n": "^9.6.1",
+    "vue-i18n": "^9.6.2",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
