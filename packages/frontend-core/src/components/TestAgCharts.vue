@@ -1,17 +1,9 @@
 <script setup lang="ts">
-import { AgChartsVue } from "ag-charts-vue3";
-import type { AgChartOptions } from "ag-charts-community";
+import type { AgChartInstance, AgChartOptions } from "ag-charts-community";
 import { computed } from "vue";
-import { useQuasar } from "quasar";
-
-const quasar = useQuasar();
-
-const chartTheme = computed(() => {
-  return quasar.dark.isActive ? "ag-default-dark" : "ag-default";
-});
+import AppChart from "./AppChart.vue";
 
 const options = computed<AgChartOptions>(() => ({
-  theme: chartTheme.value,
   data: [
     {
       beverage: "Coffee",
@@ -58,21 +50,12 @@ const options = computed<AgChartOptions>(() => ({
   ],
   legend: { spacing: 40 },
 }));
+
+const onChartReady = (inst: AgChartInstance) => {
+  console.log("On Chart Ready:", inst);
+};
 </script>
 
 <template>
-  <div class="wrapper">
-    <ag-charts-vue :options="options"> </ag-charts-vue>
-  </div>
+  <AppChart :options="options" @chart-ready="onChartReady"> </AppChart>
 </template>
-
-<style scoped lang="scss">
-.wrapper {
-  min-height: 30vh;
-  max-height: 70vh;
-  height: 60vh;
-  overflow: hidden;
-  resize: vertical;
-  padding: 6px;
-}
-</style>

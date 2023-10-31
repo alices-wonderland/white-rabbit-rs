@@ -12,169 +12,149 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ag-grid-community/client-side-row-model@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-community/client-side-row-model@npm:30.2.0"
+"@ag-grid-community/client-side-row-model@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-community/client-side-row-model@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-  checksum: 66737335bc82789b04d9a37a69efba7d4788710bb2bd3ad3dcacdaf20d07b0e78f1e9185bf272e7e4ad0eae6171b17284fd78e095f9bf27a750f2dcb241f9b07
+    "@ag-grid-community/core": "npm:~30.2.1"
+  checksum: ce91030fb73bfc6c295d90b48e25c3dc81ef2ecc949f8a6e86fe5cc0c1ce7ef949ed000f319f36bc4e6d810edeec6550eac25120af0685b693afbe7c61a18d72
   languageName: node
   linkType: hard
 
-"@ag-grid-community/core@npm:^30.2.0, @ag-grid-community/core@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-community/core@npm:30.2.0"
-  checksum: 329615776acc8ff7e5a8b4c9e342cbbfdcf9910a37544b754dcb105ae9a7cabc3e22c9e0af8ba72c4c054e0dd67efda5a54b4df9751aed28a8dfa4de503dcbb8
+"@ag-grid-community/core@npm:^30.2.1, @ag-grid-community/core@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-community/core@npm:30.2.1"
+  checksum: ac4eb8dc19528c62992ba973c24b48a394da798422f7673f1168135234187910d5d4f2ff61ec7fe92942580dc256143d274e06d3396f6c0ef398ad0348b21563
   languageName: node
   linkType: hard
 
-"@ag-grid-community/csv-export@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-community/csv-export@npm:30.2.0"
+"@ag-grid-community/csv-export@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-community/csv-export@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-  checksum: 22b6cb1277c496d39403805be533af35e26061dfad37aa6dc7ef9d20adff407b4ec28a082047b8be93da040a7a489c97d4456608ff88d569a324c1cba340bf02
+    "@ag-grid-community/core": "npm:~30.2.1"
+  checksum: cd4220928e79d0ad36dad69b39c35c5ed5b4dba431bf7b39f66708f3fcce7375c82b5e5602e524430ff0f5afece26c3a7a2d6b7bb6569ac7483da16ef9c731f3
   languageName: node
   linkType: hard
 
-"@ag-grid-community/styles@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-community/styles@npm:30.2.0"
-  checksum: 2888a2955d1d86039a56ad6add336e917e6e871ac1188757bd26770ae9812e95f28df3f1602f2c85b04b309888624afa4c2cc723d88afc06bcb9a774c04d1c4a
+"@ag-grid-community/styles@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-community/styles@npm:30.2.1"
+  checksum: e3343a5afc889cf8b2b38b1e99912bea045c1d585fd40cdbb50178c1fd386a719305367fc7615a08892cd604aa568f3082282b1012b7cae354a4f46dd3968a04
   languageName: node
   linkType: hard
 
-"@ag-grid-community/vue3@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-community/vue3@npm:30.2.0"
+"@ag-grid-community/vue3@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-community/vue3@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
+    "@ag-grid-community/core": "npm:~30.2.1"
     vue: "npm:^3.0.0"
-  checksum: 100963a05a739b276db484cef10afed85ed94592b2e96b7d08ba00052434c8a09cdd342cb59ea3af060e357a3ef7bf950695f5aaf2f2cf21884913c7377c33d2
+  checksum: 09b51e8242d31929b1807e01026a852947c97a196f71b0583a41ac2420afbf9053d54337c0209a7a3c4ca953e8df1334352b4309cc3564bf1ace4fa65defacd6
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/clipboard@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/clipboard@npm:30.2.0"
+"@ag-grid-enterprise/clipboard@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/clipboard@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-community/csv-export": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: a84e160776c39dce7ffb643cdd258656592a40e960f97a5bcf9fb745ba301c35090a837492a86c1500d4ec5f42444f3ff048978a61a80d9d47ecceb4b02ee06b
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-community/csv-export": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: 32e5a143bdbbe34c3cb7d95d3ab0f260a580e27eb0e21e2813d7634d71f353a722a6b153d35f52815ff0814bf57e2511a912945a99907761918d0b837c86bf80
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/column-tool-panel@npm:^30.2.0, @ag-grid-enterprise/column-tool-panel@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/column-tool-panel@npm:30.2.0"
+"@ag-grid-enterprise/column-tool-panel@npm:^30.2.1, @ag-grid-enterprise/column-tool-panel@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/column-tool-panel@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/row-grouping": "npm:~30.2.0"
-    "@ag-grid-enterprise/side-bar": "npm:~30.2.0"
-  checksum: 5fd744ed0e8f37216ec300c4a2b33dd7667abaf7f57907dc6dead8c2498bac4782e0a8522c306a0a1843489e709b9687411a22bd2da60305db894dee172cbdff
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/row-grouping": "npm:~30.2.1"
+    "@ag-grid-enterprise/side-bar": "npm:~30.2.1"
+  checksum: 2190f06bf0e6686a8abce708d8729c6d7774b35b3fd941343cd20c7448f8a5821d07bda7ab72e2c68c93a6950a2c3256dee976ea52c0a66c6fb8fc392501a55c
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/core@npm:^30.2.0, @ag-grid-enterprise/core@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/core@npm:30.2.0"
+"@ag-grid-enterprise/core@npm:^30.2.1, @ag-grid-enterprise/core@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/core@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-  checksum: 22ddead5a3e6d37c1a90e6b2b18c13bcd00f6ec9906173403234accfab8a8bd8c0dae8a91d1f7db017310c3a7454e0d9109934a936b1e45298521f400b5e4867
+    "@ag-grid-community/core": "npm:~30.2.1"
+  checksum: 4f443b1f6432724549119e0d76fc48c500714f656c5a571e0be27b906fa1952189ad8c84967c1ed08b3020598d32719e17b3d639cbe29e936899b91d6029bb32
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/filter-tool-panel@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/filter-tool-panel@npm:30.2.0"
+"@ag-grid-enterprise/filter-tool-panel@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/filter-tool-panel@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/side-bar": "npm:~30.2.0"
-  checksum: afd0c134da186092d9107ead7beb9117e05e4aff97456ccc17362f9c3802a76cd534089ac586415936cf49932eca36d99f300cc33d05c5249693e6bab0d7762b
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/side-bar": "npm:~30.2.1"
+  checksum: f09f6741775e0b2196bbaa55cf8a418b4ed4025efec8badc966eb0d751fc2b82322f84c758f10ec85ae10fc605d956d39ac8447d69d3e35225f53a6f03694e7f
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/menu@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/menu@npm:30.2.0"
+"@ag-grid-enterprise/menu@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/menu@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/column-tool-panel": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 96d61b1f370c627b45812eee162d6d11023ce9434db98207cba751bbfdf9b7936b2589e06722196601ebf86ac225ce80d8b37d7dcdcfb4792a2ec8e357a0d514
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/column-tool-panel": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: 30c761e570111e261adea5aed61bd910c41bfaadad85e14d984e778e280e5c396026a599276a5d15e70a76c8a2d18bbbb28e675b72e691b56ce3af53ade5ceea
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/multi-filter@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/multi-filter@npm:30.2.0"
+"@ag-grid-enterprise/multi-filter@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/multi-filter@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: ce34ed808c2d0c77f7e3992a1c64aa2749d632b5ddcd729eec80fd4e85d45ffa15a08f98cbb9657349c2a19b9a3719dcbd406724c53a7e65f6e0de684f510f88
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: 7a3c57d33bdf973da46f8b7180ae12fcbf6c42d491cb6c0efd8143fa592069cbc514bcf6d18be6ce982df78f60b78f729c0e8965dd35a19717a1b5f8073945e9
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/range-selection@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/range-selection@npm:30.2.0"
+"@ag-grid-enterprise/range-selection@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/range-selection@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 3e7038a135cbbfa2ab4b0c95bc597ba635b59b50bf0380cfb5697c9a4a14e9cc6d87b7ab447974de783aa522d553dd68de37ed967a30ca5e365a85fc0f4f6e2f
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: 770e9bea440026d5868dfc76d32d2a8a8376c72e5089282719c3221946f494d67df3f6ab9dfdb009866c5b842134010d065d200e337f4d02ef49992041fbe4c5
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/rich-select@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/rich-select@npm:30.2.0"
+"@ag-grid-enterprise/row-grouping@npm:^30.2.1, @ag-grid-enterprise/row-grouping@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/row-grouping@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 7ffa0ee4066803e4a2dd0d26a96c8945c869a6b972f3fc65394224866d4395b9525c056ce38414018927c53dae8e2edf4c1428e541fc68a3cc8040557b543527
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: eaf6bcd272a6985231dfd7024b8b71594bb321b8bf8bcc1a260d8b8b3035bd7f3ddbcf3a99e33ef78bc1f0227a81aacf14aaf4c402b0018002329fd099d1166f
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/row-grouping@npm:^30.2.0, @ag-grid-enterprise/row-grouping@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/row-grouping@npm:30.2.0"
+"@ag-grid-enterprise/set-filter@npm:^30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/set-filter@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 44690c1b7382f36b76e8ac0147c600d218504a1d49d1e0ff2211c0e4f77dfa2a8601f6d13cef63405624042e8fc33dcbcbfb688fca6f242ea01112794f143a91
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: d4c83dddd2fdfce23d43954e45e1656c29f4c5c145291e8871f309ab45bd529191682d5b48a048183bc7d067471325c5f9dc6be6c3f092212200b88d90efcb3a
   languageName: node
   linkType: hard
 
-"@ag-grid-enterprise/set-filter@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/set-filter@npm:30.2.0"
+"@ag-grid-enterprise/side-bar@npm:~30.2.1":
+  version: 30.2.1
+  resolution: "@ag-grid-enterprise/side-bar@npm:30.2.1"
   dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 9ff612093d612645169e0f5ff1812e1c576c16b253158b9515c4fde46b6ca2620ef6ec6d1658de5ab733b8c386a604ed926b409d18d0d0930a8b21c420acc7c2
-  languageName: node
-  linkType: hard
-
-"@ag-grid-enterprise/side-bar@npm:^30.2.0, @ag-grid-enterprise/side-bar@npm:~30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/side-bar@npm:30.2.0"
-  dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 58366575462c9328331529d228fc0ecd6c39a71b0fb5e78d53d5e7e9929b4211f4fe4690a774dea289fc5303cfddd5dc489cd48889568273a47d4943f54e343d
-  languageName: node
-  linkType: hard
-
-"@ag-grid-enterprise/status-bar@npm:^30.2.0":
-  version: 30.2.0
-  resolution: "@ag-grid-enterprise/status-bar@npm:30.2.0"
-  dependencies:
-    "@ag-grid-community/core": "npm:~30.2.0"
-    "@ag-grid-enterprise/core": "npm:~30.2.0"
-  checksum: 8bd10f10ad9e24348de738fec90c2b37af2217d8591b60b84302144b5ca7315227fcc8966fffd2b9c25c105c0ffef502232b18bd47f3eedd5aa0096dbaf239ff
+    "@ag-grid-community/core": "npm:~30.2.1"
+    "@ag-grid-enterprise/core": "npm:~30.2.1"
+  checksum: 59f515dc2b177f18f378a1eedab552cb279d21a678a35fa8171889b3a9d68e380c210d82c09535bb19f8a48a3881f40fa4c5f53808ac9385636696c7f6a9baba
   languageName: node
   linkType: hard
 
@@ -915,36 +895,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intlify/core-base@npm:9.6.2":
-  version: 9.6.2
-  resolution: "@intlify/core-base@npm:9.6.2"
+"@intlify/core-base@npm:9.6.4":
+  version: 9.6.4
+  resolution: "@intlify/core-base@npm:9.6.4"
   dependencies:
-    "@intlify/message-compiler": "npm:9.6.2"
-    "@intlify/shared": "npm:9.6.2"
-  checksum: a465f8da2c956764ffddf9bf52e2a73695cfc3822707d3b2e205ad9f99ba1c1a17a95a91a46576c7154d9e4b27c950d3029ffcfb3af554b2a35bc9fa661ff93a
+    "@intlify/message-compiler": "npm:9.6.4"
+    "@intlify/shared": "npm:9.6.4"
+  checksum: 7f1a5aa665323a01971d24d4e4ab163fda8bb57e5f29a7e4b88bf1f5645a0cf68eb73693b1c30052a264e692083919104cb584a48082bfea09ea3a3d6a6fc1ef
   languageName: node
   linkType: hard
 
-"@intlify/message-compiler@npm:9.6.2, @intlify/message-compiler@npm:^9.4.0":
-  version: 9.6.2
-  resolution: "@intlify/message-compiler@npm:9.6.2"
+"@intlify/message-compiler@npm:9.6.4, @intlify/message-compiler@npm:^9.4.0":
+  version: 9.6.4
+  resolution: "@intlify/message-compiler@npm:9.6.4"
   dependencies:
-    "@intlify/shared": "npm:9.6.2"
+    "@intlify/shared": "npm:9.6.4"
     source-map-js: "npm:^1.0.2"
-  checksum: 4a318d7332ffee77824ccfc982cb9e0a4751fb004080a68dbd97e21cc57a08a8d9b7367e51bcec9e9390b52de50c2b46547a402c33600a6e0ac187788d2eceaf
+  checksum: b1417de01cf0a8788df972b7707fab7fcec7769278932776cfc2fc2723373f6acd14e5b544b282e789ad177e2236f7ed41edac02ff2ab99dee2233f4a1029ff5
   languageName: node
   linkType: hard
 
-"@intlify/shared@npm:9.6.2, @intlify/shared@npm:^9.4.0":
-  version: 9.6.2
-  resolution: "@intlify/shared@npm:9.6.2"
-  checksum: 2afb8ec08b4b7fe6862d357e6425087137bebb0b730a1a87142fea66f10c1023930494802238055f093471ec509172eb0927543473a220989d974f99f611a538
+"@intlify/shared@npm:9.6.4, @intlify/shared@npm:^9.4.0":
+  version: 9.6.4
+  resolution: "@intlify/shared@npm:9.6.4"
+  checksum: d25dd1a2296652a9a5f0f4b8d3711de1396020187bff920bc71924ddb642abe7ca40a162a7804c64f5d5cb4bbf0475319ee626e00c76742d4fc1e3a9dc8b5f9e
   languageName: node
   linkType: hard
 
-"@intlify/unplugin-vue-i18n@npm:^1.4.0":
-  version: 1.4.0
-  resolution: "@intlify/unplugin-vue-i18n@npm:1.4.0"
+"@intlify/unplugin-vue-i18n@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "@intlify/unplugin-vue-i18n@npm:1.5.0"
   dependencies:
     "@intlify/bundle-utils": "npm:^7.4.0"
     "@intlify/shared": "npm:^9.4.0"
@@ -969,7 +949,7 @@ __metadata:
       optional: true
     vue-i18n-bridge:
       optional: true
-  checksum: e7c594fdb30c82cf15a49e802b7f7e012300ec0669900e07d5367ab932dc1de5d7a9ef436a433c76afbef4bde295ca8280639c8b4911199d61e4e6a019a73ada
+  checksum: 641995dbcc334175bd5ed34ec050983282d4f285372edf42482c4620606ccfee63441155027e6c3cbfae2266b05ea3b0caaf5e826456e6d59bacb3135ceeceda
   languageName: node
   linkType: hard
 
@@ -1718,31 +1698,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@volar/language-core@npm:1.10.9, @volar/language-core@npm:~1.10.5":
-  version: 1.10.9
-  resolution: "@volar/language-core@npm:1.10.9"
+"@volar/language-core@npm:1.10.10, @volar/language-core@npm:~1.10.5":
+  version: 1.10.10
+  resolution: "@volar/language-core@npm:1.10.10"
   dependencies:
-    "@volar/source-map": "npm:1.10.9"
-  checksum: baf153ff941090c141fd203eb405b0553727a5fac2ef20e5490e290cabd8f73135173f2f522c1580d05c0d21e8858d5005ec6f650813fcc790bbd92ac1542250
+    "@volar/source-map": "npm:1.10.10"
+  checksum: 550ad7c527c8805b01430a2b060862553b9987f4e81dbc6b0300b1614b75b57757fc3433a61df7ba1badde1afa0213be2f1518b7ed5dc743185c4d58b2152d41
   languageName: node
   linkType: hard
 
-"@volar/source-map@npm:1.10.9, @volar/source-map@npm:~1.10.5":
-  version: 1.10.9
-  resolution: "@volar/source-map@npm:1.10.9"
+"@volar/source-map@npm:1.10.10, @volar/source-map@npm:~1.10.5":
+  version: 1.10.10
+  resolution: "@volar/source-map@npm:1.10.10"
   dependencies:
     muggle-string: "npm:^0.3.1"
-  checksum: 272639d636b2e20e772eaf1107420a0888e8f36eaa50f68c723463ac4a57696108f6cee6495af3a314f83f72f57d10351608c190df149fad7b146d7a4254b7f9
+  checksum: 33f54d289ad38934e7824e52b47f4a4e704415aba17f7500a20151e3579072deff9d6195da332b30f260a7da55fbc321867d8d6ad5482e901da7bf448a947b82
   languageName: node
   linkType: hard
 
 "@volar/typescript@npm:~1.10.5":
-  version: 1.10.9
-  resolution: "@volar/typescript@npm:1.10.9"
+  version: 1.10.10
+  resolution: "@volar/typescript@npm:1.10.10"
   dependencies:
-    "@volar/language-core": "npm:1.10.9"
+    "@volar/language-core": "npm:1.10.10"
     path-browserify: "npm:^1.0.1"
-  checksum: 10f4ef7206b44366d50dab1eb9cc482bdaeb4a8d22d6ff7b5599788b037833c815304a8ff4378e95c457d62468a1442dd86795ee42b6e92f3b36eaf91bf01813
+  checksum: 624744abb5ca13873535833202936ac2e9ad0124b2f38762e5fae09aac32beffcc41dac3cfba4a7e3db4fbc0b7c9e416f3a11c081dd8e1a0a7f5350d9cdac376
   languageName: node
   linkType: hard
 
@@ -1986,28 +1966,24 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@white-rabbit/frontend-core@workspace:packages/frontend-core"
   dependencies:
-    "@ag-grid-community/client-side-row-model": "npm:^30.2.0"
-    "@ag-grid-community/core": "npm:^30.2.0"
-    "@ag-grid-community/styles": "npm:^30.2.0"
-    "@ag-grid-community/vue3": "npm:^30.2.0"
-    "@ag-grid-enterprise/clipboard": "npm:^30.2.0"
-    "@ag-grid-enterprise/column-tool-panel": "npm:^30.2.0"
-    "@ag-grid-enterprise/core": "npm:^30.2.0"
-    "@ag-grid-enterprise/filter-tool-panel": "npm:^30.2.0"
-    "@ag-grid-enterprise/menu": "npm:^30.2.0"
-    "@ag-grid-enterprise/multi-filter": "npm:^30.2.0"
-    "@ag-grid-enterprise/range-selection": "npm:^30.2.0"
-    "@ag-grid-enterprise/rich-select": "npm:^30.2.0"
-    "@ag-grid-enterprise/row-grouping": "npm:^30.2.0"
-    "@ag-grid-enterprise/set-filter": "npm:^30.2.0"
-    "@ag-grid-enterprise/side-bar": "npm:^30.2.0"
-    "@ag-grid-enterprise/status-bar": "npm:^30.2.0"
+    "@ag-grid-community/client-side-row-model": "npm:^30.2.1"
+    "@ag-grid-community/core": "npm:^30.2.1"
+    "@ag-grid-community/styles": "npm:^30.2.1"
+    "@ag-grid-community/vue3": "npm:^30.2.1"
+    "@ag-grid-enterprise/clipboard": "npm:^30.2.1"
+    "@ag-grid-enterprise/column-tool-panel": "npm:^30.2.1"
+    "@ag-grid-enterprise/core": "npm:^30.2.1"
+    "@ag-grid-enterprise/filter-tool-panel": "npm:^30.2.1"
+    "@ag-grid-enterprise/menu": "npm:^30.2.1"
+    "@ag-grid-enterprise/multi-filter": "npm:^30.2.1"
+    "@ag-grid-enterprise/range-selection": "npm:^30.2.1"
+    "@ag-grid-enterprise/row-grouping": "npm:^30.2.1"
+    "@ag-grid-enterprise/set-filter": "npm:^30.2.1"
     "@date-io/date-fns": "npm:^2.17.0"
     "@quasar/extras": "npm:^1.16.7"
     "@types/uuid": "npm:^9.0.6"
     "@vueuse/core": "npm:^10.5.0"
-    ag-charts-community: "npm:^8.2.0"
-    ag-charts-vue3: "npm:^8.2.0"
+    ag-charts-community: "npm:^8.2.1"
     date-fns: "npm:^2.30.0"
     lodash: "npm:^4.17.21"
     quasar: "npm:^2.13.0"
@@ -2017,8 +1993,7 @@ __metadata:
     vite: "npm:^4.5.0"
     vitest: "npm:^0.34.6"
     vue: "npm:^3.3.7"
-    vue-class-component: "npm:^8.0.0-rc.1"
-    vue-i18n: "npm:^9.6.2"
+    vue-i18n: "npm:^9.6.4"
     vue-router: "npm:^4.2.5"
     vue-tsc: "npm:^1.8.22"
   languageName: unknown
@@ -2082,21 +2057,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ag-charts-community@npm:^8.2.0":
-  version: 8.2.0
-  resolution: "ag-charts-community@npm:8.2.0"
-  checksum: 29563550fee3fcd27ce738a3ceaecb733a2eddbe82555efe0936cf0b831810ab20aac5295d55c43e0fdefe94c0b6f53ed86ba492cb27d117d071751d4964afe4
-  languageName: node
-  linkType: hard
-
-"ag-charts-vue3@npm:^8.2.0":
-  version: 8.2.0
-  resolution: "ag-charts-vue3@npm:8.2.0"
-  peerDependencies:
-    ag-charts-community: ~8.2.0
-    vue: ^3.0.0
-    vue-class-component: "*"
-  checksum: cc1f0170e7c326b6000cf421b5148d80a69be7ad6224413be95a4e2a970cf6008a72962fddf2f14a7bb0c202b2023e3d54be44c8a359d699fbed571377123c4b
+"ag-charts-community@npm:^8.2.1":
+  version: 8.2.1
+  resolution: "ag-charts-community@npm:8.2.1"
+  checksum: 91027e7362b4ec26aac53326df56df742b63d7f871123db3e1911f9b5c9cc136197f10c917faf25fc7f3fdcfe6592f792498a15503f3d2089c999dee58cf0ebe
   languageName: node
   linkType: hard
 
@@ -3378,9 +3342,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.571
-  resolution: "electron-to-chromium@npm:1.4.571"
-  checksum: ce976c0eb6bab2c6728aa160cee9c85d754037d809aa2c220bd6eff95fecbd8ad4e502df808616cff6e3249858378b2d2dddd19aede80f8df52daedc259ec576
+  version: 1.4.575
+  resolution: "electron-to-chromium@npm:1.4.575"
+  checksum: 168c29acebaa63f22b896c433189af0cb3bbe2b9eda1c2c9a64e74d0b4052dcec2adc838693213e1b6153f707dcb7fbd19d4c7be6781a6375a69c56e0faebbab
   languageName: node
   linkType: hard
 
@@ -3829,14 +3793,14 @@ __metadata:
   linkType: hard
 
 "eslint-plugin-es-x@npm:^7.1.0":
-  version: 7.2.0
-  resolution: "eslint-plugin-es-x@npm:7.2.0"
+  version: 7.3.0
+  resolution: "eslint-plugin-es-x@npm:7.3.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.1.2"
     "@eslint-community/regexpp": "npm:^4.6.0"
   peerDependencies:
     eslint: ">=8"
-  checksum: 073d19713d5562111530295779a72ded3cf3f4a923a2d5ce13836481194f6494e88184aa9da60606d82e4bfbb033d0b643964778b5a111ea9ddfb0424ad8d8bb
+  checksum: d8ad8d4f081cbd98e37300a69272165d38edfb0835a10653a880aa22ef0626f7701bc7c0cf931a59aa63addcd1bf4b8aea2ae7e09039dfc568a02fab24441ba5
   languageName: node
   linkType: hard
 
@@ -3954,12 +3918,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-sonarjs@npm:^0.21.0":
-  version: 0.21.0
-  resolution: "eslint-plugin-sonarjs@npm:0.21.0"
+"eslint-plugin-sonarjs@npm:^0.22.0":
+  version: 0.22.0
+  resolution: "eslint-plugin-sonarjs@npm:0.22.0"
   peerDependencies:
     eslint: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
-  checksum: 79cede5ac4de9312498d9e3f6aab390de482540466d99ba5dd7c353ede48f89d2c8ff1574cc4993341a87e2f972b8af1f068b3f1fb539814614dc78b3a057dba
+  checksum: 8802ed5075bb388a0390be862c43349d40b3d4c37ed542add81909fa7dc98058572fecd1dc4742ebd0f0ff122a97b6e5be664824e58fccc600569783a9ebe97f
   languageName: node
   linkType: hard
 
@@ -6343,8 +6307,8 @@ __metadata:
   linkType: hard
 
 "node-gyp@npm:latest":
-  version: 10.0.0
-  resolution: "node-gyp@npm:10.0.0"
+  version: 10.0.1
+  resolution: "node-gyp@npm:10.0.1"
   dependencies:
     env-paths: "npm:^2.2.0"
     exponential-backoff: "npm:^3.1.1"
@@ -6358,7 +6322,7 @@ __metadata:
     which: "npm:^4.0.0"
   bin:
     node-gyp: bin/node-gyp.js
-  checksum: 08ba31c1933920705e07cd3d3756b558c50582c86e85a99de8f28bf9582c0f811432b88822f34703308c26c0efafa69e91460076887a85ba40fae5cd9031d8b7
+  checksum: 578cf0c821f258ce4b6ebce4461eca4c991a4df2dee163c0624f2fe09c7d6d37240be4942285a0048d307230248ee0b18382d6623b9a0136ce9533486deddfa8
   languageName: node
   linkType: hard
 
@@ -6923,7 +6887,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss-scss@npm:^4.0.7":
+"postcss-scss@npm:^4.0.9":
   version: 4.0.9
   resolution: "postcss-scss@npm:4.0.9"
   peerDependencies:
@@ -7362,7 +7326,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:^4.1.4":
+"rollup@npm:^4.2.0":
   version: 4.2.0
   resolution: "rollup@npm:4.2.0"
   dependencies:
@@ -7951,20 +7915,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stylelint-config-recommended-scss@npm:^13.0.0":
-  version: 13.0.0
-  resolution: "stylelint-config-recommended-scss@npm:13.0.0"
+"stylelint-config-recommended-scss@npm:^13.1.0":
+  version: 13.1.0
+  resolution: "stylelint-config-recommended-scss@npm:13.1.0"
   dependencies:
-    postcss-scss: "npm:^4.0.7"
+    postcss-scss: "npm:^4.0.9"
     stylelint-config-recommended: "npm:^13.0.0"
-    stylelint-scss: "npm:^5.1.0"
+    stylelint-scss: "npm:^5.3.0"
   peerDependencies:
     postcss: ^8.3.3
     stylelint: ^15.10.0
   peerDependenciesMeta:
     postcss:
       optional: true
-  checksum: 5cbb771d756861ff11ee6fa85b8a58041798df9886a7621a9157caab308c965eeda75d7c532f01b620f632c282e0e32597d942cd6f18239dca949c6b78280ba8
+  checksum: 249cc4705759f779da2be797b2155b05b6d0ce49542b5144634d46295955c32b22734468529c772ba0a926fdf3bd3b0583088a74a0790cfc5e354d09b1f9a8c7
   languageName: node
   linkType: hard
 
@@ -7991,11 +7955,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stylelint-config-standard-scss@npm:^11.0.0":
-  version: 11.0.0
-  resolution: "stylelint-config-standard-scss@npm:11.0.0"
+"stylelint-config-standard-scss@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "stylelint-config-standard-scss@npm:11.1.0"
   dependencies:
-    stylelint-config-recommended-scss: "npm:^13.0.0"
+    stylelint-config-recommended-scss: "npm:^13.1.0"
     stylelint-config-standard: "npm:^34.0.0"
   peerDependencies:
     postcss: ^8.3.3
@@ -8003,7 +7967,7 @@ __metadata:
   peerDependenciesMeta:
     postcss:
       optional: true
-  checksum: b51102419a470478b201d5a584cc0d26a8207050bde091d99f29e56d9d3623bb765dd56dcc2a6eddbb1c7cfb5e4ef12a60506d60dd2a74d5f68f8751a2fc33de
+  checksum: fdeb533e19230cec6975f18a5ef97252968b4387f385508c7157d8bef42fe75eb9888ff6ce97c8d6fd985fc7d7d28c897732cd3c3285907cb18a9bf8df91a6d2
   languageName: node
   linkType: hard
 
@@ -8032,7 +7996,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stylelint-scss@npm:^5.1.0":
+"stylelint-scss@npm:^5.3.0":
   version: 5.3.0
   resolution: "stylelint-scss@npm:5.3.0"
   dependencies:
@@ -8607,9 +8571,9 @@ __metadata:
   linkType: hard
 
 "universalify@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "universalify@npm:2.0.0"
-  checksum: 2406a4edf4a8830aa6813278bab1f953a8e40f2f63a37873ffa9a3bc8f9745d06cc8e88f3572cb899b7e509013f7f6fcc3e37e8a6d914167a5381d8440518c44
+  version: 2.0.1
+  resolution: "universalify@npm:2.0.1"
+  checksum: ecd8469fe0db28e7de9e5289d32bd1b6ba8f7183db34f3bfc4ca53c49891c2d6aa05f3fb3936a81285a905cc509fb641a0c3fc131ec786167eff41236ae32e60
   languageName: node
   linkType: hard
 
@@ -8719,13 +8683,13 @@ __metadata:
   linkType: hard
 
 "vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
-  version: 5.0.0-beta.14
-  resolution: "vite@npm:5.0.0-beta.14"
+  version: 5.0.0-beta.15
+  resolution: "vite@npm:5.0.0-beta.15"
   dependencies:
     esbuild: "npm:^0.19.3"
     fsevents: "npm:~2.3.3"
     postcss: "npm:^8.4.31"
-    rollup: "npm:^4.1.4"
+    rollup: "npm:^4.2.0"
   peerDependencies:
     "@types/node": ^18.0.0 || >=20.0.0
     less: "*"
@@ -8754,7 +8718,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: e3a63c2773ccd84c7eeb688a05c1cccc18e03baeadb0d8a850b74ac048ff03b1e050027be0ead2affc03a537ecf62558041de7104e44d30ce2a8812fe1821255
+  checksum: 561a84c9583c53dd8d129d01303ed8b03955aed2d99d919a45a8e3b399530c669c8a687d7559f4eb2cc245a37269b935b1b22459d71d548c5e0b3825993c7951
   languageName: node
   linkType: hard
 
@@ -8858,15 +8822,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-class-component@npm:^8.0.0-rc.1":
-  version: 8.0.0-rc.1
-  resolution: "vue-class-component@npm:8.0.0-rc.1"
-  peerDependencies:
-    vue: ^3.0.0
-  checksum: ee69c26f8e9ace3278f9cd274a15eae613c93984449dfb5cf0674b94456b17b83a2b57f2e417301fea21827f2015e1540f9cc28160984fdde87e6556e120c03d
-  languageName: node
-  linkType: hard
-
 "vue-component-type-helpers@npm:1.8.4":
   version: 1.8.4
   resolution: "vue-component-type-helpers@npm:1.8.4"
@@ -8907,16 +8862,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-i18n@npm:^9.6.2":
-  version: 9.6.2
-  resolution: "vue-i18n@npm:9.6.2"
+"vue-i18n@npm:^9.6.4":
+  version: 9.6.4
+  resolution: "vue-i18n@npm:9.6.4"
   dependencies:
-    "@intlify/core-base": "npm:9.6.2"
-    "@intlify/shared": "npm:9.6.2"
+    "@intlify/core-base": "npm:9.6.4"
+    "@intlify/shared": "npm:9.6.4"
     "@vue/devtools-api": "npm:^6.5.0"
   peerDependencies:
     vue: ^3.0.0
-  checksum: 44b8b807d986c16b222ee3d7438aaf9e07b0ced48c90029f02b46c97faf6e46b77439c746a9d31b6ab5b3def13aeb8155f7891ecb8f9145dc07dcfb9450768dd
+  checksum: 1cdb56404abbb5817fc863488fb3b8eddc1ac804672f307e0e3dd35b858dfffb0c95a4e695e0cf14898d2a4a79e54fc43ce997bbddf949523276b5f87140450e
   languageName: node
   linkType: hard
 
@@ -9104,7 +9059,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^18.2.0"
     "@commitlint/config-conventional": "npm:^18.1.0"
-    "@intlify/unplugin-vue-i18n": "npm:^1.4.0"
+    "@intlify/unplugin-vue-i18n": "npm:^1.5.0"
     "@quasar/vite-plugin": "npm:^1.6.0"
     "@types/eslint": "npm:^8.44.6"
     "@types/jsdom": "npm:^21.1.4"
@@ -9135,7 +9090,7 @@ __metadata:
     eslint-plugin-node: "npm:^11.1.0"
     eslint-plugin-prettier: "npm:^5.0.1"
     eslint-plugin-promise: "npm:^6.1.1"
-    eslint-plugin-sonarjs: "npm:^0.21.0"
+    eslint-plugin-sonarjs: "npm:^0.22.0"
     eslint-plugin-vue: "npm:^9.18.1"
     husky: "npm:^8.0.3"
     jsdom: "npm:^22.1.0"
@@ -9149,9 +9104,9 @@ __metadata:
     sass: "npm:^1.69.5"
     sass-loader: "npm:^13.3.2"
     stylelint: "npm:^15.11.0"
-    stylelint-config-recommended-scss: "npm:^13.0.0"
+    stylelint-config-recommended-scss: "npm:^13.1.0"
     stylelint-config-recommended-vue: "npm:^1.5.0"
-    stylelint-config-standard-scss: "npm:^11.0.0"
+    stylelint-config-standard-scss: "npm:^11.1.0"
     stylelint-config-standard-vue: "npm:^1.0.0"
     tailwindcss: "npm:^3.3.5"
     typescript: "npm:^5.2.2"

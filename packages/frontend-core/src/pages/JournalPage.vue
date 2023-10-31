@@ -5,6 +5,7 @@ import { useAccounts, useJournals } from "@core/composable";
 import JournalCard from "@core/components/JournalCard.vue";
 import { AccountTable } from "@core/components/AccountTable";
 import type { AccountQuery, AccountSort, FindAllArgs } from "@core/services";
+import TestAgCharts from "@core/components/TestAgCharts.vue";
 
 const route = useRoute();
 
@@ -57,6 +58,7 @@ const tab = ref<Tab>("Accounts");
           </q-tab-panel>
         </q-tab-panels>
       </q-card>
+      <TestAgCharts></TestAgCharts>
     </div>
   </div>
 </template>
