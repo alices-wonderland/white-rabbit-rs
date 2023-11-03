@@ -1,13 +1,13 @@
 <script setup lang="ts" generic="R">
 import type { ICellRendererParams } from "@ag-grid-community/core";
-import type { CellState } from "./index";
+import type { FieldState } from "@core/types";
 import { computed } from "vue";
 
 const props = defineProps<{
-  readonly params: ICellRendererParams<R> & { readonly cellState?: CellState<string> };
+  readonly params: ICellRendererParams<R> & { readonly fieldState?: FieldState<string> };
 }>();
 
-const state = computed(() => props.params.cellState);
+const state = computed(() => props.params.fieldState);
 </script>
 
 <template>

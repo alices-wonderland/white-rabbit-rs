@@ -40,6 +40,7 @@ export interface JournalCommandCreate extends Command<`${typeof JOURNAL_TYPE}:cr
   readonly name: string;
   readonly description: string;
   readonly unit: string;
+  readonly tags: string[];
 }
 
 export interface JournalCommandUpdate extends Command<`${typeof JOURNAL_TYPE}:update`> {
@@ -47,12 +48,23 @@ export interface JournalCommandUpdate extends Command<`${typeof JOURNAL_TYPE}:up
   readonly name?: string;
   readonly description?: string;
   readonly unit?: string;
+  readonly tags?: string[];
 }
 
 export interface JournalCommandDelete extends Command<`${typeof JOURNAL_TYPE}:delete`> {
   readonly id: string[];
 }
 
-export type JournalCommand = JournalCommandCreate | JournalCommandUpdate | JournalCommandDelete;
+export interface JournalCommandBatch extends Command<`${typeof JOURNAL_TYPE}:batch`> {
+  readonly create?: Omit<JournalCommandCreate, "commandType">[];
+  readonly update?: Omit<JournalCommandUpdate, "commandType">[];
+  readonly delete?: string[];
+}
+
+export type JournalCommand =
+  | JournalCommandCreate
+  | JournalCommandUpdate
+  | JournalCommandDelete
+  | JournalCommandBatch;
 
 export type JournalApi = WriteApi<Journal, JournalQuery, JournalCommand, JournalSort>;

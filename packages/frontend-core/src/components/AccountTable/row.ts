@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import sortBy from "lodash/sortBy";
 import sortedUniq from "lodash/sortedUniq";
 import { AbstractRow } from "@core/components/AppTable";
-import type { CellState } from "@core/components/AppTable";
+import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 
@@ -37,7 +37,7 @@ export class Row extends AbstractRow<Account, UpdatableField> {
     return UPDATABLE_FIELDS;
   }
 
-  getCellState<V>(field: UpdatableField): CellState<V> {
+  getFieldState<V>(field: UpdatableField): FieldState<V> {
     const value = get(this, field) as V;
 
     if (this._existing) {

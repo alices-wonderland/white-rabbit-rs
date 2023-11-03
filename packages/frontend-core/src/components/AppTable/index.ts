@@ -1,9 +1,7 @@
+import type { FieldState } from "@core/types";
+
 export { default as AppTable } from "./AppTable.vue";
 export { default as AppTableEditableCellRenderer } from "./AppTableEditableCellRenderer.vue";
-
-export type CellState<V = unknown> =
-  | { readonly state: "NORMAL"; readonly value: V }
-  | { readonly state: "UPDATED"; readonly value: V; readonly existing: V };
 
 export type RowState<F extends string = string> =
   | { readonly state: "NEW" | "DELETED" | "NORMAL" }
@@ -24,7 +22,7 @@ export abstract class AbstractRow<M, F extends string = string> {
 
   abstract reset(): void;
 
-  abstract getCellState<V>(field: F): CellState<V>;
+  abstract getFieldState<V>(field: F): FieldState<V>;
 
   get rowState(): RowState {
     if (!this._existing) {
@@ -38,7 +36,7 @@ export abstract class AbstractRow<M, F extends string = string> {
     }
 
     const updatedFields = this.updatableFields
-      .map<[F, CellState]>((field) => [field, this.getCellState(field)])
+      .map<[F, FieldState]>((field) => [field, this.getFieldState(field)])
       .filter(([_field, state]) => state.state === "UPDATED")
       .map(([field]): F => field);
 

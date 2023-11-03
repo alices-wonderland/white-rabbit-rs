@@ -1,2 +1,2 @@
-export { default as JournalsPage } from "./JournalsPage.vue";
+export { JournalsPage } from "./JournalsPage";
 export { default as JournalPage } from "./JournalPage.vue";

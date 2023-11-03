@@ -32,7 +32,7 @@ const columnDefs = computed((): ColDef<Row>[] => [
     editable: true,
     cellRenderer: AppTableEditableCellRenderer,
     cellRendererParams: (params: ICellRendererParams<Row>) => ({
-      cellState: params.data?.getCellState("name"),
+      fieldState: params.data?.getFieldState("name"),
     }),
   } as ColDef<Row, string>,
   {
@@ -51,7 +51,7 @@ const columnDefs = computed((): ColDef<Row>[] => [
     filter: "agTextColumnFilter",
     cellRenderer: AppTableEditableCellRenderer,
     cellRendererParams: (params: ICellRendererParams<Row>) => ({
-      cellState: params.data?.getCellState("description"),
+      fieldState: params.data?.getFieldState("description"),
     }),
   } as ColDef<Row, string>,
   {
@@ -68,7 +68,7 @@ const columnDefs = computed((): ColDef<Row>[] => [
     editable: true,
     cellRenderer: AppTableEditableCellRenderer,
     cellRendererParams: (params: ICellRendererParams<Row>) => ({
-      cellState: params.data?.getCellState("unit"),
+      fieldState: params.data?.getFieldState("unit"),
     }),
   } as ColDef<Row, string>,
   {
@@ -85,7 +85,7 @@ const columnDefs = computed((): ColDef<Row>[] => [
     editable: true,
     cellRenderer: AppTableEditableCellRenderer,
     cellRendererParams: (params: ICellRendererParams<Row>) => ({
-      cellState: params.data?.getCellState("type"),
+      fieldState: params.data?.getFieldState("type"),
     }),
     cellEditor: "agSelectCellEditor",
     cellEditorParams: () => ({
@@ -106,7 +106,7 @@ const columnDefs = computed((): ColDef<Row>[] => [
     editable: true,
     cellRenderer: AppTableEditableCellRenderer,
     cellRendererParams: (params: ICellRendererParams<Row>) => ({
-      cellState: params.data?.getCellState("tags"),
+      fieldState: params.data?.getFieldState("tags"),
     }),
     useValueParserForImport: true,
     valueFormatter: (params) => params.value?.join(","),

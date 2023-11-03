@@ -1,5 +1,6 @@
 import type { Command, FindAllArgs, Query, ReadApi, Model, WriteApi } from "@core/services";
 import { invoke } from "@tauri-apps/api/tauri";
+import { Notify } from "quasar";
 
 export abstract class AbstractReadApi<M extends Model, Q extends Query, S extends string>
   implements ReadApi<M, Q, S>
@@ -72,8 +73,11 @@ export abstract class AbstractWriteApi<
         command,
       });
     } catch (e) {
-      console.error(e);
-      throw e;
+      Notify.create({
+        color: "negative",
+        message: e as string,
+      });
+      throw new Error(e as string);
     }
 
     return response.map(this.convert);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { useJournals } from "@core/composable";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { JOURNAL_ICON } from "@core/services";
 
 const route = useRoute();
@@ -9,7 +9,11 @@ const router = useRouter();
 
 const journalId = computed(() => route.params["id"] as string);
 
-const { models: journals, loading } = useJournals({
+const {
+  models: journals,
+  loading,
+  reload,
+} = useJournals({
   sort: "name",
 });
 
@@ -22,11 +26,16 @@ const filtered = computed(() =>
 );
 
 const current = computed(() => journals.value.find((journal) => journal.id === journalId.value));
+
+watch(journalId, async () => {
+  keyword.value = "";
+  await reload();
+});
 </script>
 
 <template>
   <q-toolbar inset>
-    <q-linear-progress v-if="loading" indeterminate></q-linear-progress>
+    <q-circular-progress v-if="loading" indeterminate></q-circular-progress>
     <q-breadcrumbs v-else active-color="on-primary">
       <q-breadcrumbs-el label="Journals" to="/journals" :icon="JOURNAL_ICON"></q-breadcrumbs-el>
       <q-breadcrumbs-el v-if="current" :to="`/journals/${current.id}`">

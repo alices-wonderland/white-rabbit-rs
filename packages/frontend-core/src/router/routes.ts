@@ -12,14 +12,14 @@ export default [
         path: "",
         components: {
           default: JournalsPage,
-          "sub-toolbar": JournalBreadcrumb,
+          toolbar: JournalBreadcrumb,
         },
       },
       {
         path: ":id",
         components: {
           default: JournalPage,
-          "sub-toolbar": JournalBreadcrumb,
+          toolbar: JournalBreadcrumb,
         },
       },
     ],

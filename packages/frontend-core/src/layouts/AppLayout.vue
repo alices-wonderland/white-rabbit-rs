@@ -20,11 +20,11 @@
         </q-btn>
       </q-toolbar>
 
-      <router-view name="sub-toolbar"></router-view>
+      <router-view name="toolbar"></router-view>
     </q-header>
 
     <q-page-container>
-      <q-page padding>
+      <q-page padding class="flex justify-center">
         <router-view />
       </q-page>
     </q-page-container>

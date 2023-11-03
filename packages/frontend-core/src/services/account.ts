@@ -66,6 +66,16 @@ export interface AccountCommandDelete extends Command<`${typeof ACCOUNT_TYPE}:de
   readonly id: string[];
 }
 
-export type AccountCommand = AccountCommandCreate | AccountCommandUpdate | AccountCommandDelete;
+export interface AccountCommandBatch extends Command<`${typeof ACCOUNT_TYPE}:batch`> {
+  readonly create?: Omit<AccountCommandCreate, "commandType">[];
+  readonly update?: Omit<AccountCommandUpdate, "commandType">[];
+  readonly delete?: string[];
+}
+
+export type AccountCommand =
+  | AccountCommandCreate
+  | AccountCommandUpdate
+  | AccountCommandDelete
+  | AccountCommandBatch;
 
 export type AccountApi = WriteApi<Account, AccountQuery, AccountCommand, AccountSort>;

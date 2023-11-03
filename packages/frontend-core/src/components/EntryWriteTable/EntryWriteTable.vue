@@ -1,5 +1,5 @@
 <template>
-  <q-btn color="primary" size="sm" @click="saveEditedRows">Save</q-btn>
+  <q-btn color="primary" size="sm" label="Save" @click="saveEditedRows"></q-btn>
   <ag-grid-vue
     ref="tableRef"
     :style="{ minHeight: '150px', maxHeight: '80vh', height: heightPx }"

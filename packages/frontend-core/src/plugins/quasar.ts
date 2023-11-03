@@ -5,11 +5,14 @@ import iconSet from "quasar/icon-set/material-icons";
 import "quasar/src/css/index.sass";
 
 import type { App } from "vue";
-import { Quasar } from "quasar";
+import { Quasar, Notify } from "quasar";
 import langEnUS from "quasar/lang/en-US";
 
 export default function (app: App) {
   app.use(Quasar, {
+    plugins: {
+      Notify,
+    },
     lang: langEnUS,
     iconSet: iconSet,
     config: {
