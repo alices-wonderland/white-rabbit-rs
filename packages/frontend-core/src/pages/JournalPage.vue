@@ -14,7 +14,6 @@ import type {
   JournalCommandUpdate,
 } from "@core/services";
 import JournalDeleteDialog from "@core/components/JournalDeleteDialog.vue";
-import { Notify } from "quasar";
 
 const route = useRoute();
 
@@ -38,7 +37,11 @@ const accountArgs = computed<FindAllArgs<AccountQuery, AccountSort> | undefined>
     return undefined;
   }
 });
-const { models: accounts, loading: accountsLoading } = useAccounts(accountArgs);
+const {
+  models: accounts,
+  loading: accountsLoading,
+  reload: accountsReload,
+} = useAccounts(accountArgs);
 
 const doLoading = ref(false);
 
@@ -140,7 +143,11 @@ const cancel = () => {
         <q-separator />
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="Accounts">
-            <AccountTable :model-value="accounts" :journal="journal"></AccountTable>
+            <AccountTable
+              :model-value="accounts"
+              :journal="journal"
+              @reload="accountsReload"
+            ></AccountTable>
           </q-tab-panel>
           <q-tab-panel name="Entries">
             <div class="text-h6">Entries</div>
