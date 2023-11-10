@@ -1,10 +1,10 @@
-<script setup lang="ts" generic="R">
+<script setup lang="ts" generic="R, V">
 import type { ICellRendererParams } from "@ag-grid-community/core";
 import type { FieldState } from "@core/types";
 import { computed } from "vue";
 
 const props = defineProps<{
-  readonly params: ICellRendererParams<R> & { readonly fieldState?: FieldState<string> };
+  readonly params: ICellRendererParams<R, V> & { readonly fieldState?: FieldState<V> };
 }>();
 
 const state = computed(() => props.params.fieldState);
@@ -12,7 +12,9 @@ const state = computed(() => props.params.fieldState);
 
 <template>
   <div v-if="state" class="flex gap-1 w-full h-full items-center overflow-hidden">
-    <span>{{ state.value }}</span>
+    <slot>
+      <span>{{ state.value }}</span>
+    </slot>
     <q-badge
       v-if="state.state === 'UPDATED'"
       class="absolute top-0.5 right-0.5"
@@ -21,11 +23,10 @@ const state = computed(() => props.params.fieldState);
       color="positive"
     >
       <q-tooltip>
-        <slot v-if="$slots['tooltip']" name="tooltip"></slot>
-        <template v-else>
+        <slot name="tooltip">
           <div class="font-bold">Existing Value:</div>
           <div>{{ state.existing }}</div>
-        </template>
+        </slot>
       </q-tooltip>
     </q-badge>
   </div>

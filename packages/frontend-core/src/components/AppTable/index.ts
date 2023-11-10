@@ -2,6 +2,8 @@ import type { FieldState } from "@core/types";
 
 export { default as AppTable } from "./AppTable.vue";
 export { default as AppTableEditableCellRenderer } from "./AppTableEditableCellRenderer.vue";
+export { default as AppTableTagsCellRenderer } from "./AppTableTagsCellRenderer.vue";
+export { default as AppTableTagsCellEditor } from "./AppTableTagsCellEditor.vue";
 
 export type RowState<F extends string = string> =
   | { readonly state: "NEW" | "DELETED" | "NORMAL" }
@@ -61,5 +63,9 @@ export abstract class AbstractRow<M, F extends string = string> {
     if (this._deleted) {
       this.reset();
     }
+  }
+
+  get isNew() {
+    return !this._existing;
   }
 }
