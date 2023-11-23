@@ -123,9 +123,9 @@ impl From<Sort> for (Column, Order) {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct Root {
   pub id: Uuid,
-  #[serde(rename = "journalId")]
   pub journal_id: Uuid,
   pub name: String,
   pub description: String,

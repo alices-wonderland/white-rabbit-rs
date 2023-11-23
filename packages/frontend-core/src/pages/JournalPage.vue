@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
 import { computed, ref } from "vue";
-import { useAccounts, useInject, useJournals } from "@core/composable";
+import { useAccounts, useEntries, useInject, useJournals } from "@core/composable";
 import { JournalCard } from "@core/components/JournalCard";
 import type { Value as JournalCardValue } from "@core/components/JournalCard";
 import { AccountTable } from "@core/components/AccountTable";
-import { JOURNAL_API_KEY } from "@core/services";
 import type {
+  EntryQuery,
+  EntrySort,
   AccountQuery,
   AccountSort,
   FindAllArgs,
   JournalApi,
   JournalCommandUpdate,
 } from "@core/services";
+import { JOURNAL_API_KEY } from "@core/services";
 import JournalDeleteDialog from "@core/components/JournalDeleteDialog.vue";
+import { EntryTable } from "@core/components/EntryTable";
 
 const route = useRoute();
 
@@ -43,9 +46,26 @@ const {
   reload: accountsReload,
 } = useAccounts(accountArgs);
 
+const entriesArgs = computed((): FindAllArgs<EntryQuery, EntrySort> | undefined => {
+  if (journal.value) {
+    return {
+      query: {
+        journalId: [journal.value.id],
+      },
+      sort: "date",
+    };
+  }
+
+  return undefined;
+});
+
+const { models: entries, loading: entriesLoading } = useEntries(entriesArgs);
+
 const doLoading = ref(false);
 
-const loading = computed(() => journalsLoading.value || accountsLoading.value || doLoading.value);
+const loading = computed(
+  () => journalsLoading.value || accountsLoading.value || entriesLoading.value || doLoading.value,
+);
 
 type Tab = "Accounts" | "Entries";
 
@@ -150,8 +170,7 @@ const cancel = () => {
             ></AccountTable>
           </q-tab-panel>
           <q-tab-panel name="Entries">
-            <div class="text-h6">Entries</div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.
+            <EntryTable :model-value="entries" @reload="accountsReload"></EntryTable>
           </q-tab-panel>
         </q-tab-panels>
       </q-card>

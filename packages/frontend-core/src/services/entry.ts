@@ -10,7 +10,7 @@ export class Entry implements Model<typeof ENTRY_TYPE> {
   name: string;
   description: string;
   type: EntryType;
-  date: Date;
+  date: string;
   tags: string[];
   items: EntryItem[];
   state: EntryState;

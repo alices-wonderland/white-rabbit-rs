@@ -1,25 +1,27 @@
-import { Account } from "@core/services";
-import type { AccountType } from "@core/services";
-import { v4 as uuidv4 } from "uuid";
-import sortBy from "lodash/sortBy";
-import sortedUniq from "lodash/sortedUniq";
 import { AbstractRow } from "@core/components/AppTable";
+import type { EntryType } from "@core/services";
+import { Entry } from "@core/services";
+import { v4 as uuidv4 } from "uuid";
+import sortedUniq from "lodash/sortedUniq";
+import sortBy from "lodash/sortBy";
 import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
+import { format } from "date-fns";
 
-const UPDATABLE_FIELDS = ["name", "description", "unit", "type", "tags"] as const;
+const UPDATABLE_FIELDS = ["name", "description", "date", "type", "tags"] as const;
+
 type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
 
-export class Row extends AbstractRow<Account, UpdatableField> {
+export class ParentRow extends AbstractRow<Entry, UpdatableField> {
   _name: string = "";
   _description: string = "";
-  _unit: string = "";
-  type: AccountType = "Asset";
+  type: EntryType = "Record";
+  date: string = format(new Date(), "yyyy-MM-dd");
   _tags: string[] = [];
 
-  constructor(account?: Account) {
-    super(account?.id ?? uuidv4(), account);
+  constructor(entry?: Entry) {
+    super(entry?.id ?? uuidv4(), entry);
     this.reset();
   }
 
@@ -27,8 +29,8 @@ export class Row extends AbstractRow<Account, UpdatableField> {
     if (this._existing) {
       this.name = this._existing.name;
       this.description = this._existing.description;
-      this.unit = this._existing.unit;
       this.type = this._existing.type;
+      this.date = this._existing.date;
       this.tags = this._existing.tags;
     }
   }
@@ -78,14 +80,6 @@ export class Row extends AbstractRow<Account, UpdatableField> {
     this._description = value.trim();
   }
 
-  get unit() {
-    return this._unit;
-  }
-
-  set unit(value: string) {
-    this._unit = value.trim();
-  }
-
   get tags() {
     return this._tags;
   }
@@ -93,11 +87,10 @@ export class Row extends AbstractRow<Account, UpdatableField> {
   set tags(value: string[]) {
     this._tags = sortedUniq(sortBy(value.map((tag) => tag.trim()).filter((tag) => !!tag)));
   }
-
-  static ofAll(accounts: Account[]): Row[] {
-    return sortBy(
-      accounts.map((account) => new Row(account)),
-      "name",
-    );
-  }
 }
+
+export type Row = ParentRow;
+
+export const createAll = (entries: Entry[]): Row[] => {
+  return entries.map((e) => new ParentRow(e));
+};
