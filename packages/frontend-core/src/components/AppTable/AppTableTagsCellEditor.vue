@@ -12,7 +12,9 @@ export default {
 
     const input = ref("");
 
-    const options = computed(() => sortedUniq(sortBy([...value.value, input.value])));
+    const options = computed(() =>
+      sortedUniq(sortBy([...value.value, input.value].filter((item) => !!item))),
+    );
 
     const getValue = () => value.value;
 

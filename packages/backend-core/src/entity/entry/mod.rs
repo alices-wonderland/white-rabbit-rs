@@ -166,6 +166,10 @@ pub enum Sort {
   Name,
   #[serde(rename = "-name")]
   MinusName,
+  #[serde(rename = "date")]
+  Date,
+  #[serde(rename = "-date")]
+  MinusDate,
 }
 
 impl From<Sort> for (Column, Order) {
@@ -173,11 +177,14 @@ impl From<Sort> for (Column, Order) {
     match value {
       Sort::Name => (Column::Name, Order::Asc),
       Sort::MinusName => (Column::Name, Order::Desc),
+      Sort::Date => (Column::Date, Order::Asc),
+      Sort::MinusDate => (Column::Date, Order::Desc),
     }
   }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct Root {
   pub id: Uuid,
   pub journal_id: Uuid,

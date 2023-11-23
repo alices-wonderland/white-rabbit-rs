@@ -15,7 +15,6 @@ import { AbstractWriteApi } from "./api";
 import { journalApi } from "./journal";
 import { toMap } from "@core/utils";
 import { accountApi } from "./account";
-import { parseISO } from "date-fns";
 
 class EntryApiImpl extends AbstractWriteApi<Entry, EntryQuery, EntryCommand, EntrySort> {
   protected override get findAllKey(): string {
@@ -54,7 +53,7 @@ class EntryApiImpl extends AbstractWriteApi<Entry, EntryQuery, EntryCommand, Ent
       name: input.name as string,
       description: input.description as string,
       type: input.type as EntryType,
-      date: parseISO(input.date as string),
+      date: input.date as string,
       tags: input.tags as string[],
       items: items,
       state: input.state as EntryState,
