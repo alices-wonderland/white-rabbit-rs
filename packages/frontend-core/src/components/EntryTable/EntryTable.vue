@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AppTable, AppTableEditableCellRenderer } from "@core/components/AppTable";
 import { Entry } from "@core/services";
-import { computed, ref, triggerRef } from "vue";
+import { computed, onMounted, ref, shallowRef, triggerRef } from "vue";
 import { createAll } from "./row";
 import type { Row } from "./row";
 import type { ColDef, ICellRendererParams } from "@ag-grid-community/core";
@@ -14,7 +14,11 @@ const props = defineProps<{
 const readonly = ref(true);
 const loading = ref(false);
 
-const rows = computed(() => createAll(props.modelValue));
+const rows = shallowRef<Row[]>([]);
+
+onMounted(() => {
+  rows.value = createAll(props.modelValue);
+});
 
 const columnDefs = computed((): ColDef<Row>[] => {
   return [

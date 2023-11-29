@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AgChart } from "ag-charts-community";
+import { AgCharts } from "ag-charts-community";
 import type { AgChartInstance, AgChartOptions } from "ag-charts-community";
 import { useQuasar } from "quasar";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
@@ -22,14 +22,20 @@ const options = computed<AgChartOptions>(() => ({
   theme: quasar.dark.isActive ? "ag-default-dark" : "ag-default",
 }));
 
-watch(options, (newOptions) => {
-  if (chartInst.value && created.value) {
-    AgChart.update(chartInst.value, newOptions);
-  }
-});
+watch(
+  options,
+  (newOptions) => {
+    if (chartInst.value && created.value) {
+      AgCharts.update(chartInst.value, newOptions);
+    }
+  },
+  {
+    deep: true,
+  },
+);
 
 onMounted(async () => {
-  chartInst.value = AgChart.create(options.value);
+  chartInst.value = AgCharts.create(options.value);
   created.value = true;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (chartInst.value as any).chart.waitForUpdate();

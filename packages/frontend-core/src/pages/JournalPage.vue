@@ -17,6 +17,7 @@ import type {
 import { JOURNAL_API_KEY } from "@core/services";
 import JournalDeleteDialog from "@core/components/JournalDeleteDialog.vue";
 import { EntryTable } from "@core/components/EntryTable";
+import TestAgCharts from "@core/components/TestAgCharts.vue";
 
 const route = useRoute();
 
@@ -168,6 +169,7 @@ const cancel = () => {
               :journal="journal"
               @reload="accountsReload"
             ></AccountTable>
+            <TestAgCharts></TestAgCharts>
           </q-tab-panel>
           <q-tab-panel name="Entries">
             <EntryTable :model-value="entries" @reload="accountsReload"></EntryTable>

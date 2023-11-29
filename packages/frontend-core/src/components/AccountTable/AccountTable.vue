@@ -14,7 +14,7 @@ import {
   AppTableTagsCellEditor,
 } from "@core/components/AppTable";
 import { computed, onMounted, ref, shallowRef, triggerRef } from "vue";
-import type { ColDef, ICellRendererParams } from "@ag-grid-community/core";
+import type { CellValueChangedEvent, ColDef, ICellRendererParams } from "@ag-grid-community/core";
 import { Row } from "./row";
 import uniq from "lodash/uniq";
 import AccountTableActionsCellRenderer from "./AccountTableActionsCellRenderer.vue";
@@ -42,7 +42,6 @@ const columnDefs = computed(() => {
       valueSetter: (params) => {
         if (params.newValue) {
           params.data.name = params.newValue;
-          triggerRef(rows);
           return true;
         }
         return false;
@@ -59,7 +58,6 @@ const columnDefs = computed(() => {
       valueSetter: (params) => {
         if (params.newValue) {
           params.data.description = params.newValue;
-          triggerRef(rows);
           return true;
         }
         return false;
@@ -78,7 +76,6 @@ const columnDefs = computed(() => {
       valueSetter: (params) => {
         if (params.newValue) {
           params.data.unit = params.newValue;
-          triggerRef(rows);
           return true;
         }
         return false;
@@ -95,7 +92,6 @@ const columnDefs = computed(() => {
       valueSetter: (params) => {
         if (params.newValue) {
           params.data.type = params.newValue;
-          triggerRef(rows);
           return true;
         }
         return false;
@@ -116,7 +112,6 @@ const columnDefs = computed(() => {
       valueSetter: (params) => {
         if (params.newValue) {
           params.data.tags = params.newValue;
-          triggerRef(rows);
           return true;
         }
         return false;
@@ -145,8 +140,6 @@ const columnDefs = computed(() => {
                 rows.value = rows.value.filter((row) => row.id !== params.data?.id);
               } else if (params.data) {
                 params.data.deleted = !params.data.deleted;
-                params.api.redrawRows({ rowNodes: [params.node] });
-                triggerRef(rows);
               }
             },
           };
@@ -245,6 +238,11 @@ const save = async () => {
     }
   }
 };
+
+const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
+  event.api.redrawRows({ rowNodes: [event.node] });
+  triggerRef(rows);
+};
 </script>
 
 <template>
@@ -294,6 +292,10 @@ const save = async () => {
       </q-badge>
       <q-badge v-if="deleteIds" color="negative"> {{ deleteIds.length }} items deleted </q-badge>
     </div>
-    <AppTable :row-data="rows" :column-defs="columnDefs"></AppTable>
+    <AppTable
+      :row-data="rows"
+      :column-defs="columnDefs"
+      @cell-value-changed="onCellValueChanged"
+    ></AppTable>
   </div>
 </template>
