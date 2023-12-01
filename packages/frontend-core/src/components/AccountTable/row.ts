@@ -1,6 +1,5 @@
 import { Account } from "@core/services";
 import type { AccountType } from "@core/services";
-import { v4 as uuidv4 } from "uuid";
 import sortBy from "lodash/sortBy";
 import sortedUniq from "lodash/sortedUniq";
 import { AbstractRow } from "@core/components/AppTable";
@@ -8,18 +7,18 @@ import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 
-const UPDATABLE_FIELDS = ["name", "description", "unit", "type", "tags"] as const;
-type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
+const EDITABLE_FIELDS = ["name", "description", "unit", "type", "tags"] as const;
+type EditableField = (typeof EDITABLE_FIELDS)[number];
 
-export class Row extends AbstractRow<Account, UpdatableField> {
+export class Row extends AbstractRow<Account, EditableField> {
   _name: string = "";
   _description: string = "";
   _unit: string = "";
   type: AccountType = "Asset";
   _tags: string[] = [];
 
-  constructor(account?: Account) {
-    super(account?.id ?? uuidv4(), account);
+  constructor(account?: Account, readonly?: boolean) {
+    super(account?.id, account, readonly);
     this.reset();
   }
 
@@ -30,14 +29,20 @@ export class Row extends AbstractRow<Account, UpdatableField> {
       this.unit = this._existing.unit;
       this.type = this._existing.type;
       this.tags = this._existing.tags;
+    } else {
+      this.name = "";
+      this.description = "";
+      this.unit = "";
+      this.type = "Asset";
+      this.tags = [];
     }
   }
 
-  override get updatableFields(): readonly UpdatableField[] {
-    return UPDATABLE_FIELDS;
+  override get editableFields(): readonly EditableField[] {
+    return EDITABLE_FIELDS;
   }
 
-  override getFieldState<V>(field: UpdatableField): FieldState<V> {
+  override getFieldState<V>(field: EditableField): FieldState<V> {
     const value = get(this, field) as V;
 
     if (this._existing) {
@@ -94,9 +99,9 @@ export class Row extends AbstractRow<Account, UpdatableField> {
     this._tags = sortedUniq(sortBy(value.map((tag) => tag.trim()).filter((tag) => !!tag)));
   }
 
-  static ofAll(accounts: Account[]): Row[] {
+  static ofAll(accounts: Account[], readonly?: boolean): Row[] {
     return sortBy(
-      accounts.map((account) => new Row(account)),
+      accounts.map((account) => new Row(account, readonly)),
       "name",
     );
   }

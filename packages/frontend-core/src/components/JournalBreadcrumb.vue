@@ -1,21 +1,16 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { useJournals } from "@core/composable";
 import { computed, ref, watch } from "vue";
 import { JOURNAL_ICON } from "@core/services";
 
 const route = useRoute();
-const router = useRouter();
 
 const journalId = computed(() => route.params["id"] as string);
 
-const {
-  models: journals,
-  loading,
-  reload,
-} = useJournals({
-  sort: "name",
-});
+const { data: journalsData, status: journalsStatus } = useJournals({});
+
+const journals = computed(() => (journalsData.value ? journalsData.value[0] : []));
 
 const keyword = ref<string>("");
 
@@ -29,13 +24,12 @@ const current = computed(() => journals.value.find((journal) => journal.id === j
 
 watch(journalId, async () => {
   keyword.value = "";
-  await reload();
 });
 </script>
 
 <template>
   <q-toolbar inset>
-    <q-circular-progress v-if="loading" indeterminate></q-circular-progress>
+    <q-circular-progress v-if="journalsStatus === 'pending'" indeterminate></q-circular-progress>
     <q-breadcrumbs v-else active-color="on-primary">
       <q-breadcrumbs-el label="Journals" to="/journals" :icon="JOURNAL_ICON"></q-breadcrumbs-el>
       <q-breadcrumbs-el v-if="current" :to="`/journals/${current.id}`">
@@ -57,7 +51,7 @@ watch(journalId, async () => {
                   :key="journal.id"
                   :disable="current.id === journal.id"
                   clickable
-                  @click="router.push(`/journals/${journal.id}`)"
+                  :href="`/journals/${journal.id}`"
                 >
                   {{ journal.name }}
                 </q-item>

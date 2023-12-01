@@ -289,14 +289,16 @@ impl Root {
       }
       Command::Batch(CommandBatch { create, update, delete }) => {
         let mut ids = HashSet::<Uuid>::new();
-        for root in Self::create(db, create).await? {
-          ids.insert(root.id);
-        }
+
+        Self::delete(db, delete).await?;
+
         for root in Self::update(db, update).await? {
           ids.insert(root.id);
         }
 
-        Self::delete(db, delete).await?;
+        for root in Self::create(db, create).await? {
+          ids.insert(root.id);
+        }
 
         Self::find_all(db, Some(Query { id: ids, ..Default::default() }), None, None).await
       }

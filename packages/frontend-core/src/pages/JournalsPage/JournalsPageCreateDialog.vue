@@ -2,9 +2,9 @@
 import { JournalCard } from "@core/components/JournalCard";
 import type { Value } from "@core/components/JournalCard";
 import { computed, ref } from "vue";
-import { JOURNAL_API_KEY } from "@core/services";
-import type { JournalApi, JournalCommandCreate } from "@core/services";
-import { useInject } from "@core/composable";
+import { type JournalCommandCreate } from "@core/services";
+import { useJournalCommand } from "@core/composable";
+import { useQueryClient } from "@tanstack/vue-query";
 
 const props = defineProps<{
   readonly modelValue: boolean;
@@ -12,13 +12,11 @@ const props = defineProps<{
 
 const emits = defineEmits<{
   "update:modelValue": [value: boolean];
-  reload: [];
 }>();
 
-const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
+const queryClient = useQueryClient();
 
 const value = ref<Value>();
-const loading = ref(false);
 
 const show = computed({
   get: () => props.modelValue,
@@ -42,25 +40,21 @@ const command = computed<JournalCommandCreate | undefined>(() => {
   return undefined;
 });
 
-const save = async () => {
-  if (!command.value) {
-    return;
-  }
-
-  try {
-    loading.value = true;
-    await journalApi.handleCommand(command.value);
-    emits("reload");
+const { mutateAsync: createAsync, isPending: createPending } = useJournalCommand({
+  async onSuccess() {
     show.value = false;
-  } finally {
-    loading.value = false;
-  }
-};
+    await queryClient.invalidateQueries({ queryKey: ["journals"] });
+  },
+});
 </script>
 
 <template>
   <q-dialog v-model="show">
-    <JournalCard class="w-3/5" @update:value="value = $event" @submit="save">
+    <JournalCard
+      class="w-3/5"
+      @update:value="value = $event"
+      @submit="command && createAsync(command)"
+    >
       <template #title>
         <h6>Create New Journal</h6>
       </template>
@@ -69,11 +63,17 @@ const save = async () => {
           icon="save"
           color="primary"
           :disable="!command"
-          :loading="loading"
+          :loading="createPending"
           label="Submit"
           type="submit"
         ></q-btn>
-        <q-btn flat icon="cancel" label="Cancel" :loading="loading" @click="show = false"></q-btn>
+        <q-btn
+          flat
+          icon="cancel"
+          label="Cancel"
+          :loading="createPending"
+          @click="show = false"
+        ></q-btn>
       </template>
     </JournalCard>
   </q-dialog>

@@ -7,3 +7,4 @@ const router = createRouter({
 });
 
 export default router;
+export { ROUTE_JOURNALS, ROUTE_JOURNAL } from "./routes";

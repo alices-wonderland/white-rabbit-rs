@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Journal, JOURNAL_ICON } from "@core/services";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { ValidationRule } from "quasar";
 import sortBy from "lodash/sortBy";
-import { useRouter } from "vue-router";
 import type { FieldState } from "@core/types";
 import sortedUniq from "lodash/sortedUniq";
 import isEqual from "lodash/isEqual";
 import { watchDebounced } from "@vueuse/core";
+import AppLink from "@core/components/AppLink.vue";
 
 export type Value = {
   readonly name: FieldState<string>;
@@ -26,8 +26,6 @@ const emits = defineEmits<{
   "update:value": [value: Value];
   submit: [];
 }>();
-
-const router = useRouter();
 
 const name = ref<string>("");
 const nameRules: ValidationRule<string>[] = [
@@ -164,14 +162,13 @@ watchDebounced(
   { debounce: 100 },
 );
 
-const watchProps = computed(() => [props.modelValue?.id, props.readonly]);
-watch(watchProps, () => {
-  reset();
-});
-
-onMounted(() => {
-  reset();
-});
+watch(
+  () => [props.modelValue?.id, props.readonly],
+  () => {
+    reset();
+  },
+  { immediate: true },
+);
 
 const submit = () => {
   emits("submit");
@@ -184,12 +181,9 @@ const submit = () => {
       <slot name="title">
         <h6 v-if="modelValue" class="flex items-center gap-2">
           <q-icon :name="JOURNAL_ICON"></q-icon>
-          <span
-            class="hover:underline hover:cursor-pointer"
-            @click="router.push(`/journals/${modelValue.id}`)"
-          >
+          <AppLink :to="`/journals/${modelValue.id}`">
             {{ modelValue.name }}
-          </span>
+          </AppLink>
         </h6>
       </slot>
     </q-card-section>

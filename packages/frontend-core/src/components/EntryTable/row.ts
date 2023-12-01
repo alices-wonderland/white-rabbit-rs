@@ -9,11 +9,11 @@ import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 import { format } from "date-fns";
 
-const UPDATABLE_FIELDS = ["name", "description", "date", "type", "tags"] as const;
+const EDITABLE_FIELDS = ["name", "description", "date", "type", "tags"] as const;
 
-type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
+type EditableField = (typeof EDITABLE_FIELDS)[number];
 
-export class ParentRow extends AbstractRow<Entry, UpdatableField> {
+export class ParentRow extends AbstractRow<Entry, EditableField> {
   _name: string = "";
   _description: string = "";
   type: EntryType = "Record";
@@ -35,11 +35,11 @@ export class ParentRow extends AbstractRow<Entry, UpdatableField> {
     }
   }
 
-  override get updatableFields(): readonly UpdatableField[] {
-    return UPDATABLE_FIELDS;
+  override get editableFields(): readonly EditableField[] {
+    return EDITABLE_FIELDS;
   }
 
-  override getFieldState<V>(field: UpdatableField): FieldState<V> {
+  override getFieldState<V>(field: EditableField): FieldState<V> {
     const value = get(this, field) as V;
 
     if (this._existing) {

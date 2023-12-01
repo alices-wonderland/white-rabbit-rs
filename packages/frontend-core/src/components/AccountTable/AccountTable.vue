@@ -4,33 +4,29 @@ import type {
   AccountCommandCreate,
   AccountCommandUpdate,
   AccountCommandBatch,
-  AccountApi,
 } from "@core/services";
-import { Account, Journal, ACCOUNT_TYPES, ACCOUNT_API_KEY } from "@core/services";
+import { Account, Journal, ACCOUNT_TYPES } from "@core/services";
 import {
   AppTable,
   AppTableEditableCellRenderer,
   AppTableTagsCellRenderer,
   AppTableTagsCellEditor,
 } from "@core/components/AppTable";
-import { computed, onMounted, ref, shallowRef, triggerRef } from "vue";
+import { useAccountCommand } from "@core/composable";
+import { computed, ref, shallowRef, triggerRef, watch } from "vue";
 import type { CellValueChangedEvent, ColDef, ICellRendererParams } from "@ag-grid-community/core";
 import { Row } from "./row";
 import uniq from "lodash/uniq";
+
 import AccountTableActionsCellRenderer from "./AccountTableActionsCellRenderer.vue";
-import { useInject } from "@core/composable";
+import { useQueryClient } from "@tanstack/vue-query";
 
 const props = defineProps<{
   readonly modelValue: Account[];
   readonly journal: Journal;
 }>();
 
-const emits = defineEmits<{
-  reload: [];
-}>();
-
-const accountApi = useInject<AccountApi>(ACCOUNT_API_KEY);
-const loading = ref(false);
+const queryClient = useQueryClient();
 const readonly = ref(true);
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -46,7 +42,7 @@ const columnDefs = computed(() => {
         }
         return false;
       },
-      editable: !readonly.value,
+      editable: (params) => params.data?.editable("name"),
       cellRenderer: AppTableEditableCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => ({
         fieldState: params.data?.getFieldState("name"),
@@ -62,7 +58,7 @@ const columnDefs = computed(() => {
         }
         return false;
       },
-      editable: !readonly.value,
+      editable: (params) => params.data?.editable("description"),
       cellEditor: "agLargeTextCellEditor",
       filter: "agTextColumnFilter",
       cellRenderer: AppTableEditableCellRenderer,
@@ -80,7 +76,7 @@ const columnDefs = computed(() => {
         }
         return false;
       },
-      editable: !readonly.value,
+      editable: (params) => params.data?.editable("unit"),
       cellRenderer: AppTableEditableCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => ({
         fieldState: params.data?.getFieldState("unit"),
@@ -96,7 +92,7 @@ const columnDefs = computed(() => {
         }
         return false;
       },
-      editable: !readonly.value,
+      editable: (params) => params.data?.editable("type"),
       cellRenderer: AppTableEditableCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => ({
         fieldState: params.data?.getFieldState("type"),
@@ -116,7 +112,7 @@ const columnDefs = computed(() => {
         }
         return false;
       },
-      editable: !readonly.value,
+      editable: (params) => params.data?.editable("tags"),
       cellRenderer: AppTableTagsCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => ({
         fieldState: params.data?.getFieldState("tags"),
@@ -136,10 +132,12 @@ const columnDefs = computed(() => {
         cellRendererParams: (params: ICellRendererParams<Row>) => {
           return {
             toggleDeleted: () => {
-              if (params.data?.isNew) {
+              if (params.data?.rowState?.state === "NEW") {
                 rows.value = rows.value.filter((row) => row.id !== params.data?.id);
               } else if (params.data) {
                 params.data.deleted = !params.data.deleted;
+                params.node && params.api.redrawRows({ rowNodes: [params.node] });
+                triggerRef(rows);
               }
             },
           };
@@ -154,10 +152,13 @@ const columnDefs = computed(() => {
 });
 
 const rows = shallowRef<Row[]>([]);
-
-onMounted(() => {
-  rows.value = Row.ofAll(props.modelValue);
-});
+watch(
+  (): [Account[], boolean] => [props.modelValue, readonly.value],
+  ([newValues, newReadonly]) => {
+    rows.value = Row.ofAll(newValues, newReadonly);
+  },
+  { immediate: true },
+);
 
 const createCommands = computed(() => {
   const commands: AccountCommandCreate[] = [];
@@ -226,23 +227,18 @@ const addRow = () => {
   rows.value = [new Row(), ...rows.value];
 };
 
-const save = async () => {
-  if (batchCommand.value) {
-    try {
-      loading.value = true;
-      await accountApi.handleCommand(batchCommand.value);
-      readonly.value = true;
-      emits("reload");
-    } finally {
-      loading.value = false;
-    }
-  }
-};
-
 const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
+  console.log("On Cell Value Changed:", event);
   event.api.redrawRows({ rowNodes: [event.node] });
   triggerRef(rows);
 };
+
+const { mutateAsync: batchAsync, isPending: batchPending } = useAccountCommand({
+  async onSuccess() {
+    readonly.value = true;
+    await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+  },
+});
 </script>
 
 <template>
@@ -253,7 +249,7 @@ const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
           color="primary"
           icon="edit"
           label="Edit"
-          :loading="loading"
+          :loading="batchPending"
           @click="readonly = false"
         ></q-btn>
       </template>
@@ -262,23 +258,23 @@ const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
           color="primary"
           icon="save"
           label="Save"
-          :loading="loading"
+          :loading="batchPending"
           :disable="!batchCommand"
-          @click="save"
+          @click="batchCommand && batchAsync(batchCommand)"
         ></q-btn>
         <q-btn
           flat
           color="secondary"
           icon="add"
           label="Add"
-          :loading="loading"
+          :loading="batchPending"
           @click="addRow"
         ></q-btn>
         <q-btn
           flat
           icon="cancel"
           label="Cancel"
-          :loading="loading"
+          :loading="batchPending"
           @click="readonly = true"
         ></q-btn>
       </template>

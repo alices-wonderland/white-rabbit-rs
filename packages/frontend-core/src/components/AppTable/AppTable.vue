@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { AgGridVue } from "@ag-grid-community/vue3";
-import type { AbstractColDef, GridOptions } from "@ag-grid-community/core";
+import type { GridOptions } from "@ag-grid-community/core";
 import { GridApi } from "@ag-grid-community/core";
-
 import { useQuasar } from "quasar";
-import { computed, ref } from "vue";
-import { watchDebounced } from "@vueuse/core";
-import { omitBy } from "lodash";
+import { computed, ref, watch } from "vue";
+import omitBy from "lodash/omitBy";
 
 const props: GridOptions = defineProps<GridOptions>();
 
@@ -41,18 +39,16 @@ const theme = computed(() => {
   return quasar.dark.isActive ? "ag-theme-alpine-dark" : "ag-theme-alpine";
 });
 
-watchDebounced(
-  (): [unknown[] | undefined | null, AbstractColDef[] | undefined | null] => [
-    props.rowData,
-    props.columnDefs,
-  ],
-  ([newRows, newColDefs]) => {
+watch(
+  () => [props.rowData, props.columnDefs],
+  ([newRowData, newColumnDefs]) => {
+    console.log("AppTable Props Update");
+    console.log("  rowData:", props.rowData);
     gridApi.value?.updateGridOptions({
-      rowData: newRows,
-      columnDefs: newColDefs,
+      rowData: newRowData,
+      columnDefs: newColumnDefs,
     });
   },
-  { debounce: 10 },
 );
 </script>
 
@@ -61,7 +57,6 @@ watchDebounced(
     :style="{ minHeight: '150px', maxHeight: '80vh', height: '500px' }"
     :class="theme"
     v-bind="gridOptions"
-    @grid-ready="onGridReady"
   ></ag-grid-vue>
 </template>
 

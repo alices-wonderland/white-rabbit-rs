@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Journal, JOURNAL_API_KEY } from "@core/services";
-import type { JournalApi, JournalCommandDelete } from "@core/services";
-import { useInject } from "@core/composable";
+import { Journal, type JournalCommandDelete } from "@core/services";
+import { useJournalCommand } from "@core/composable";
+import { useQueryClient } from "@tanstack/vue-query";
+
+const queryClient = useQueryClient();
 
 const props = defineProps<{
   readonly modelValue: boolean;
   readonly journal: Journal;
 }>();
-
-const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
 
 const emits = defineEmits<{
   "update:modelValue": [value: boolean];
@@ -17,7 +17,6 @@ const emits = defineEmits<{
 }>();
 
 const value = ref<string>();
-const loading = ref(false);
 
 const show = computed({
   get: () => props.modelValue,
@@ -34,24 +33,16 @@ const command = computed<JournalCommandDelete | undefined>(() => {
       id: [props.journal.id],
     };
   }
-
   return undefined;
 });
 
-const confirm = async () => {
-  if (!command.value) {
-    return;
-  }
-
-  try {
-    loading.value = true;
-    await journalApi.handleCommand(command.value);
+const { mutateAsync: deleteAsync, isPending: deletePending } = useJournalCommand({
+  async onSuccess() {
     emits("reload");
     show.value = false;
-  } finally {
-    loading.value = false;
-  }
-};
+    await queryClient.invalidateQueries({ queryKey: ["journals"] });
+  },
+});
 </script>
 
 <template>
@@ -77,12 +68,18 @@ const confirm = async () => {
           flat
           color="negative"
           :disable="!command"
-          :loading="loading"
+          :loading="deletePending"
           label="Delete"
-          @click="confirm"
+          @click="command && deleteAsync(command)"
         >
         </q-btn>
-        <q-btn icon="cancel" flat label="Cancel" :loading="loading" @click="show = false"></q-btn>
+        <q-btn
+          icon="cancel"
+          flat
+          label="Cancel"
+          :loading="deletePending"
+          @click="show = false"
+        ></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>

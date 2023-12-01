@@ -1,4 +1,6 @@
 import type { FieldState } from "@core/types";
+import isEmpty from "lodash/isEmpty";
+import { v4 as uuidv4 } from "uuid";
 
 export { default as AppTable } from "./AppTable.vue";
 export { default as AppTableEditableCellRenderer } from "./AppTableEditableCellRenderer.vue";
@@ -7,20 +9,22 @@ export { default as AppTableTagsCellEditor } from "./AppTableTagsCellEditor.vue"
 
 export type RowState<F extends string = string> =
   | { readonly state: "NEW" | "DELETED" | "NORMAL" }
-  | { readonly state: "UPDATED"; readonly updatedFields: F[] };
+  | { readonly state: "UPDATED"; readonly editedFields: F[] };
 
 export abstract class AbstractRow<M, F extends string = string> {
   readonly id: string;
   protected readonly _existing?: M;
+  protected readonly _readonly?: boolean;
 
   protected _deleted: boolean = false;
 
-  protected constructor(id: string, existing?: M) {
-    this.id = id;
+  protected constructor(id?: string, existing?: M, readonly?: boolean) {
+    this.id = id ?? uuidv4();
     this._existing = existing;
+    this._readonly = readonly;
   }
 
-  abstract get updatableFields(): readonly F[];
+  abstract get editableFields(): readonly F[];
 
   abstract reset(): void;
 
@@ -31,21 +35,21 @@ export abstract class AbstractRow<M, F extends string = string> {
       return {
         state: "NEW",
       };
-    } else if (this._deleted) {
+    } else if (this.deleted) {
       return {
         state: "DELETED",
       };
     }
 
-    const updatedFields = this.updatableFields
+    const editedFields = this.editableFields
       .map<[F, FieldState]>((field) => [field, this.getFieldState(field)])
       .filter(([_field, state]) => state.state === "UPDATED")
       .map(([field]): F => field);
 
-    if (updatedFields.length > 0) {
+    if (editedFields.length > 0) {
       return {
         state: "UPDATED",
-        updatedFields: updatedFields,
+        editedFields: editedFields,
       };
     } else {
       return {
@@ -54,18 +58,22 @@ export abstract class AbstractRow<M, F extends string = string> {
     }
   }
 
-  get deleted() {
-    return this._deleted;
+  editable(field?: F): boolean {
+    return (
+      !this._readonly &&
+      !this._deleted &&
+      (field && !isEmpty(field) ? this.editableFields.includes(field as F) : true)
+    );
   }
 
   set deleted(value: boolean) {
-    this._deleted = value;
-    if (this._deleted) {
+    if (this._deleted !== value) {
+      this._deleted = value;
       this.reset();
     }
   }
 
-  get isNew() {
-    return !this._existing;
+  get deleted() {
+    return this._deleted;
   }
 }

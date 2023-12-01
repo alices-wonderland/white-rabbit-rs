@@ -1,8 +1,6 @@
 import type { AccountApi, EntryApi, JournalApi, Model, ReadApi } from "@core/services";
-import type { Ref } from "vue";
+import type { MaybeRef } from "vue";
 import useInject from "./useInject";
-import { ref, isRef, onMounted, watch } from "vue";
-import isEqual from "lodash/isEqual";
 import {
   Account,
   ACCOUNT_API_KEY,
@@ -11,60 +9,45 @@ import {
   Journal,
   JOURNAL_API_KEY,
 } from "@core/services";
-
-type UseByIdResult<M extends Model> = {
-  readonly model: Ref<M | undefined>;
-  readonly included: Ref<Map<string, Model>>;
-  readonly loading: Ref<boolean>;
-  readonly reload: () => Promise<void>;
-};
+import { useQuery, type UseQueryOptions } from "@tanstack/vue-query";
+import isEmpty from "lodash/isEmpty";
+import { computed, isRef } from "vue";
 
 const useById = <A extends ReadApi<M>, M extends Model>(
   key: symbol,
-  id?: string | Ref<string>,
-): UseByIdResult<M> => {
+  methodName: string,
+  id: MaybeRef<string | undefined>,
+  options?: UseQueryOptions<[M, Map<string, Model>] | null>,
+) => {
   const api = useInject<A>(key);
-  const model = ref<M>();
-  const included = ref<Map<string, Model>>(new Map());
-  const loading = ref(false);
+  const enabled = computed(() =>
+    isRef(id) ? !!id.value && !isEmpty(id.value) : !!id && !isEmpty(id),
+  );
 
-  const reload = async () => {
-    const argsValue = isRef(id) ? id.value : id;
-
-    if (!argsValue) {
-      model.value = undefined;
-      return;
-    }
-
-    loading.value = true;
-    try {
-      const result = await api.findById(argsValue);
-      if (result) {
-        model.value = result[0];
-        included.value = result[1];
+  return useQuery<[M, Map<string, Model>] | null>({
+    queryKey: [methodName, id],
+    queryFn: async ({ queryKey: [_key, idValue] }) => {
+      if (idValue && !isEmpty(idValue)) {
+        return await api.findById(idValue as string, true);
       }
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  onMounted(() => reload());
-
-  if (isRef(id)) {
-    watch(id, async (newArgs, oldArgs) => {
-      if (!isEqual(newArgs, oldArgs)) {
-        await reload();
-      }
-    });
-  }
-
-  return { model, included, loading, reload };
+      return null;
+    },
+    enabled,
+    ...(options ?? {}),
+  });
 };
 
-export const useJournal = (id?: string | Ref<string>) =>
-  useById<JournalApi, Journal>(JOURNAL_API_KEY, id);
+export const useJournal = (
+  id: MaybeRef<string | undefined>,
+  options?: UseQueryOptions<[Journal, Map<string, Model>] | null>,
+) => useById<JournalApi, Journal>(JOURNAL_API_KEY, "journal", id, options);
 
-export const useAccount = (id?: string | Ref<string>) =>
-  useById<AccountApi, Account>(ACCOUNT_API_KEY, id);
+export const useAccount = (
+  id?: MaybeRef<string | undefined>,
+  options?: UseQueryOptions<[Account, Map<string, Model>] | null>,
+) => useById<AccountApi, Account>(ACCOUNT_API_KEY, "account", id, options);
 
-export const useEntry = (id?: string | Ref<string>) => useById<EntryApi, Entry>(ENTRY_API_KEY, id);
+export const useEntry = (
+  id?: MaybeRef<string | undefined>,
+  options?: UseQueryOptions<[Entry, Map<string, Model>] | null>,
+) => useById<EntryApi, Entry>(ENTRY_API_KEY, "entry", id, options);

@@ -3,6 +3,9 @@ import { JournalsPage, JournalPage } from "@core/pages";
 import type { RouterOptions } from "vue-router";
 import JournalBreadcrumb from "@core/components/JournalBreadcrumb.vue";
 
+export const ROUTE_JOURNALS = Symbol("ROUTE_JOURNALS");
+export const ROUTE_JOURNAL = Symbol("ROUTE_JOURNAL");
+
 export default [
   {
     path: "/journals",
@@ -10,6 +13,7 @@ export default [
     children: [
       {
         path: "",
+        name: ROUTE_JOURNALS,
         components: {
           default: JournalsPage,
           toolbar: JournalBreadcrumb,
@@ -17,6 +21,7 @@ export default [
       },
       {
         path: ":id",
+        name: ROUTE_JOURNAL,
         components: {
           default: JournalPage,
           toolbar: JournalBreadcrumb,

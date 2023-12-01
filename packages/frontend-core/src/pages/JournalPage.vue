@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { computed, ref } from "vue";
 import { useAccounts, useEntries, useInject, useJournals } from "@core/composable";
 import { JournalCard } from "@core/components/JournalCard";
@@ -18,10 +18,13 @@ import { JOURNAL_API_KEY } from "@core/services";
 import JournalDeleteDialog from "@core/components/JournalDeleteDialog.vue";
 import { EntryTable } from "@core/components/EntryTable";
 import TestAgCharts from "@core/components/TestAgCharts.vue";
+import { ROUTE_JOURNALS } from "@core/router";
 
 const route = useRoute();
+const router = useRouter();
 
-const { models: journals, loading: journalsLoading, reload: journalsReload } = useJournals({});
+const { data: journalsData, status: journalsStatus, refetch: journalsRefetch } = useJournals({});
+const journals = computed(() => (journalsData.value ? journalsData.value[0] : []));
 
 const journalApi = useInject<JournalApi>(JOURNAL_API_KEY);
 
@@ -30,28 +33,26 @@ const journalId = computed(() => route.params["id"] as string);
 const journal = computed(() => journals.value.find((model) => model.id === journalId.value));
 
 const accountArgs = computed<FindAllArgs<AccountQuery, AccountSort> | undefined>(() => {
-  if (journal.value) {
+  if (journalId.value) {
     return {
       query: {
-        journalId: [journal.value.id],
+        journalId: [journalId.value],
       },
       sort: "name",
     };
-  } else {
-    return undefined;
   }
+
+  return undefined;
 });
-const {
-  models: accounts,
-  loading: accountsLoading,
-  reload: accountsReload,
-} = useAccounts(accountArgs);
+
+const { data: accountsData, status: accountsStatus } = useAccounts(accountArgs);
+const accounts = computed(() => (accountsData.value ? accountsData.value[0] : []));
 
 const entriesArgs = computed((): FindAllArgs<EntryQuery, EntrySort> | undefined => {
-  if (journal.value) {
+  if (journalId.value) {
     return {
       query: {
-        journalId: [journal.value.id],
+        journalId: [journalId.value],
       },
       sort: "date",
     };
@@ -60,12 +61,21 @@ const entriesArgs = computed((): FindAllArgs<EntryQuery, EntrySort> | undefined 
   return undefined;
 });
 
-const { models: entries, loading: entriesLoading } = useEntries(entriesArgs);
+const {
+  data: entriesData,
+  status: entriesStatus,
+  refetch: entriesRefetch,
+} = useEntries(entriesArgs);
+const entries = computed(() => (entriesData.value ? entriesData.value[0] : []));
 
 const doLoading = ref(false);
 
 const loading = computed(
-  () => journalsLoading.value || accountsLoading.value || entriesLoading.value || doLoading.value,
+  () =>
+    journalsStatus.value === "pending" ||
+    accountsStatus.value === "pending" ||
+    entriesStatus.value === "pending" ||
+    doLoading.value,
 );
 
 type Tab = "Accounts" | "Entries";
@@ -101,7 +111,7 @@ const submit = async () => {
     doLoading.value = true;
     try {
       await journalApi.handleCommand(journalCommand.value);
-      await journalsReload();
+      await journalsRefetch();
       cancel();
     } finally {
       doLoading.value = false;
@@ -164,15 +174,11 @@ const cancel = () => {
         <q-separator />
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="Accounts">
-            <AccountTable
-              :model-value="accounts"
-              :journal="journal"
-              @reload="accountsReload"
-            ></AccountTable>
+            <AccountTable :model-value="accounts" :journal="journal"></AccountTable>
             <TestAgCharts></TestAgCharts>
           </q-tab-panel>
           <q-tab-panel name="Entries">
-            <EntryTable :model-value="entries" @reload="accountsReload"></EntryTable>
+            <EntryTable :model-value="entries" @reload="entriesRefetch"></EntryTable>
           </q-tab-panel>
         </q-tab-panels>
       </q-card>
@@ -182,5 +188,6 @@ const cancel = () => {
     v-if="journal"
     v-model="showDeleteDialog"
     :journal="journal"
+    @reload="router.push({ name: ROUTE_JOURNALS })"
   ></JournalDeleteDialog>
 </template>

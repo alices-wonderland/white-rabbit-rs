@@ -16,7 +16,7 @@ defineProps<{ readonly params: Params }>();
       round
       size="sm"
       color="negative"
-      :icon="params.data?.deleted ? 'undo' : 'delete'"
+      :icon="params.data?.rowState?.state === 'DELETED' ? 'undo' : 'delete'"
       @click="params.toggleDeleted"
     ></q-btn>
   </div>
