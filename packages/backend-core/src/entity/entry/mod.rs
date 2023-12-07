@@ -35,6 +35,20 @@ pub struct Item {
   pub price: Option<Decimal>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum State {
+  Single(StateItem),
+  Multiple(HashMap<Uuid, StateItem>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(tag = "type", content = "value")]
+pub enum StateItem {
+  Valid(Decimal),
+  Invalid(Decimal, Decimal),
+}
+
 #[derive(Debug, Default)]
 pub struct Builder {
   id: Option<Uuid>,
@@ -671,5 +685,51 @@ impl Root {
     }
 
     Self::save(db, updated.into_values()).await
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::entity::entry::{State, StateItem};
+  use rust_decimal_macros::dec;
+  use serde_json::json;
+  use std::collections::HashMap;
+  use uuid::uuid;
+
+  #[test]
+  fn test_serde() -> anyhow::Result<()> {
+    let states = vec![
+      State::Single(StateItem::Valid(dec!(1.0))),
+      State::Single(StateItem::Invalid(dec!(2.0), dec!(3.0))),
+      State::Multiple(HashMap::from_iter([
+        (uuid!("9bb04d31-328b-4d0d-83c7-71faf0439a0e"), StateItem::Valid(dec!(4.0))),
+        (uuid!("9bb04d31-328b-4d0d-83c7-71faf0439a0f"), StateItem::Invalid(dec!(5.0), dec!(6.0))),
+      ])),
+    ];
+
+    let json = json!([
+      {
+        "type": "Valid",
+        "value": "1.0"
+      },
+      {
+        "type": "Invalid",
+        "value": ["2.0", "3.0"]
+      },
+      {
+        "9bb04d31-328b-4d0d-83c7-71faf0439a0e": {
+          "type": "Valid",
+          "value": "4.0"
+        },
+        "9bb04d31-328b-4d0d-83c7-71faf0439a0f": {
+          "type": "Invalid",
+          "value": ["5.0", "6.0"]
+        }
+      }
+    ]);
+
+    assert_eq!(json, serde_json::to_value(states)?);
+
+    Ok(())
   }
 }

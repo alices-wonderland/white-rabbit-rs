@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { AppTable, AppTableEditableCellRenderer } from "@core/components/AppTable";
+import {
+  AppTable,
+  AppTableEditableCellRenderer,
+  AppTableTagsCellRenderer,
+} from "@core/components/AppTable";
 import { Entry } from "@core/services";
 import { computed, onMounted, ref, shallowRef, triggerRef } from "vue";
 import { createAll } from "./row";
 import type { Row } from "./row";
 import type { ColDef, ICellRendererParams } from "@ag-grid-community/core";
+
 import EntryTableDateCellEditor from "./EntryTableDateCellEditor.vue";
 
 const props = defineProps<{
@@ -21,7 +26,7 @@ onMounted(() => {
 });
 
 const columnDefs = computed((): ColDef<Row>[] => {
-  return [
+  const results: ColDef<Row>[] = [
     {
       headerName: "Name",
       valueGetter: (params) => params.data?.name,
@@ -37,6 +42,40 @@ const columnDefs = computed((): ColDef<Row>[] => {
       cellRenderer: AppTableEditableCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => ({
         fieldState: params.data?.getFieldState("name"),
+      }),
+    },
+    {
+      headerName: "Description",
+      valueGetter: (params) => params.data?.description,
+      valueSetter: (params) => {
+        if (params.newValue) {
+          params.data.description = params.newValue;
+          triggerRef(rows);
+          return true;
+        }
+        return false;
+      },
+      editable: !readonly.value,
+      cellRenderer: AppTableEditableCellRenderer,
+      cellRendererParams: (params: ICellRendererParams<Row>) => ({
+        fieldState: params.data?.getFieldState("description"),
+      }),
+    },
+    {
+      headerName: "Type",
+      valueGetter: (params) => params.data?.type,
+      valueSetter: (params) => {
+        if (params.newValue) {
+          params.data.type = params.newValue;
+          triggerRef(rows);
+          return true;
+        }
+        return false;
+      },
+      editable: !readonly.value,
+      cellRenderer: AppTableEditableCellRenderer,
+      cellRendererParams: (params: ICellRendererParams<Row>) => ({
+        fieldState: params.data?.getFieldState("type"),
       }),
     },
     {
@@ -58,7 +97,36 @@ const columnDefs = computed((): ColDef<Row>[] => {
       cellEditor: EntryTableDateCellEditor,
       filter: "agDateColumnFilter",
     },
+    {
+      headerName: "Tags",
+      valueGetter: (params) => params.data?.tags,
+      valueSetter: (params) => {
+        if (params.newValue) {
+          params.data.tags = params.newValue;
+          triggerRef(rows);
+          return true;
+        }
+        return false;
+      },
+      editable: !readonly.value,
+      cellRenderer: AppTableTagsCellRenderer,
+      cellRendererParams: (params: ICellRendererParams<Row>) => ({
+        fieldState: params.data?.getFieldState("tags"),
+      }),
+    },
   ];
+
+  if (readonly.value) {
+    return [
+      ...results,
+      {
+        headerName: "State",
+        valueGetter: (params) => params.data?.entryState,
+      },
+    ];
+  }
+
+  return results;
 });
 </script>
 
