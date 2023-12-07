@@ -1,5 +1,5 @@
 import { AbstractRow } from "@core/components/AppTable";
-import type { EntryType } from "@core/services";
+import type { EntryState, EntryStateItem, EntryType } from "@core/services";
 import { Entry } from "@core/services";
 import { v4 as uuidv4 } from "uuid";
 import sortedUniq from "lodash/sortedUniq";
@@ -19,6 +19,7 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
   type: EntryType = "Record";
   date: string = format(new Date(), "yyyy-MM-dd");
   _tags: string[] = [];
+  entryState?: EntryState;
 
   constructor(entry?: Entry) {
     super(entry?.id ?? uuidv4(), entry);
@@ -32,6 +33,13 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
       this.type = this._existing.type;
       this.date = this._existing.date;
       this.tags = this._existing.tags;
+      if (
+        this._existing.type === "Record" &&
+        this._existing.state &&
+        "type" in this._existing.state
+      ) {
+        this.entryState = this._existing.state as EntryStateItem;
+      }
     }
   }
 
