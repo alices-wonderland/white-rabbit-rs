@@ -5,12 +5,16 @@ import { GridApi } from "@ag-grid-community/core";
 import { useQuasar } from "quasar";
 import { computed, ref, watch } from "vue";
 import omitBy from "lodash/omitBy";
+import { useElementSize } from "@vueuse/core";
 
 const props: GridOptions = defineProps<GridOptions>();
 
 const emits = defineEmits<{
   "update:gridApi": [value: GridApi];
 }>();
+
+const el = ref<HTMLElement>();
+const { height } = useElementSize(el);
 
 const gridOptions = computed(
   (): GridOptions => ({
@@ -28,6 +32,10 @@ const gridOptions = computed(
       gridApi.value = params.api;
       emits("update:gridApi", params.api);
       props.onGridReady?.(params);
+    },
+    onFirstDataRendered: (params) => {
+      params.api.autoSizeAllColumns();
+      props.onFirstDataRendered?.(params);
     },
   }),
 );
@@ -54,7 +62,8 @@ watch(
 
 <template>
   <ag-grid-vue
-    :style="{ minHeight: '150px', maxHeight: '80vh', height: '500px' }"
+    ref="el"
+    :style="{ minHeight: '500px', maxHeight: '80vh', height }"
     :class="theme"
     v-bind="gridOptions"
   ></ag-grid-vue>
