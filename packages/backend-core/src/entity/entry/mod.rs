@@ -1,9 +1,11 @@
 mod command;
 mod database;
+mod presentation;
 mod query;
 
 pub use command::*;
 pub use database::*;
+pub use presentation::*;
 pub use query::*;
 
 use crate::entity::{
