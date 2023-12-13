@@ -1,3 +1,5 @@
+use sea_orm::ConnectionTrait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -27,6 +29,13 @@ pub const MAX_TAGS_LENGTH: usize = 7;
 
 pub trait Root {
   fn id(&self) -> Uuid;
+}
+
+#[async_trait::async_trait]
+pub trait Presentation: Sized + Serialize + for<'a> Deserialize<'a> {
+  type R: Root;
+
+  async fn from_roots(db: &impl ConnectionTrait, roots: Vec<Self::R>) -> crate::Result<Vec<Self>>;
 }
 
 pub(crate) fn normalize_name(typ: impl ToString, value: impl ToString) -> crate::Result<String> {
