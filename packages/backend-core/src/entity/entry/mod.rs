@@ -199,14 +199,12 @@ impl From<Sort> for (Column, Order) {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Root {
   pub id: Uuid,
   pub journal_id: Uuid,
   pub name: String,
   pub description: String,
-  #[serde(rename = "type")]
   pub typ: Type,
   pub date: NaiveDate,
   pub tags: HashSet<String>,

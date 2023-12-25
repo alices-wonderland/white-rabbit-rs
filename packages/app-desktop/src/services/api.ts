@@ -31,7 +31,7 @@ export abstract class AbstractReadApi<M extends Model, Q extends Query, S extend
       throw e;
     }
 
-    const models = response.map(this.convert);
+    const models = response.map((record) => this.convert(record));
     return [models, loadIncluded ? await this.loadIncluded(models) : new Map()];
   }
 
@@ -80,6 +80,6 @@ export abstract class AbstractWriteApi<
       throw new Error(e as string);
     }
 
-    return response.map(this.convert);
+    return response.map((record) => this.convert(record));
   }
 }

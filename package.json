@@ -39,9 +39,9 @@
     "@types/jsdom": "^21.1.6",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "@vitejs/plugin-vue": "^4.5.2",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
+    "@vitejs/plugin-vue": "^5.0.0",
     "@vitest/coverage-v8": "^1.1.0",
     "@vue/compiler-dom": "^3.3.13",
     "@vue/eslint-config-prettier": "^8.0.0",
@@ -74,10 +74,10 @@
     "postcss-load-config": "^5.0.2",
     "prettier": "^3.1.1",
     "rimraf": "^5.0.5",
-    "rollup-plugin-visualizer": "^5.11.0",
-    "sass": "^1.69.5",
-    "sass-loader": "^13.3.2",
-    "stylelint": "^16.0.2",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "sass": "^1.69.6",
+    "sass-loader": "^13.3.3",
+    "stylelint": "^16.1.0",
     "stylelint-config-recommended-scss": "^14.0.0",
     "stylelint-config-recommended-vue": "^1.5.0",
     "stylelint-config-standard-scss": "^12.0.0",
@@ -88,7 +88,7 @@
     "vitest": "^1.1.0",
     "vue": "^3.3.13",
     "vue-eslint-parser": "^9.3.2",
-    "vue-tsc": "^1.8.26"
+    "vue-tsc": "^1.8.27"
   },
   "config": {
     "commitizen": {
