@@ -1,6 +1,7 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
-use backend_core::init;
+use backend_core::entity::{entry, Presentation};
+use backend_core::{init, Error};
 use futures::TryFutureExt;
 use sea_orm::TransactionTrait;
 
@@ -57,7 +58,65 @@ macro_rules! generate_handlers {
 
 generate_handlers!(journal);
 generate_handlers!(account);
-generate_handlers!(entry);
+
+#[tauri::command]
+async fn entry_find_by_id(
+  db: ::tauri::State<'_, ::sea_orm::DbConn>,
+  id: ::uuid::Uuid,
+) -> Result<Option<entry::Presentation>, String> {
+  db.inner()
+    .transaction::<_, _, Error>(|tx| {
+      Box::pin(async move {
+        let root: Vec<_> = entry::Root::find_one(
+          tx,
+          Some(entry::Query {
+            id: ::std::collections::HashSet::from_iter([id]),
+            ..Default::default()
+          }),
+        )
+        .await?
+        .into_iter()
+        .collect();
+        Ok(entry::Presentation::from_roots(tx, root).await?.into_iter().last())
+      })
+    })
+    .map_err(|err| err.to_string())
+    .await
+}
+
+#[tauri::command]
+async fn entry_find_all(
+  db: ::tauri::State<'_, ::sea_orm::DbConn>,
+  query: Option<entry::Query>,
+  size: Option<u64>,
+  sort: Option<entry::Sort>,
+) -> Result<Vec<entry::Presentation>, String> {
+  db.inner()
+    .transaction(|tx| {
+      Box::pin(async move {
+        let roots = entry::Root::find_all(tx, query, size, sort).await?;
+        entry::Presentation::from_roots(tx, roots).await
+      })
+    })
+    .map_err(|err| err.to_string())
+    .await
+}
+
+#[tauri::command]
+async fn entry_handle_command(
+  db: ::tauri::State<'_, ::sea_orm::DbConn>,
+  command: entry::Command,
+) -> Result<Vec<entry::Presentation>, String> {
+  db.inner()
+    .transaction(|tx| {
+      Box::pin(async move {
+        let roots = entry::Root::handle(tx, command).await?;
+        entry::Presentation::from_roots(tx, roots).await
+      })
+    })
+    .map_err(|err| err.to_string())
+    .await
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

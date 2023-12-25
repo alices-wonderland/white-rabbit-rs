@@ -122,6 +122,7 @@ const columnDefs = computed((): ColDef<Row>[] => {
       {
         headerName: "State",
         valueGetter: (params) => params.data?.entryState,
+        valueFormatter: (params) => JSON.stringify(params.value),
       },
     ];
   }
