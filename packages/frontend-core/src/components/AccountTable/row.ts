@@ -6,6 +6,7 @@ import { AbstractRow } from "@core/components/AppTable";
 import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
+import { v4 as uuidv4 } from "uuid";
 
 const EDITABLE_FIELDS = ["name", "description", "unit", "type", "tags"] as const;
 type EditableField = (typeof EDITABLE_FIELDS)[number];
@@ -18,8 +19,12 @@ export class Row extends AbstractRow<Account, EditableField> {
   _tags: string[] = [];
 
   constructor(account?: Account, readonly?: boolean) {
-    super(account?.id, account, readonly);
+    super(account, readonly);
     this.reset();
+  }
+
+  override get id(): string {
+    return this._existing?.id ?? uuidv4();
   }
 
   override reset() {

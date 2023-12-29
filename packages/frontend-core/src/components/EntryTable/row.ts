@@ -22,9 +22,13 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
   _tags: string[] = [];
   entryState?: EntryStateItem;
 
-  constructor(entry?: Entry) {
-    super(entry?.id ?? uuidv4(), entry);
+  constructor(entry?: Entry, readonly?: boolean) {
+    super(entry, readonly);
     this.reset();
+  }
+
+  override get id(): string {
+    return this._existing?.id ?? uuidv4();
   }
 
   override reset() {
@@ -104,20 +108,20 @@ const CHILD_EDITABLE_FIELDS = ["account", "amount", "price"] as const;
 type ChildEditableField = (typeof CHILD_EDITABLE_FIELDS)[number];
 
 export class ChildRow extends AbstractRow<[Entry, EntryItem], ChildEditableField> {
-  private readonly _parentId: string;
+  readonly parentId: string;
   accountId = "";
   amount = 0;
   price = 1;
   entryState?: EntryStateItem;
 
-  constructor(parent: Entry | string, item?: EntryItem) {
-    const parentId = typeof parent === "string" ? parent : parent.id;
-    super(
-      `${parentId}:${item?.account ?? ""}`,
-      parent instanceof Entry && item ? [parent, item] : undefined,
-    );
-    this._parentId = parentId;
+  constructor(parent: Entry | string, item?: EntryItem, readonly?: boolean) {
+    super(parent instanceof Entry && item ? [parent, item] : undefined, readonly);
+    this.parentId = typeof parent === "string" ? parent : parent.id;
     this.reset();
+  }
+
+  override get id(): string {
+    return `${this.parentId}:${uuidv4()}`;
   }
 
   override reset() {
@@ -170,12 +174,12 @@ export class ChildRow extends AbstractRow<[Entry, EntryItem], ChildEditableField
 
 export type Row = ParentRow | ChildRow;
 
-export const createAll = (entries: Entry[]): Row[] => {
+export const createAll = (entries: Entry[], readonly?: boolean): Row[] => {
   const rows = entries.flatMap((e) => {
     const rows: Row[] = [];
-    rows.push(new ParentRow(e));
+    rows.push(new ParentRow(e, readonly));
     for (const item of e.items) {
-      rows.push(new ChildRow(e, item));
+      rows.push(new ChildRow(e, item, readonly));
     }
     return rows;
   });
