@@ -87,27 +87,27 @@ impl entity::Presentation for Presentation {
           if let Some(account) = related_accounts.get(&item.account) {
             match &account.typ {
               account::Type::Asset | account::Type::Expense => {
-                left += item.amount * item.price.unwrap_or(Decimal::ONE);
+                left += item.amount * item.price;
               }
               _ => {
-                right += item.amount * item.price.unwrap_or(Decimal::ONE);
+                right += item.amount * item.price;
               }
             }
           }
-
-          let state =
-            if left == right { StateItem::Valid(left) } else { StateItem::Invalid(left, right) };
-          results.push(Presentation::Record(PresentationRecord {
-            id: root.id,
-            journal_id: root.journal_id,
-            name: root.name.clone(),
-            description: root.description.clone(),
-            date: root.date,
-            tags: root.tags.clone(),
-            items: root.items.clone(),
-            state,
-          }))
         }
+
+        let state =
+          if left == right { StateItem::Valid(left) } else { StateItem::Invalid(left, right) };
+        results.push(Presentation::Record(PresentationRecord {
+          id: root.id,
+          journal_id: root.journal_id,
+          name: root.name.clone(),
+          description: root.description.clone(),
+          date: root.date,
+          tags: root.tags.clone(),
+          items: root.items.clone(),
+          state,
+        }))
       } else {
         let mut actuals = HashMap::<Uuid, Decimal>::new();
         if let Some(related_records) = related_entries.get(&root.journal_id) {
@@ -115,17 +115,17 @@ impl entity::Presentation for Presentation {
             if record.date <= root.date {
               for item in &record.items {
                 let value = actuals.get(&item.account).copied().unwrap_or_default();
-                actuals
-                  .insert(item.account, value + item.amount * item.price.unwrap_or(Decimal::ONE));
+                actuals.insert(item.account, value + item.amount * item.price);
               }
             }
           }
         }
+
         let state = root
           .items
           .iter()
           .map(|item| {
-            let expected = item.amount * item.price.unwrap_or(Decimal::ONE);
+            let expected = item.amount * item.price;
             let actual = actuals.get(&item.account).copied().unwrap_or_default();
             (
               item.account,

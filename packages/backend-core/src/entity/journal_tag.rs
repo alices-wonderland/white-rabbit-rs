@@ -3,7 +3,7 @@ use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "journal_tag")]
+#[sea_orm(table_name = "journal_tags")]
 pub struct Model {
   #[sea_orm(primary_key)]
   pub journal_id: Uuid,

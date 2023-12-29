@@ -33,8 +33,7 @@ pub const FIELD_DATE: &str = "date";
 pub struct Item {
   pub account: Uuid,
   pub amount: Decimal,
-  #[serde(default)]
-  pub price: Option<Decimal>,
+  pub price: Decimal,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -106,8 +105,8 @@ impl Builder {
             start: Some(0.to_string()),
             end: None,
           });
-        } else if let Some(price) = price {
-          if price.is_sign_negative() {
+        } else if price <= Decimal::ZERO {
+          {
             return Err(crate::Error::OutOfRange {
               typ: TYPE.to_string(),
               field: FIELD_PRICE.to_string(),

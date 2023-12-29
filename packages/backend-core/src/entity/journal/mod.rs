@@ -419,7 +419,7 @@ mod tests {
         .filter(Column::Id.is_in(vec!["id1", "id2"]))
         .build(DatabaseBackend::Sqlite)
         .to_string(),
-      r#"UPDATE "journal" SET "name" = "journal"."name" || CURRENT_TIMESTAMP WHERE "journal"."id" IN ('id1', 'id2')"#
+      r#"UPDATE "journals" SET "name" = "journals"."name" || CURRENT_TIMESTAMP WHERE "journals"."id" IN ('id1', 'id2')"#
     );
 
     Ok(())
@@ -431,7 +431,7 @@ mod tests {
 
     assert_eq!(
       Entity::find().order_by(field, order).build(DatabaseBackend::Sqlite).to_string(),
-      r#"SELECT "journal"."id", "journal"."name", "journal"."description", "journal"."unit" FROM "journal" ORDER BY "journal"."name" ASC"#
+      r#"SELECT "journals"."id", "journals"."name", "journals"."description", "journals"."unit" FROM "journals" ORDER BY "journals"."name" ASC"#
     );
 
     Ok(())

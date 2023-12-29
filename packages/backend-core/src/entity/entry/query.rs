@@ -159,13 +159,13 @@ mod tests {
     };
 
     assert_eq!(
-      [r#"SELECT "entry"."id", "entry"."journal_id", "entry"."name", "entry"."description", "entry"."type", "entry"."date" FROM "entry""#,
-        r#"WHERE "entry"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
-        r#"AND "entry"."journal_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
-        r#"AND "entry"."id" IN (SELECT DISTINCT "entry_item"."entry_id" FROM "entry_item" WHERE "entry_item"."account_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de'))"#,
-        r#"AND "entry"."name" IN ('Name 1') AND "entry"."type" = 'C' AND "entry"."date" >= '2023-01-01' AND "entry"."date" <= '2023-12-31'"#,
-        r#"AND (LOWER("entry"."name") LIKE '%keyword%' OR LOWER("entry"."description") LIKE '%keyword%'"#,
-        r#"OR "entry"."id" IN (SELECT DISTINCT "entry_tag"."entry_id" FROM "entry_tag" WHERE LOWER("entry_tag"."tag") LIKE '%keyword%'))"#].join(" "),
+      [r#"SELECT "entries"."id", "entries"."journal_id", "entries"."name", "entries"."description", "entries"."type", "entries"."date" FROM "entries""#,
+        r#"WHERE "entries"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
+        r#"AND "entries"."journal_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
+        r#"AND "entries"."id" IN (SELECT DISTINCT "entry_items"."entry_id" FROM "entry_items" WHERE "entry_items"."account_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de'))"#,
+        r#"AND "entries"."name" IN ('Name 1') AND "entries"."type" = 'C' AND "entries"."date" >= '2023-01-01' AND "entries"."date" <= '2023-12-31'"#,
+        r#"AND (LOWER("entries"."name") LIKE '%keyword%' OR LOWER("entries"."description") LIKE '%keyword%'"#,
+        r#"OR "entries"."id" IN (SELECT DISTINCT "entry_tags"."entry_id" FROM "entry_tags" WHERE LOWER("entry_tags"."tag") LIKE '%keyword%'))"#].join(" "),
       entry::Entity::find().filter(query).build(DbBackend::Sqlite).to_string()
     );
 

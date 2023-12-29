@@ -6,6 +6,7 @@ export { default as AppTable } from "./AppTable.vue";
 export { default as AppTableEditableCellRenderer } from "./AppTableEditableCellRenderer.vue";
 export { default as AppTableTagsCellRenderer } from "./AppTableTagsCellRenderer.vue";
 export { default as AppTableTagsCellEditor } from "./AppTableTagsCellEditor.vue";
+export { default as AppTableAccountCellRenderer } from "./AppTableAccountCellRenderer.vue";
 
 export type RowState<F extends string = string> =
   | { readonly state: "NEW" | "DELETED" | "NORMAL" }

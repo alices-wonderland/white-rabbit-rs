@@ -3,14 +3,14 @@ use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "entry_item")]
+#[sea_orm(table_name = "entry_items")]
 pub struct Model {
   #[sea_orm(primary_key)]
   pub entry_id: Uuid,
   #[sea_orm(primary_key)]
   pub account_id: Uuid,
   pub amount: Decimal,
-  pub price: Option<Decimal>,
+  pub price: Decimal,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

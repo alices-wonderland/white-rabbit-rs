@@ -135,12 +135,12 @@ mod tests {
     };
 
     assert_eq!(
-      [r#"SELECT "account"."id", "account"."journal_id", "account"."name", "account"."description", "account"."unit", "account"."typ" FROM "account""#,
-        r#"WHERE "account"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
-        r#"AND "account"."name" IN ('Name 1') AND "account"."unit" = 'Unit 1'"#,
-        r#"AND "account"."typ" = 'A' AND "account"."journal_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
-        r#"AND (LOWER("account"."name") LIKE '%keyword%' OR LOWER("account"."description") LIKE '%keyword%'"#,
-        r#"OR "account"."id" IN (SELECT DISTINCT "account_tag"."account_id" FROM "account_tag" WHERE LOWER("account_tag"."tag") LIKE '%keyword%'))"#].join(" "),
+      [r#"SELECT "accounts"."id", "accounts"."journal_id", "accounts"."name", "accounts"."description", "accounts"."unit", "accounts"."type" FROM "accounts""#,
+        r#"WHERE "accounts"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
+        r#"AND "accounts"."name" IN ('Name 1') AND "accounts"."unit" = 'Unit 1'"#,
+        r#"AND "accounts"."type" = 'A' AND "accounts"."journal_id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
+        r#"AND (LOWER("accounts"."name") LIKE '%keyword%' OR LOWER("accounts"."description") LIKE '%keyword%'"#,
+        r#"OR "accounts"."id" IN (SELECT DISTINCT "account_tags"."account_id" FROM "account_tags" WHERE LOWER("account_tags"."tag") LIKE '%keyword%'))"#].join(" "),
       account::Entity::find().filter(query).build(DbBackend::Sqlite).to_string()
     );
 

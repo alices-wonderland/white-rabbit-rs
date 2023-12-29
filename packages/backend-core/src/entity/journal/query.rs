@@ -118,11 +118,11 @@ mod tests {
     };
 
     assert_eq!(
-      [r#"SELECT "journal"."id", "journal"."name", "journal"."description", "journal"."unit" FROM "journal""#,
-        r#"WHERE "journal"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
-        r#"AND "journal"."name" IN ('Name 1') AND "journal"."unit" = 'Unit 1'"#,
-        r#"AND (LOWER("journal"."name") LIKE '%keyword%' OR LOWER("journal"."description") LIKE '%keyword%'"#,
-        r#"OR "journal"."id" IN (SELECT DISTINCT "journal_tag"."journal_id" FROM "journal_tag" WHERE LOWER("journal_tag"."tag") LIKE '%keyword%'))"#].join(" "),
+      [r#"SELECT "journals"."id", "journals"."name", "journals"."description", "journals"."unit" FROM "journals""#,
+        r#"WHERE "journals"."id" IN ('50a1b556-b99d-4ae0-bfba-d117f9a958de')"#,
+        r#"AND "journals"."name" IN ('Name 1') AND "journals"."unit" = 'Unit 1'"#,
+        r#"AND (LOWER("journals"."name") LIKE '%keyword%' OR LOWER("journals"."description") LIKE '%keyword%'"#,
+        r#"OR "journals"."id" IN (SELECT DISTINCT "journal_tags"."journal_id" FROM "journal_tags" WHERE LOWER("journal_tags"."tag") LIKE '%keyword%'))"#].join(" "),
       journal::Entity::find().filter(query).build(DbBackend::Sqlite).to_string()
     );
 

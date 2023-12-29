@@ -1,5 +1,5 @@
 import { AbstractRow } from "@core/components/AppTable";
-import type { EntryState, EntryStateItem, EntryType } from "@core/services";
+import type { EntryItem, EntryStateItem, EntryType } from "@core/services";
 import { Entry } from "@core/services";
 import { v4 as uuidv4 } from "uuid";
 import sortedUniq from "lodash/sortedUniq";
@@ -8,6 +8,7 @@ import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 import { format } from "date-fns";
+import { orderBy } from "lodash";
 
 const EDITABLE_FIELDS = ["name", "description", "date", "type", "tags"] as const;
 
@@ -19,7 +20,7 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
   type: EntryType = "Record";
   date: string = format(new Date(), "yyyy-MM-dd");
   _tags: string[] = [];
-  entryState?: EntryState;
+  entryState?: EntryStateItem;
 
   constructor(entry?: Entry) {
     super(entry?.id ?? uuidv4(), entry);
@@ -76,6 +77,7 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
   get name() {
     return this._name;
   }
+
   set name(value: string) {
     this._name = value.trim();
   }
@@ -97,8 +99,85 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
   }
 }
 
-export type Row = ParentRow;
+const CHILD_EDITABLE_FIELDS = ["account", "amount", "price"] as const;
+
+type ChildEditableField = (typeof CHILD_EDITABLE_FIELDS)[number];
+
+export class ChildRow extends AbstractRow<[Entry, EntryItem], ChildEditableField> {
+  private readonly _parentId: string;
+  accountId = "";
+  amount = 0;
+  price = 1;
+  entryState?: EntryStateItem;
+
+  constructor(parent: Entry | string, item?: EntryItem) {
+    const parentId = typeof parent === "string" ? parent : parent.id;
+    super(
+      `${parentId}:${item?.account ?? ""}`,
+      parent instanceof Entry && item ? [parent, item] : undefined,
+    );
+    this._parentId = parentId;
+    this.reset();
+  }
+
+  override reset() {
+    if (this._existing) {
+      const [entry, item] = this._existing;
+      this.accountId = item.account;
+      this.amount = item.amount;
+      this.price = item.price ?? 1;
+      if (entry.type === "Check") {
+        this.entryState = (entry.state as Record<string, EntryStateItem>)[
+          item.account
+        ] as EntryStateItem;
+      }
+    } else {
+      this.accountId = "";
+      this.amount = 0;
+      this.price = 1;
+      this.entryState = undefined;
+    }
+  }
+
+  override get editableFields(): readonly ChildEditableField[] {
+    return CHILD_EDITABLE_FIELDS;
+  }
+
+  override getFieldState<V>(field: ChildEditableField): FieldState<V> {
+    let current = get(this, field) as V;
+    if (field === "account") {
+      current = this.accountId as V;
+    }
+
+    if (this._existing) {
+      const [_entry, item] = this._existing;
+      const existing = get(item, field);
+      if (!isEqual(existing, current)) {
+        return {
+          state: "UPDATED",
+          value: current,
+          existing: existing as V,
+        };
+      }
+    }
+
+    return {
+      state: "NORMAL",
+      value: current,
+    };
+  }
+}
+
+export type Row = ParentRow | ChildRow;
 
 export const createAll = (entries: Entry[]): Row[] => {
-  return entries.map((e) => new ParentRow(e));
+  const rows = entries.flatMap((e) => {
+    const rows: Row[] = [];
+    rows.push(new ParentRow(e));
+    for (const item of e.items) {
+      rows.push(new ChildRow(e, item));
+    }
+    return rows;
+  });
+  return orderBy(rows, ["date", "type"], ["desc", "asc"]);
 };

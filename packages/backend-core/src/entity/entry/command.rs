@@ -91,7 +91,7 @@ mod tests {
         items: vec![entry::Item {
           account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
           amount: dec!(1.2),
-          price: None,
+          price: dec!(1.0),
         }],
       }),
       entry::Command::Update(entry::CommandUpdate {
@@ -118,7 +118,7 @@ mod tests {
             items: vec![entry::Item {
               account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
               amount: dec!(1.2),
-              price: None,
+              price: dec!(1.0),
             }],
           },
           entry::CommandCreate {
@@ -131,7 +131,7 @@ mod tests {
             items: vec![entry::Item {
               account: uuid!("7aaec70c-adbc-47d1-8b74-a3e21f387d22"),
               amount: dec!(1.1),
-              price: Some(dec!(2.2)),
+              price: dec!(2.2),
             }],
           },
         ],
@@ -171,7 +171,7 @@ mod tests {
           "date": "2023-01-01",
           "tags": ["tag1"],
           "items": [
-            { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": null }
+            { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": "1.0" }
           ]
         },
         {
@@ -199,7 +199,7 @@ mod tests {
               "date": "2023-01-01",
               "tags": ["tag1"],
               "items": [
-                { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": null }
+                { "account":"7aaec70c-adbc-47d1-8b74-a3e21f387d22", "amount": "1.2", "price": "1.0" }
               ]
             },
             {

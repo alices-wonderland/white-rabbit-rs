@@ -168,8 +168,8 @@ const cancel = () => {
     <div class="flex-1">
       <q-card>
         <q-tabs v-model="tab" align="justify" narrow-indicator>
-          <q-tab name="Accounts" label="Accounts" />
-          <q-tab name="Entries" label="Entries" />
+          <q-tab name="Accounts" label="Accounts" icon="account_balance" />
+          <q-tab name="Entries" label="Entries" icon="comment_bank" />
         </q-tabs>
         <q-separator />
         <q-tab-panels v-model="tab" animated>
@@ -178,7 +178,11 @@ const cancel = () => {
             <TestAgCharts></TestAgCharts>
           </q-tab-panel>
           <q-tab-panel name="Entries">
-            <EntryTable :model-value="entries" @reload="entriesRefetch"></EntryTable>
+            <EntryTable
+              :model-value="entries"
+              :accounts="accounts"
+              @reload="entriesRefetch"
+            ></EntryTable>
           </q-tab-panel>
         </q-tab-panels>
       </q-card>

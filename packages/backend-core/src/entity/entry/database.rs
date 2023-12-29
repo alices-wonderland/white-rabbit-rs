@@ -4,7 +4,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "entry")]
+#[sea_orm(table_name = "entries")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
@@ -13,7 +13,7 @@ pub struct Model {
   #[sea_orm(indexed)]
   pub name: String,
   pub description: String,
-  #[sea_orm(column_name = "type")]
+  #[sea_orm(indexed, column_name = "type")]
   pub typ: Type,
   #[sea_orm(indexed)]
   pub date: NaiveDate,

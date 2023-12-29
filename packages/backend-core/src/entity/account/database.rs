@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "account")]
+#[sea_orm(table_name = "accounts")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
@@ -16,7 +16,7 @@ pub struct Model {
   pub description: String,
   #[sea_orm(indexed)]
   pub unit: String,
-  #[sea_orm(indexed)]
+  #[sea_orm(indexed, column_name = "type")]
   pub typ: Type,
 }
 

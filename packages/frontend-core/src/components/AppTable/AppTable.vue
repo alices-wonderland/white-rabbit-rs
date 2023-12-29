@@ -20,6 +20,8 @@ const gridOptions = computed(
   (): GridOptions => ({
     ...omitBy(props, (value) => !value),
     enableRangeSelection: true,
+    suppressGroupRowsSticky: true,
+
     defaultColDef: {
       resizable: true,
       suppressMovable: true,
@@ -32,10 +34,6 @@ const gridOptions = computed(
       gridApi.value = params.api;
       emits("update:gridApi", params.api);
       props.onGridReady?.(params);
-    },
-    onFirstDataRendered: (params) => {
-      params.api.autoSizeAllColumns();
-      props.onFirstDataRendered?.(params);
     },
   }),
 );
@@ -50,8 +48,6 @@ const theme = computed(() => {
 watch(
   () => [props.rowData, props.columnDefs],
   ([newRowData, newColumnDefs]) => {
-    console.log("AppTable Props Update");
-    console.log("  rowData:", props.rowData);
     gridApi.value?.updateGridOptions({
       rowData: newRowData,
       columnDefs: newColumnDefs,

@@ -30,8 +30,8 @@ fn gen_entry_items(accounts: &[account::Root]) -> Vec<entry::Item> {
   accounts
     .choose_multiple(&mut rng, 3)
     .map(|account| {
-      let price: Option<Decimal> =
-        if rng.gen_bool(0.5) { None } else { Some(rng.gen_range(1..100).into()) };
+      let price: Decimal =
+        if rng.gen_bool(0.5) { Decimal::ONE } else { rng.gen_range(1..100).into() };
       entry::Item { account: account.id, amount: rng.gen_range(10..100).into(), price }
     })
     .collect()
