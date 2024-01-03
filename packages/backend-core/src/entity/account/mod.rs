@@ -21,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 pub const TYPE: &str = "Account";
+pub const NAME_SPLITERATOR: &str = "::";
 
 #[derive(Debug, Default)]
 pub struct Builder {
@@ -136,8 +137,8 @@ pub struct Root {
 }
 
 impl super::Root for Root {
-  fn id(&self) -> Uuid {
-    self.id
+  fn id(&self) -> String {
+    self.id.to_string()
   }
 }
 

@@ -5,7 +5,7 @@
   "compilerOptions": {
     "types": ["@intlify/unplugin-vue-i18n/messages"],
     "paths": {
-      "@core/*": ["../frontend-core/src/*"]
-    }
-  }
+      "@core/*": ["../frontend-core/src/*"],
+    },
+  },
 }

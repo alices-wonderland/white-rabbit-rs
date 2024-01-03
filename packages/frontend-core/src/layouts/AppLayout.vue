@@ -3,7 +3,7 @@
     <q-header elevated>
       <q-toolbar>
         <q-toolbar-title>Wonderland White Rabbit</q-toolbar-title>
-        <q-btn flat round dense :icon="darkIcon" @click="toggleDark" />
+        <q-btn flat round dense :icon="darkIcon" @click="toggleDark()" />
         <q-btn flat round dense icon="translate">
           <q-menu auto-close>
             <q-list>
@@ -34,18 +34,17 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useQuasar } from "quasar";
 import langEnUS from "quasar/lang/en-US";
 import langZhCH from "quasar/lang/zh-CN";
+import { useQuasar } from "quasar";
 
-const { locale } = useI18n();
+import { useDark } from "@core/composable";
+
 const quasar = useQuasar();
+const { locale } = useI18n();
+const [isDark, toggleDark] = useDark();
 
-const toggleDark = () => {
-  quasar.dark.toggle();
-};
-
-const darkIcon = computed(() => (quasar.dark.isActive ? "dark_mode" : "light_mode"));
+const darkIcon = computed(() => (isDark.value ? "dark_mode" : "light_mode"));
 
 const localeItems = ref([
   ["en", "English"],
