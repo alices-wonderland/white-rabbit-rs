@@ -66,14 +66,14 @@ export interface EntryQuery extends Query {
   readonly accountId?: string[];
   readonly name?: string;
   readonly type?: EntryType;
-  readonly start?: Date;
-  readonly end?: Date;
+  readonly start?: string;
+  readonly end?: string;
   readonly fullText?: [string, string[]];
 }
 
 export interface EntryCommandCreate extends Command<`${typeof ENTRY_TYPE}:create`> {
   readonly id?: string;
-  readonly journal: string;
+  readonly journalId: string;
   readonly name: string;
   readonly description: string;
   readonly type: EntryType;

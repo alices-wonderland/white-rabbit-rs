@@ -8,13 +8,14 @@ import type { FieldState } from "@core/types";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
 import { format } from "date-fns";
-import { orderBy } from "lodash";
+import orderBy from "lodash/orderBy";
 
 const EDITABLE_FIELDS = ["name", "description", "date", "type", "tags"] as const;
 
 type EditableField = (typeof EDITABLE_FIELDS)[number];
 
 export class ParentRow extends AbstractRow<Entry, EditableField> {
+  readonly id: string;
   _name: string = "";
   _description: string = "";
   type: EntryType = "Record";
@@ -24,11 +25,8 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
 
   constructor(entry?: Entry, readonly?: boolean) {
     super(entry, readonly);
+    this.id = entry?.id ?? uuidv4();
     this.reset();
-  }
-
-  override get id(): string {
-    return this._existing?.id ?? uuidv4();
   }
 
   override reset() {
@@ -183,5 +181,5 @@ export const createAll = (entries: Entry[], readonly?: boolean): Row[] => {
     }
     return rows;
   });
-  return orderBy(rows, ["date", "type"], ["desc", "asc"]);
+  return orderBy(rows, ["date", "type", "name"], ["desc", "asc", "asc"]);
 };

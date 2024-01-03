@@ -2,7 +2,7 @@ import type { Command, FindAllArgs, Query, ReadApi, Model, WriteApi } from "@cor
 import { invoke } from "@tauri-apps/api/tauri";
 import { Notify } from "quasar";
 
-export abstract class AbstractReadApi<M extends Model, Q extends Query, S extends string>
+export abstract class AbstractReadApi<M extends Model, Q extends Query, S extends string = string>
   implements ReadApi<M, Q, S>
 {
   protected abstract convert(input: Record<string, unknown>): M;
