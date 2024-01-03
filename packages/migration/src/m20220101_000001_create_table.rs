@@ -54,7 +54,9 @@ impl Migration {
           .from_tbl(journal_tag::Entity)
           .from_col(journal_tag::Column::JournalId)
           .to_tbl(journal::Entity)
-          .to_col(journal::Column::Id),
+          .to_col(journal::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;
@@ -83,7 +85,9 @@ impl Migration {
           .from_tbl(account::Entity)
           .from_col(account::Column::JournalId)
           .to_tbl(journal::Entity)
-          .to_col(journal::Column::Id),
+          .to_col(journal::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;
@@ -143,7 +147,9 @@ impl Migration {
           .from_tbl(account_tag::Entity)
           .from_col(account_tag::Column::AccountId)
           .to_tbl(account::Entity)
-          .to_col(account::Column::Id),
+          .to_col(account::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;
@@ -170,7 +176,9 @@ impl Migration {
           .from_tbl(entry::Entity)
           .from_col(entry::Column::JournalId)
           .to_tbl(journal::Entity)
-          .to_col(journal::Column::Id),
+          .to_col(journal::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;
@@ -228,7 +236,9 @@ impl Migration {
           .from_tbl(entry_item::Entity)
           .from_col(entry_item::Column::EntryId)
           .to_tbl(entry::Entity)
-          .to_col(entry::Column::Id),
+          .to_col(entry::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .foreign_key(
         ForeignKeyCreateStatement::new()
@@ -236,7 +246,9 @@ impl Migration {
           .from_tbl(entry_item::Entity)
           .from_col(entry_item::Column::AccountId)
           .to_tbl(account::Entity)
-          .to_col(account::Column::Id),
+          .to_col(account::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;
@@ -264,7 +276,9 @@ impl Migration {
           .from_tbl(entry_tag::Entity)
           .from_col(entry_tag::Column::EntryId)
           .to_tbl(entry::Entity)
-          .to_col(entry::Column::Id),
+          .to_col(entry::Column::Id)
+          .on_delete(ForeignKeyAction::Cascade)
+          .on_update(ForeignKeyAction::Cascade),
       )
       .to_owned();
     manager.create_table(table).await?;

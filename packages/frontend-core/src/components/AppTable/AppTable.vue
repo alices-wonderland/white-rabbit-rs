@@ -3,7 +3,7 @@ import { AgGridVue } from "@ag-grid-community/vue3";
 import type { GridOptions } from "@ag-grid-community/core";
 import { GridApi } from "@ag-grid-community/core";
 import { useQuasar } from "quasar";
-import { computed, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import omitBy from "lodash/omitBy";
 import { useElementSize } from "@vueuse/core";
 
@@ -15,25 +15,39 @@ const emits = defineEmits<{
 
 const el = ref<HTMLElement>();
 const { height } = useElementSize(el);
+const expandedRowKeys = reactive(new Set<string>());
 
 const gridOptions = computed(
   (): GridOptions => ({
     ...omitBy(props, (value) => !value),
     enableRangeSelection: true,
     suppressGroupRowsSticky: true,
-
     defaultColDef: {
       resizable: true,
       suppressMovable: true,
       floatingFilter: true,
       filter: true,
+      sortable: false,
       useValueFormatterForExport: true,
       ...omitBy(props.defaultColDef ?? {}, (value) => !value),
     },
     onGridReady: (params) => {
+      console.log("On Grid Ready");
       gridApi.value = params.api;
       emits("update:gridApi", params.api);
       props.onGridReady?.(params);
+    },
+    onRowDataUpdated: (params) => {
+      console.log("On Row Data Updated");
+      props.onRowDataUpdated?.(params);
+      if (expandedRowKeys.size > 0) {
+        params.api.forEachNode((node) => {
+          if (node.key && expandedRowKeys.has(node.key)) {
+            params.api.setRowNodeExpanded(node, true);
+          }
+        });
+        expandedRowKeys.clear();
+      }
     },
   }),
 );
@@ -48,10 +62,20 @@ const theme = computed(() => {
 watch(
   () => [props.rowData, props.columnDefs],
   ([newRowData, newColumnDefs]) => {
-    gridApi.value?.updateGridOptions({
-      rowData: newRowData,
-      columnDefs: newColumnDefs,
-    });
+    const api = gridApi.value;
+    if (api) {
+      expandedRowKeys.clear();
+      api.forEachNode((node) => {
+        if (node.expanded && node.key) {
+          expandedRowKeys.add(node.key);
+        }
+      });
+
+      api.updateGridOptions({
+        rowData: newRowData,
+        columnDefs: newColumnDefs,
+      });
+    }
   },
 );
 </script>
