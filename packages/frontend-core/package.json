@@ -26,7 +26,7 @@
     "@ag-grid-enterprise/set-filter": "^31.0.1",
     "@date-io/date-fns": "^2.17.0",
     "@quasar/extras": "^1.16.9",
-    "@tanstack/vue-query": "^5.17.0",
+    "@tanstack/vue-query": "^5.17.1",
     "@vueuse/core": "^10.7.1",
     "ag-charts-community": "^9.0.1",
     "date-fns": "^3.0.6",
@@ -34,7 +34,7 @@
     "quasar": "^2.14.2",
     "tailwindcss": "^3.4.0",
     "uuid": "^9.0.1",
-    "vue": "^3.4.3",
+    "vue": "^3.4.4",
     "vue-i18n": "^9.8.0",
     "vue-router": "^4.2.5"
   },

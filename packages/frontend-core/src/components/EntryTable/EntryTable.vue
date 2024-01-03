@@ -5,10 +5,12 @@ import {
   AppTableTagsCellRenderer,
   AppTableAccountCellRenderer,
   AppTableAccountCellEditor,
+  AppTableTagsCellEditor,
 } from "@core/components/AppTable";
 import {
   Account,
   Entry,
+  ENTRY_TYPES,
   type EntryCommandBatch,
   type EntryCommandUpdate,
   type EntryItem,
@@ -24,6 +26,7 @@ import { ChildRow, createAll, ParentRow } from "./row";
 import type { Row } from "./row";
 import EntryTableDateCellEditor from "./EntryTableDateCellEditor.vue";
 import EntryTableStateCellRenderer from "./EntryTableStateCellRenderer.vue";
+import EntryTableActionsCellRenderer from "./EntryTableActionsCellRenderer.vue";
 
 const props = defineProps<{
   readonly modelValue: Entry[];
@@ -90,6 +93,10 @@ const columnDefs = computed((): ColDef<Row>[] => {
         return false;
       },
       editable: (params) => params.data instanceof ParentRow && params.data.editable("type"),
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ENTRY_TYPES,
+      },
       cellRendererSelector: (params: ICellRendererParams<Row>) => {
         if (params.data instanceof ParentRow) {
           return {
@@ -128,33 +135,6 @@ const columnDefs = computed((): ColDef<Row>[] => {
       },
       cellEditor: EntryTableDateCellEditor,
       filter: "agDateColumnFilter",
-    },
-    {
-      headerName: "Tags",
-      width: 200,
-      valueGetter: (params) => {
-        if (params.data instanceof ParentRow) {
-          return params.data.tags;
-        }
-      },
-      valueSetter: (params) => {
-        if (params.newValue && params.data instanceof ParentRow) {
-          params.data.tags = params.newValue;
-          return true;
-        }
-        return false;
-      },
-      editable: (params) => params.data instanceof ParentRow && params.data.editable("tags"),
-      cellRendererSelector: (params: ICellRendererParams<Row>) => {
-        if (params.data instanceof ParentRow) {
-          return {
-            component: AppTableTagsCellRenderer,
-            params: {
-              fieldState: params.data?.getFieldState("tags"),
-            },
-          };
-        }
-      },
     },
     {
       headerName: "Amount",
@@ -216,6 +196,37 @@ const columnDefs = computed((): ColDef<Row>[] => {
         }
       },
     },
+    {
+      headerName: "Tags",
+      width: 200,
+      valueGetter: (params) => {
+        if (params.data instanceof ParentRow) {
+          return params.data.tags;
+        }
+      },
+      valueSetter: (params) => {
+        if (params.newValue && params.data instanceof ParentRow) {
+          params.data.tags = params.newValue;
+          return true;
+        }
+        return false;
+      },
+      editable: (params) => params.data instanceof ParentRow && params.data.editable("tags"),
+      cellRendererSelector: (params: ICellRendererParams<Row>) => {
+        if (params.data instanceof ParentRow) {
+          return {
+            component: AppTableTagsCellRenderer,
+            params: {
+              fieldState: params.data?.getFieldState("tags"),
+            },
+          };
+        }
+      },
+      cellEditor: AppTableTagsCellEditor,
+      useValueParserForImport: true,
+      valueFormatter: (params) => params.value?.join(","),
+      valueParser: (params) => params.newValue.split(","),
+    },
   ];
 
   if (readonly.value) {
@@ -235,7 +246,56 @@ const columnDefs = computed((): ColDef<Row>[] => {
     ];
   }
 
-  return results;
+  return [
+    {
+      headerName: "Actions",
+      filter: false,
+      width: 120,
+      lockPosition: "left",
+      cellRenderer: EntryTableActionsCellRenderer,
+      cellRendererParams: (params: ICellRendererParams<Row>) => {
+        return {
+          toggleDeleted: () => {
+            if (params.node && params.data) {
+              params.data.deleted = !params.data.deleted;
+
+              let parent = params.node;
+              if (params.data instanceof ChildRow && params.node.parent) {
+                parent = params.node.parent;
+              } else if (params.data instanceof ParentRow) {
+                for (const child of params.node.allLeafChildren) {
+                  if (child.data instanceof ChildRow) {
+                    child.data.deleted = params.data.deleted;
+                  }
+                }
+              }
+
+              params.api.redrawRows({ rowNodes: [parent, ...parent.allLeafChildren] });
+              if (params.data instanceof ChildRow) {
+                triggerRef(rows);
+              } else if (params.data instanceof ParentRow) {
+                const parentId = params.data.id;
+                rows.value = rows.value.filter(
+                  (row) =>
+                    !(
+                      row instanceof ChildRow &&
+                      row.parentId === parentId &&
+                      row.rowState.state === "NEW"
+                    ),
+                );
+              }
+            }
+          },
+          toggleAdded: () => {
+            if (params.data instanceof ParentRow && !params.data.deleted) {
+              rows.value = [...rows.value, new ChildRow(params.data.id)];
+            }
+          },
+        };
+      },
+    } as ColDef<Row>,
+    ...results,
+  ];
 });
 
 const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
@@ -319,6 +379,10 @@ const autoGroupColumnGroup = computed(
   }),
 );
 
+const deletedIds = computed(() => {
+  return rows.value.filter((row) => row instanceof ParentRow && row.deleted).map((row) => row.id);
+});
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 const updateCommands = computed(() => {
   const parentRows = new Map<string, ParentRow>();
@@ -377,12 +441,12 @@ const updateCommands = computed(() => {
 });
 
 const batchCommand = computed((): EntryCommandBatch | undefined => {
-  if (!readonly.value && updateCommands.value.length > 0) {
+  if (!readonly.value && (updateCommands.value.length > 0 || deletedIds.value.length > 0)) {
     return {
       commandType: "entries:batch",
       create: [],
       update: updateCommands.value,
-      delete: [],
+      delete: deletedIds.value,
     };
   }
 
@@ -395,6 +459,10 @@ const { mutateAsync: batchAsync, isPending: batchPending } = useEntryCommand({
     await queryClient.invalidateQueries({ queryKey: ["entries"] });
   },
 });
+
+const addParentRow = () => {
+  rows.value = [new ParentRow(), ...rows.value];
+};
 </script>
 
 <template>
@@ -417,7 +485,14 @@ const { mutateAsync: batchAsync, isPending: batchPending } = useEntryCommand({
           :disable="!batchCommand"
           @click="batchCommand && batchAsync(batchCommand)"
         ></q-btn>
-        <q-btn flat color="secondary" icon="add" label="Add" :loading="batchPending"></q-btn>
+        <q-btn
+          flat
+          color="secondary"
+          icon="add"
+          label="Add"
+          :loading="batchPending"
+          @click="addParentRow"
+        ></q-btn>
         <q-btn
           flat
           icon="cancel"

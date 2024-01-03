@@ -15,13 +15,13 @@ const emits = defineEmits<{
 
 const el = ref<HTMLElement>();
 const { height } = useElementSize(el);
+const expandedRowKeys = ref<string[]>([]);
 
 const gridOptions = computed(
   (): GridOptions => ({
     ...omitBy(props, (value) => !value),
     enableRangeSelection: true,
     suppressGroupRowsSticky: true,
-
     defaultColDef: {
       resizable: true,
       suppressMovable: true,
@@ -31,9 +31,22 @@ const gridOptions = computed(
       ...omitBy(props.defaultColDef ?? {}, (value) => !value),
     },
     onGridReady: (params) => {
+      console.log("On Grid Ready");
       gridApi.value = params.api;
       emits("update:gridApi", params.api);
       props.onGridReady?.(params);
+    },
+    onRowDataUpdated: (params) => {
+      console.log("On Row Data Updated");
+      props.onRowDataUpdated?.(params);
+      if (expandedRowKeys.value.length > 0) {
+        params.api.forEachNode((node) => {
+          if (node.key && expandedRowKeys.value.includes(node.key)) {
+            params.api.setRowNodeExpanded(node, true);
+          }
+        });
+        expandedRowKeys.value = [];
+      }
     },
   }),
 );
@@ -48,10 +61,19 @@ const theme = computed(() => {
 watch(
   () => [props.rowData, props.columnDefs],
   ([newRowData, newColumnDefs]) => {
-    gridApi.value?.updateGridOptions({
-      rowData: newRowData,
-      columnDefs: newColumnDefs,
-    });
+    const api = gridApi.value;
+    if (api) {
+      api.forEachNode((node) => {
+        if (node.expanded && node.key) {
+          expandedRowKeys.value.push(node.key);
+        }
+      });
+
+      api.updateGridOptions({
+        rowData: newRowData,
+        columnDefs: newColumnDefs,
+      });
+    }
   },
 );
 </script>
