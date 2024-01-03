@@ -56,13 +56,27 @@ pub async fn init() -> backend_core::Result<DbConn> {
     .iter()
     .flat_map(|journal| {
       let mut results = account::Type::iter()
-        .map(|typ| account::CommandCreate {
-          journal_id: journal.id,
-          name: format!("{} - {}", journal.name.clone(), typ),
-          description: Paragraph(0..10).fake(),
-          unit: journal.unit.clone(),
-          typ,
-          tags: gen_tags(),
+        .flat_map(|typ| {
+          let unit: String = CurrencyCode().fake();
+
+          vec![
+            account::CommandCreate {
+              journal_id: journal.id,
+              name: format!("{} - {}", journal.name.clone(), typ),
+              description: Paragraph(0..10).fake(),
+              unit: journal.unit.clone(),
+              typ,
+              tags: gen_tags(),
+            },
+            account::CommandCreate {
+              journal_id: journal.id,
+              name: format!("{} - {}::{}", journal.name.clone(), typ, unit),
+              description: Paragraph(0..10).fake(),
+              unit,
+              typ,
+              tags: gen_tags(),
+            },
+          ]
         })
         .collect::<Vec<_>>();
 

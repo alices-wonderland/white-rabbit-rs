@@ -6,6 +6,8 @@ import type {
   EntryQuery,
   EntrySort,
   FindAllArgs,
+  HierarchyReportApi,
+  HierarchyReportQuery,
   JournalApi,
   JournalQuery,
   JournalSort,
@@ -23,12 +25,25 @@ import {
   Journal,
   JOURNAL_API_KEY,
   EMPTY_RESULTS,
+  HierarchyReport,
+  HIERARCHY_REPORT_API_KEY,
+  HIERARCHY_REPORT_TYPE,
+  ACCOUNT_TYPE,
+  ENTRY_TYPE,
+  JOURNAL_TYPE,
 } from "@core/services";
 import { useQuery, type UseQueryOptions } from "@tanstack/vue-query";
 
-export type UseAllArgs<Q extends Query, S extends string> = MaybeRef<FindAllArgs<Q, S> | undefined>;
+export type UseAllArgs<Q extends Query, S extends string = string> = MaybeRef<
+  FindAllArgs<Q, S> | undefined
+>;
 
-const useAll = <A extends ReadApi<M, Q, S>, M extends Model, Q extends Query, S extends string>(
+const useAll = <
+  A extends ReadApi<M, Q, S>,
+  M extends Model,
+  Q extends Query,
+  S extends string = string,
+>(
   key: symbol,
   methodName: string,
   args: UseAllArgs<Q, S>,
@@ -56,7 +71,7 @@ export const useJournals = (
 ) =>
   useAll<JournalApi, Journal, JournalQuery, JournalSort>(
     JOURNAL_API_KEY,
-    "journals",
+    JOURNAL_TYPE,
     args,
     options,
   );
@@ -67,7 +82,7 @@ export const useAccounts = (
 ) =>
   useAll<AccountApi, Account, AccountQuery, AccountSort>(
     ACCOUNT_API_KEY,
-    "accounts",
+    ACCOUNT_TYPE,
     args,
     options,
   );
@@ -75,4 +90,15 @@ export const useAccounts = (
 export const useEntries = (
   args: UseAllArgs<EntryQuery, EntrySort>,
   options?: UseQueryOptions<[Entry[], Map<string, Model>]>,
-) => useAll<EntryApi, Entry, EntryQuery, EntrySort>(ENTRY_API_KEY, "entries", args, options);
+) => useAll<EntryApi, Entry, EntryQuery, EntrySort>(ENTRY_API_KEY, ENTRY_TYPE, args, options);
+
+export const useHierarchyReports = (
+  args: UseAllArgs<HierarchyReportQuery>,
+  options?: UseQueryOptions<[HierarchyReport[], Map<string, Model>]>,
+) =>
+  useAll<HierarchyReportApi, HierarchyReport, HierarchyReportQuery>(
+    HIERARCHY_REPORT_API_KEY,
+    HIERARCHY_REPORT_TYPE,
+    args,
+    options,
+  );
