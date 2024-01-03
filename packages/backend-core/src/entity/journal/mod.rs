@@ -104,8 +104,8 @@ pub struct Root {
 }
 
 impl super::Root for Root {
-  fn id(&self) -> Uuid {
-    self.id
+  fn id(&self) -> String {
+    self.id.to_string()
   }
 }
 

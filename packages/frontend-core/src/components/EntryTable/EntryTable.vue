@@ -5,28 +5,34 @@ import {
   AppTableTagsCellRenderer,
   AppTableAccountCellRenderer,
   AppTableAccountCellEditor,
+  AppTableTagsCellEditor,
 } from "@core/components/AppTable";
 import {
   Account,
   Entry,
+  ENTRY_TYPES,
   type EntryCommandBatch,
+  type EntryCommandCreate,
   type EntryCommandUpdate,
   type EntryItem,
+  Journal,
 } from "@core/services";
 import { useEntryCommand } from "@core/composable";
 
 import { computed, ref, shallowRef, triggerRef, watch } from "vue";
 import type { CellValueChangedEvent, ColDef, ICellRendererParams } from "@ag-grid-community/core";
-import { isMatch } from "date-fns";
+import { format, isMatch } from "date-fns";
 import { useQueryClient } from "@tanstack/vue-query";
 
 import { ChildRow, createAll, ParentRow } from "./row";
 import type { Row } from "./row";
 import EntryTableDateCellEditor from "./EntryTableDateCellEditor.vue";
 import EntryTableStateCellRenderer from "./EntryTableStateCellRenderer.vue";
+import EntryTableActionsCellRenderer from "./EntryTableActionsCellRenderer.vue";
 
 const props = defineProps<{
   readonly modelValue: Entry[];
+  readonly journal: Journal;
   readonly accounts: Account[];
 }>();
 
@@ -63,6 +69,7 @@ const columnDefs = computed((): ColDef<Row>[] => {
         }
         return false;
       },
+      filter: "agTextColumnFilter",
       editable: (params) => params.data instanceof ParentRow && params.data.editable("description"),
       cellRendererSelector: (params: ICellRendererParams<Row>) => {
         if (params.data instanceof ParentRow) {
@@ -82,6 +89,15 @@ const columnDefs = computed((): ColDef<Row>[] => {
           return params.data.type;
         }
       },
+      filterValueGetter: (params) => {
+        if (params.data instanceof ParentRow) {
+          return params.data.type;
+        } else if (params.data) {
+          const parent = parentAndChildRows.value[0].get(params.data.parentId);
+          return parent?.type;
+        }
+        return undefined;
+      },
       valueSetter: (params) => {
         if (params.data instanceof ParentRow && params.newValue) {
           params.data.type = params.newValue;
@@ -90,6 +106,10 @@ const columnDefs = computed((): ColDef<Row>[] => {
         return false;
       },
       editable: (params) => params.data instanceof ParentRow && params.data.editable("type"),
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ENTRY_TYPES,
+      },
       cellRendererSelector: (params: ICellRendererParams<Row>) => {
         if (params.data instanceof ParentRow) {
           return {
@@ -128,32 +148,13 @@ const columnDefs = computed((): ColDef<Row>[] => {
       },
       cellEditor: EntryTableDateCellEditor,
       filter: "agDateColumnFilter",
-    },
-    {
-      headerName: "Tags",
-      width: 200,
-      valueGetter: (params) => {
-        if (params.data instanceof ParentRow) {
-          return params.data.tags;
-        }
-      },
-      valueSetter: (params) => {
-        if (params.newValue && params.data instanceof ParentRow) {
-          params.data.tags = params.newValue;
-          return true;
-        }
-        return false;
-      },
-      editable: (params) => params.data instanceof ParentRow && params.data.editable("tags"),
-      cellRendererSelector: (params: ICellRendererParams<Row>) => {
-        if (params.data instanceof ParentRow) {
-          return {
-            component: AppTableTagsCellRenderer,
-            params: {
-              fieldState: params.data?.getFieldState("tags"),
-            },
-          };
-        }
+      filterParams: () => {
+        return {
+          comparator: (filterValue: Date, cellValue: string) => {
+            const formattedFilter = format(filterValue, "yyyy-MM-dd");
+            return cellValue.localeCompare(formattedFilter);
+          },
+        };
       },
     },
     {
@@ -170,6 +171,7 @@ const columnDefs = computed((): ColDef<Row>[] => {
         }
         return false;
       },
+      filter: "agNumberColumnFilter",
       cellEditor: "agNumberCellEditor",
       cellEditorParams: {
         min: 0,
@@ -200,6 +202,7 @@ const columnDefs = computed((): ColDef<Row>[] => {
         }
         return false;
       },
+      filter: "agNumberColumnFilter",
       cellEditor: "agNumberCellEditor",
       cellEditorParams: {
         min: 0,
@@ -216,6 +219,46 @@ const columnDefs = computed((): ColDef<Row>[] => {
         }
       },
     },
+    {
+      headerName: "Tags",
+      width: 200,
+      valueGetter: (params) => {
+        if (params.data instanceof ParentRow) {
+          return params.data.tags;
+        }
+      },
+      filterValueGetter: (params) => {
+        if (params.data instanceof ParentRow) {
+          return params.data.tags;
+        } else if (params.data) {
+          const parent = parentAndChildRows.value[0].get(params.data.parentId);
+          return parent?.tags;
+        }
+        return undefined;
+      },
+      valueSetter: (params) => {
+        if (params.newValue && params.data instanceof ParentRow) {
+          params.data.tags = params.newValue;
+          return true;
+        }
+        return false;
+      },
+      editable: (params) => params.data instanceof ParentRow && params.data.editable("tags"),
+      cellRendererSelector: (params: ICellRendererParams<Row>) => {
+        if (params.data instanceof ParentRow) {
+          return {
+            component: AppTableTagsCellRenderer,
+            params: {
+              fieldState: params.data?.getFieldState("tags"),
+            },
+          };
+        }
+      },
+      cellEditor: AppTableTagsCellEditor,
+      useValueParserForImport: true,
+      valueFormatter: (params) => params.value?.join(","),
+      valueParser: (params) => params.newValue.split(","),
+    },
   ];
 
   if (readonly.value) {
@@ -223,7 +266,9 @@ const columnDefs = computed((): ColDef<Row>[] => {
       ...results,
       {
         headerName: "State",
+        filter: false,
         valueGetter: (params) => params.data?.entryState,
+        valueFormatter: () => "",
         cellRendererSelector: (params) => {
           if (params.value) {
             return {
@@ -235,7 +280,57 @@ const columnDefs = computed((): ColDef<Row>[] => {
     ];
   }
 
-  return results;
+  return [
+    {
+      headerName: "Actions",
+      filter: false,
+      width: 120,
+      lockPosition: "left",
+      cellRenderer: EntryTableActionsCellRenderer,
+      cellRendererParams: (params: ICellRendererParams<Row>) => {
+        return {
+          // eslint-disable-next-line sonarjs/cognitive-complexity
+          toggleDeleted: () => {
+            if (params.node && params.data) {
+              params.data.deleted = !params.data.deleted;
+
+              let parent = params.node;
+              if (params.data instanceof ChildRow && params.node.parent) {
+                parent = params.node.parent;
+              } else if (params.data instanceof ParentRow) {
+                for (const child of params.node.allLeafChildren) {
+                  if (child.data instanceof ChildRow) {
+                    child.data.deleted = params.data.deleted;
+                  }
+                }
+              }
+
+              params.api.redrawRows({ rowNodes: [parent, ...parent.allLeafChildren] });
+              if (params.data instanceof ChildRow) {
+                triggerRef(rows);
+              } else if (params.data instanceof ParentRow) {
+                const parentId = params.data.id;
+                rows.value = rows.value.filter(
+                  (row) =>
+                    !(
+                      row instanceof ChildRow &&
+                      row.parentId === parentId &&
+                      row.rowState.state === "NEW"
+                    ),
+                );
+              }
+            }
+          },
+          toggleAdded: () => {
+            if (params.data instanceof ParentRow && !params.data.deleted) {
+              rows.value = [...rows.value, new ChildRow(params.data.id)];
+            }
+          },
+        };
+      },
+    } as ColDef<Row>,
+    ...results,
+  ];
 });
 
 const onCellValueChanged = (event: CellValueChangedEvent<Row>) => {
@@ -260,6 +355,19 @@ const autoGroupColumnGroup = computed(
       } else {
         const account = params.data && accountMap.value.get(params.data.accountId);
         return account?.id;
+      }
+    },
+    filterValueGetter: (params) => {
+      if (params.data instanceof ParentRow) {
+        const children = parentAndChildRows.value[1].get(params.data.id);
+        const names =
+          children
+            ?.map((item) => accountMap.value.get(item.accountId)?.name)
+            .filter((name): name is string => !!name) ?? [];
+        return [params.data.name, ...names];
+      } else {
+        const account = params.data && accountMap.value.get(params.data.accountId);
+        return account?.name;
       }
     },
     valueSetter: (params) => {
@@ -319,8 +427,7 @@ const autoGroupColumnGroup = computed(
   }),
 );
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
-const updateCommands = computed(() => {
+const parentAndChildRows = computed((): [Map<string, ParentRow>, Map<string, ChildRow[]>] => {
   const parentRows = new Map<string, ParentRow>();
   const childRowsByParent = new Map<string, ChildRow[]>();
   for (const row of rows.value) {
@@ -331,6 +438,50 @@ const updateCommands = computed(() => {
       childRowsByParent.set(row.parentId, [...existing, row]);
     }
   }
+  return [parentRows, childRowsByParent];
+});
+
+const deletedIds = computed(() => {
+  return [...parentAndChildRows.value[0].values()]
+    .filter((row) => row.deleted)
+    .map((row) => row.id);
+});
+
+const createCommands = computed((): EntryCommandCreate[] => {
+  const [parentRows, childRowsByParent] = parentAndChildRows.value;
+  const commands: EntryCommandCreate[] = [];
+
+  for (const parent of parentRows.values()) {
+    const children = childRowsByParent.get(parent.id);
+    if (parent.rowState.state === "NEW" && children && children.length >= 2) {
+      const items = children.map(
+        (child): EntryItem => ({
+          account: child.accountId,
+          amount: child.amount,
+          price: child.price,
+        }),
+      );
+
+      commands.push({
+        commandType: "entries:create",
+        id: parent.id,
+        journalId: props.journal.id,
+        name: parent.name,
+        description: parent.description,
+        type: parent.type,
+        date: parent.date,
+        tags: parent.tags,
+        items: items,
+      });
+    }
+  }
+
+  return commands;
+});
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+const updateCommands = computed(() => {
+  const [parentRows, childRowsByParent] = parentAndChildRows.value;
 
   const commands: EntryCommandUpdate[] = [];
   for (const parent of parentRows.values()) {
@@ -377,12 +528,17 @@ const updateCommands = computed(() => {
 });
 
 const batchCommand = computed((): EntryCommandBatch | undefined => {
-  if (!readonly.value && updateCommands.value.length > 0) {
+  if (
+    !readonly.value &&
+    (createCommands.value.length > 0 ||
+      updateCommands.value.length > 0 ||
+      deletedIds.value.length > 0)
+  ) {
     return {
       commandType: "entries:batch",
-      create: [],
+      create: createCommands.value,
       update: updateCommands.value,
-      delete: [],
+      delete: deletedIds.value,
     };
   }
 
@@ -395,6 +551,10 @@ const { mutateAsync: batchAsync, isPending: batchPending } = useEntryCommand({
     await queryClient.invalidateQueries({ queryKey: ["entries"] });
   },
 });
+
+const addParentRow = () => {
+  rows.value = [new ParentRow(), ...rows.value];
+};
 </script>
 
 <template>
@@ -417,7 +577,14 @@ const { mutateAsync: batchAsync, isPending: batchPending } = useEntryCommand({
           :disable="!batchCommand"
           @click="batchCommand && batchAsync(batchCommand)"
         ></q-btn>
-        <q-btn flat color="secondary" icon="add" label="Add" :loading="batchPending"></q-btn>
+        <q-btn
+          flat
+          color="secondary"
+          icon="add"
+          label="Add"
+          :loading="batchPending"
+          @click="addParentRow"
+        ></q-btn>
         <q-btn
           flat
           icon="cancel"
