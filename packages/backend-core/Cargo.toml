@@ -23,7 +23,7 @@ strum = "0.25"
 strum_macros = "0.25"
 thiserror = "1.0"
 tokio = { version = "1.35", features = ["rt", "macros"] }
-uuid = { version = "1.6", features = ["serde", "v4", "macro-diagnostics"] }
+uuid = { version = "1.7", features = ["serde", "v4", "macro-diagnostics"] }
 
 [dev-dependencies]
 anyhow = "1.0"

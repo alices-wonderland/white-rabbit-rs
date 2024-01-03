@@ -1,13 +1,13 @@
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use uuid::Uuid;
 
 pub mod account;
 pub mod account_tag;
 pub mod entry;
 pub mod entry_item;
 pub mod entry_tag;
+pub mod hierarchy_report;
 pub mod journal;
 pub mod journal_tag;
 
@@ -28,7 +28,7 @@ pub const MAX_SHORT_TEXT_LENGTH: usize = 15;
 pub const MAX_TAGS_LENGTH: usize = 7;
 
 pub trait Root {
-  fn id(&self) -> Uuid;
+  fn id(&self) -> String;
 }
 
 #[async_trait::async_trait]
