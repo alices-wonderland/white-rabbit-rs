@@ -1,17 +1,19 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
-use backend_core::entity::{entry, Presentation};
+use backend_core::entity::{entry, hierarchy_report, Presentation};
 use backend_core::{init, Error};
 use futures::TryFutureExt;
-use sea_orm::TransactionTrait;
+use sea_orm::{DbConn, TransactionTrait};
+use std::collections::HashSet;
+use uuid::Uuid;
 
 macro_rules! generate_handlers {
   ($entity: ident) => {
     paste::paste! {
       #[tauri::command]
       async fn [<$entity _find_by_id>](
-        db: ::tauri::State<'_, ::sea_orm::DbConn>,
-        id: ::uuid::Uuid,
+        db: ::tauri::State<'_, DbConn>,
+        id: Uuid,
       ) -> Result<Option<::backend_core::entity::$entity::Root>, String> {
         db.inner()
           .transaction(|tx| {
@@ -29,7 +31,7 @@ macro_rules! generate_handlers {
 
       #[tauri::command]
       async fn [<$entity _find_all>](
-        db: ::tauri::State<'_, ::sea_orm::DbConn>,
+        db: ::tauri::State<'_, DbConn>,
         query: Option<::backend_core::entity::$entity::Query>,
         size: Option<u64>,
         sort: Option<::backend_core::entity::$entity::Sort>,
@@ -44,7 +46,7 @@ macro_rules! generate_handlers {
 
       #[tauri::command]
       async fn [<$entity _handle_command>](
-        db: ::tauri::State<'_, ::sea_orm::DbConn>,
+        db: ::tauri::State<'_, DbConn>,
         command: ::backend_core::entity::$entity::Command,
       ) -> Result<Vec<::backend_core::entity::$entity::Root>, String> {
         db.inner()
@@ -61,8 +63,8 @@ generate_handlers!(account);
 
 #[tauri::command]
 async fn entry_find_by_id(
-  db: ::tauri::State<'_, ::sea_orm::DbConn>,
-  id: ::uuid::Uuid,
+  db: tauri::State<'_, DbConn>,
+  id: Uuid,
 ) -> Result<Option<entry::Presentation>, String> {
   db.inner()
     .transaction::<_, _, Error>(|tx| {
@@ -86,7 +88,7 @@ async fn entry_find_by_id(
 
 #[tauri::command]
 async fn entry_find_all(
-  db: ::tauri::State<'_, ::sea_orm::DbConn>,
+  db: tauri::State<'_, DbConn>,
   query: Option<entry::Query>,
   size: Option<u64>,
   sort: Option<entry::Sort>,
@@ -104,7 +106,7 @@ async fn entry_find_all(
 
 #[tauri::command]
 async fn entry_handle_command(
-  db: ::tauri::State<'_, ::sea_orm::DbConn>,
+  db: tauri::State<'_, DbConn>,
   command: entry::Command,
 ) -> Result<Vec<entry::Presentation>, String> {
   db.inner()
@@ -114,6 +116,33 @@ async fn entry_handle_command(
         entry::Presentation::from_roots(tx, roots).await
       })
     })
+    .map_err(|err| err.to_string())
+    .await
+}
+
+#[tauri::command]
+async fn hierarchy_report_find_by_id(
+  db: tauri::State<'_, DbConn>,
+  id: String,
+) -> Result<Option<hierarchy_report::Root>, String> {
+  db.inner()
+    .transaction(|tx| {
+      Box::pin(hierarchy_report::Root::find_one(
+        tx,
+        Some(hierarchy_report::Query { id: HashSet::from_iter([id]), ..Default::default() }),
+      ))
+    })
+    .map_err(|err| err.to_string())
+    .await
+}
+
+#[tauri::command]
+async fn hierarchy_report_find_all(
+  db: tauri::State<'_, DbConn>,
+  query: Option<hierarchy_report::Query>,
+) -> Result<Vec<hierarchy_report::Root>, String> {
+  db.inner()
+    .transaction(|tx| Box::pin(hierarchy_report::Root::find_all(tx, query)))
     .map_err(|err| err.to_string())
     .await
 }
@@ -134,6 +163,8 @@ async fn main() -> anyhow::Result<()> {
       entry_find_by_id,
       entry_find_all,
       entry_handle_command,
+      hierarchy_report_find_by_id,
+      hierarchy_report_find_all,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -17,7 +17,7 @@ jobs:
           cache: "yarn"
           cache-dependency-path: yarn.lock
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -34,12 +34,12 @@ jobs:
           yarn && yarn workspace @white-rabbit/app-desktop run build:vue
           yarn lint && yarn test:coverage
         name: Test and coverage
-      - uses: codecov/codecov-action@v3
+      - name: Push coverage to Codecov
         if: matrix.platform == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
         with:
           files: target/debug/coverage/lcov.info
           flags: unittests,backend
-        name: Push coverage to Codecov
       - name: Push coverage to Codacy
         if: matrix.platform == 'ubuntu-latest'
         uses: codacy/codacy-coverage-reporter-action@v1
