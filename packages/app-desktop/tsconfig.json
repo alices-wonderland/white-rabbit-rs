@@ -5,12 +5,12 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "@core/*": ["../frontend-core/src/*"]
-    }
+      "@core/*": ["../frontend-core/src/*"],
+    },
   },
   "references": [
     {
-      "path": "./tsconfig.dev.json"
-    }
-  ]
+      "path": "./tsconfig.dev.json",
+    },
+  ],
 }
