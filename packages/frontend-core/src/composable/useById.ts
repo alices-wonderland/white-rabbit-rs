@@ -1,13 +1,26 @@
-import type { AccountApi, EntryApi, JournalApi, Model, ReadApi } from "@core/services";
+import type {
+  AccountApi,
+  EntryApi,
+  HierarchyReportApi,
+  JournalApi,
+  Model,
+  ReadApi,
+} from "@core/services";
 import type { MaybeRef } from "vue";
 import useInject from "./useInject";
 import {
   Account,
   ACCOUNT_API_KEY,
+  ACCOUNT_TYPE,
   Entry,
   ENTRY_API_KEY,
+  ENTRY_TYPE,
+  HIERARCHY_REPORT_API_KEY,
+  HIERARCHY_REPORT_TYPE,
+  HierarchyReport,
   Journal,
   JOURNAL_API_KEY,
+  JOURNAL_TYPE,
 } from "@core/services";
 import { useQuery, type UseQueryOptions } from "@tanstack/vue-query";
 import isEmpty from "lodash/isEmpty";
@@ -40,14 +53,25 @@ const useById = <A extends ReadApi<M>, M extends Model>(
 export const useJournal = (
   id: MaybeRef<string | undefined>,
   options?: UseQueryOptions<[Journal, Map<string, Model>] | null>,
-) => useById<JournalApi, Journal>(JOURNAL_API_KEY, "journal", id, options);
+) => useById<JournalApi, Journal>(JOURNAL_API_KEY, JOURNAL_TYPE, id, options);
 
 export const useAccount = (
   id?: MaybeRef<string | undefined>,
   options?: UseQueryOptions<[Account, Map<string, Model>] | null>,
-) => useById<AccountApi, Account>(ACCOUNT_API_KEY, "account", id, options);
+) => useById<AccountApi, Account>(ACCOUNT_API_KEY, ACCOUNT_TYPE, id, options);
 
 export const useEntry = (
   id?: MaybeRef<string | undefined>,
   options?: UseQueryOptions<[Entry, Map<string, Model>] | null>,
-) => useById<EntryApi, Entry>(ENTRY_API_KEY, "entry", id, options);
+) => useById<EntryApi, Entry>(ENTRY_API_KEY, ENTRY_TYPE, id, options);
+
+export const useHierarchyReport = (
+  id?: MaybeRef<string | undefined>,
+  options?: UseQueryOptions<[HierarchyReport, Map<string, Model>] | null>,
+) =>
+  useById<HierarchyReportApi, HierarchyReport>(
+    HIERARCHY_REPORT_API_KEY,
+    HIERARCHY_REPORT_TYPE,
+    id,
+    options,
+  );
