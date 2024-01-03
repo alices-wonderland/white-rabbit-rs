@@ -34,6 +34,7 @@ const columnDefs = computed(() => {
   let results: ColDef<Row>[] = [
     {
       headerName: "Name",
+      sortable: true,
       valueGetter: (params) => params.data?.name,
       valueSetter: (params) => {
         if (params.newValue) {
@@ -68,6 +69,7 @@ const columnDefs = computed(() => {
     } as ColDef<Row, string>,
     {
       headerName: "Unit",
+      sortable: true,
       valueGetter: (params) => params.data?.unit,
       valueSetter: (params) => {
         if (params.newValue) {
@@ -84,6 +86,7 @@ const columnDefs = computed(() => {
     } as ColDef<Row, string>,
     {
       headerName: "Type",
+      sortable: true,
       valueGetter: (params) => params.data?.type,
       valueSetter: (params) => {
         if (params.newValue) {

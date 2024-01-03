@@ -19,4 +19,4 @@ migration = { path = "../migration" }
 rand = "0.8"
 rust_decimal = "1.33"
 tokio = { version = "1.35", features = ["rt", "macros"] }
-uuid = { version = "1.6", features = ["serde", "v4", "macro-diagnostics"] }
+uuid = { version = "1.7", features = ["serde", "v4", "macro-diagnostics"] }
