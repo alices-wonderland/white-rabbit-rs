@@ -38,12 +38,16 @@ onMounted(async () => {
   chartInst.value = AgCharts.create(options.value);
   created.value = true;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (chartInst.value as any).chart.waitForUpdate();
+  await (chartInst.value as any).chart?.waitForUpdate();
   emits("chartReady", chartInst.value);
 });
 
 onUnmounted(() => {
-  chartInst.value?.destroy();
+  try {
+    chartInst.value?.destroy();
+  } catch (ignored) {
+    console.log("Ignored Error: ", ignored);
+  }
 });
 </script>
 

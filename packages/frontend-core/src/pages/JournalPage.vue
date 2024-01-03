@@ -180,6 +180,7 @@ const cancel = () => {
           <q-tab-panel name="Entries">
             <EntryTable
               :model-value="entries"
+              :journal="journal"
               :accounts="accounts"
               @reload="entriesRefetch"
             ></EntryTable>
