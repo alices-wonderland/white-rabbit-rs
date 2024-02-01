@@ -34,7 +34,7 @@ jobs:
           yarn && yarn workspace @white-rabbit/app-desktop run build:vue
           yarn lint && yarn test:coverage
         name: Test and coverage
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         if: matrix.platform == 'ubuntu-latest'
         with:
           files: target/debug/coverage/lcov.info
