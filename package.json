@@ -96,6 +96,6 @@
     }
   },
   "resolutions": {
-    "@commitlint/config-conventional": "18.6.0"
+    "@commitlint/config-conventional": "18.6.2"
   }
 }
