@@ -1,6 +1,6 @@
-use crate::entity;
 use crate::entity::account;
 use crate::entity::entry::{Item, Query, Root, Type};
+use crate::entity::{self, ReadRoot};
 use chrono::NaiveDate;
 use itertools::Itertools;
 use rust_decimal::Decimal;
@@ -49,7 +49,6 @@ pub struct PresentationCheck {
   pub state: HashMap<Uuid, StateItem>,
 }
 
-#[async_trait::async_trait]
 impl entity::Presentation for Presentation {
   type R = Root;
 
