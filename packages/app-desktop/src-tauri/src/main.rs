@@ -1,6 +1,6 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
-use backend_core::entity::{entry, hierarchy_report, Presentation};
+use backend_core::entity::{entry, hierarchy_report, Presentation, ReadRoot};
 use backend_core::{init, Error};
 use futures::TryFutureExt;
 use sea_orm::{DbConn, TransactionTrait};
@@ -142,7 +142,7 @@ async fn hierarchy_report_find_all(
   query: Option<hierarchy_report::Query>,
 ) -> Result<Vec<hierarchy_report::Root>, String> {
   db.inner()
-    .transaction(|tx| Box::pin(hierarchy_report::Root::find_all(tx, query)))
+    .transaction(|tx| Box::pin(hierarchy_report::Root::find_all(tx, query, None, None)))
     .map_err(|err| err.to_string())
     .await
 }

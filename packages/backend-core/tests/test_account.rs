@@ -1,6 +1,5 @@
-use backend_core::entity::{account, journal, FIELD_JOURNAL, FIELD_NAME};
+use backend_core::entity::{account, journal, ReadRoot, FIELD_JOURNAL, FIELD_NAME};
 use backend_core::Error;
-
 use std::collections::HashSet;
 
 #[tokio::test]

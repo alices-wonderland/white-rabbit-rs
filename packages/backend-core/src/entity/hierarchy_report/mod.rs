@@ -2,8 +2,7 @@ mod query;
 
 pub use query::*;
 
-use crate::entity::{account, entry, Root as SuperRoot};
-
+use crate::entity::{account, entry, ReadRoot};
 use itertools::Itertools;
 use rust_decimal::Decimal;
 use sea_orm::ConnectionTrait;
@@ -23,31 +22,19 @@ pub struct Root {
   pub values: HashMap<Uuid, Decimal>,
 }
 
-impl SuperRoot for Root {
+impl ReadRoot for Root {
+  type Query = Query;
+  type Sort = ();
+
   fn id(&self) -> String {
     [self.journal_id.to_string(), self.prefix.clone(), self.unit.clone()].join(REPORT_SPLITERATOR)
   }
-}
 
-#[derive(Hash, Debug, Clone, PartialEq, Eq)]
-struct Index {
-  pub journal_id: Uuid,
-  pub prefix: String,
-  pub unit: String,
-  pub account_id: Uuid,
-}
-
-impl Root {
-  pub async fn find_one(
+  async fn find_all(
     db: &impl ConnectionTrait,
     query: Option<Query>,
-  ) -> crate::Result<Option<Root>> {
-    Ok(Self::find_all(db, query).await?.into_iter().next())
-  }
-
-  pub async fn find_all(
-    db: &impl ConnectionTrait,
-    query: Option<Query>,
+    _limit: Option<u64>,
+    _sort: Option<()>,
   ) -> crate::Result<Vec<Root>> {
     let mut journal_ids: HashSet<_> =
       query.iter().flat_map(|query| query.journal_id.iter().copied()).collect();
@@ -96,7 +83,17 @@ impl Root {
       _ => aggregated,
     })
   }
+}
 
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
+struct Index {
+  pub journal_id: Uuid,
+  pub prefix: String,
+  pub unit: String,
+  pub account_id: Uuid,
+}
+
+impl Root {
   fn do_aggregate(aggregated: HashMap<Index, Decimal>) -> Vec<Root> {
     let mut results = Vec::default();
     for ((journal_id, prefix, unit), items) in

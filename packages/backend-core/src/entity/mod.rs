@@ -1,6 +1,7 @@
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use uuid::Uuid;
 
 pub mod account;
 pub mod account_tag;
@@ -27,13 +28,49 @@ pub const MIN_SHORT_TEXT_LENGTH: usize = 2;
 pub const MAX_SHORT_TEXT_LENGTH: usize = 15;
 pub const MAX_TAGS_LENGTH: usize = 7;
 
-pub trait Root {
+pub trait ReadRoot: Sized {
+  type Query;
+
+  type Sort;
+
   fn id(&self) -> String;
+
+  async fn find_all(
+    db: &impl ConnectionTrait,
+    query: Option<Self::Query>,
+    limit: Option<u64>,
+    sort: Option<Self::Sort>,
+  ) -> crate::Result<Vec<Self>>;
+
+  async fn find_one(
+    db: &impl ConnectionTrait,
+    query: Option<Self::Query>,
+  ) -> crate::Result<Option<Self>> {
+    Ok(Self::find_all(db, query, Some(1), None).await?.into_iter().next())
+  }
 }
 
-#[async_trait::async_trait]
+pub trait WriteRoot: ReadRoot {
+  type Model;
+
+  async fn from_model(
+    db: &impl ConnectionTrait,
+    models: impl IntoIterator<Item = Self::Model>,
+  ) -> crate::Result<Vec<Self>>;
+
+  async fn save(
+    db: &impl ConnectionTrait,
+    roots: impl IntoIterator<Item = Self>,
+  ) -> crate::Result<Vec<Self>>;
+
+  async fn delete(
+    db: &impl ConnectionTrait,
+    ids: impl IntoIterator<Item = Uuid>,
+  ) -> crate::Result<()>;
+}
+
 pub trait Presentation: Sized + Serialize + for<'a> Deserialize<'a> {
-  type R: Root;
+  type R: ReadRoot;
 
   async fn from_roots(db: &impl ConnectionTrait, roots: Vec<Self::R>) -> crate::Result<Vec<Self>>;
 }
