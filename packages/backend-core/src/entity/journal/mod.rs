@@ -7,8 +7,8 @@ pub use database::*;
 pub use query::*;
 
 use crate::entity::{
-  journal_tag, normalize_description, normalize_name, normalize_tags, normalize_unit, FIELD_ID,
-  FIELD_NAME,
+  journal_tag, normalize_description, normalize_name, normalize_tags, normalize_unit, ReadRoot,
+  WriteRoot, FIELD_ID, FIELD_NAME,
 };
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
@@ -103,17 +103,40 @@ pub struct Root {
   pub tags: HashSet<String>,
 }
 
-impl super::Root for Root {
+impl ReadRoot for Root {
+  type Query = Query;
+  type Sort = Sort;
+
   fn id(&self) -> String {
     self.id.to_string()
   }
+
+  async fn find_all(
+    db: &impl ConnectionTrait,
+    query: Option<Self::Query>,
+    limit: Option<u64>,
+    sort: Option<Self::Sort>,
+  ) -> crate::Result<Vec<Self>> {
+    let select =
+      if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
+    let select = if let Some(sort) = sort {
+      let (field, order) = Into::<(Column, Order)>::into(sort);
+      select.order_by(field, order)
+    } else {
+      select
+    };
+    let models = select.limit(limit).all(db).await?;
+    Self::from_model(db, models).await
+  }
 }
 
-impl Root {
-  pub async fn from_model(
+impl WriteRoot for Root {
+  type Model = Model;
+
+  async fn from_model(
     db: &impl ConnectionTrait,
-    models: impl IntoIterator<Item = Model>,
-  ) -> crate::Result<Vec<Root>> {
+    models: impl IntoIterator<Item = Self::Model>,
+  ) -> crate::Result<Vec<Self>> {
     let mut roots = Vec::new();
     let mut ids = HashSet::<Uuid>::new();
 
@@ -146,7 +169,7 @@ impl Root {
     )
   }
 
-  pub async fn save(
+  async fn save(
     db: &impl ConnectionTrait,
     roots: impl IntoIterator<Item = Root>,
   ) -> crate::Result<Vec<Root>> {
@@ -203,39 +226,16 @@ impl Root {
     Self::find_all(db, Some(Query { id: model_ids, ..Default::default() }), None, None).await
   }
 
-  pub async fn delete(
+  async fn delete(
     db: &impl ConnectionTrait,
     ids: impl IntoIterator<Item = Uuid>,
   ) -> crate::Result<()> {
     Entity::delete_many().filter(Column::Id.is_in(ids)).exec(db).await?;
     Ok(())
   }
+}
 
-  pub async fn find_one(
-    db: &impl ConnectionTrait,
-    query: Option<Query>,
-  ) -> crate::Result<Option<Root>> {
-    Ok(Self::find_all(db, query, Some(1), None).await?.into_iter().next())
-  }
-
-  pub async fn find_all(
-    db: &impl ConnectionTrait,
-    query: Option<Query>,
-    limit: Option<u64>,
-    sort: Option<Sort>,
-  ) -> crate::Result<Vec<Root>> {
-    let select =
-      if let Some(query) = query { Entity::find().filter(query) } else { Entity::find() };
-    let select = if let Some(sort) = sort {
-      let (field, order) = Into::<(Column, Order)>::into(sort);
-      select.order_by(field, order)
-    } else {
-      select
-    };
-    let models = select.limit(limit).all(db).await?;
-    Self::from_model(db, models).await
-  }
-
+impl Root {
   pub async fn handle(db: &impl ConnectionTrait, command: Command) -> crate::Result<Vec<Root>> {
     match command {
       Command::Create(command) => Self::create(db, vec![command]).await,

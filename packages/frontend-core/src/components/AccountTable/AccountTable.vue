@@ -29,7 +29,6 @@ const props = defineProps<{
 const queryClient = useQueryClient();
 const readonly = ref(true);
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 const columnDefs = computed(() => {
   let results: ColDef<Row>[] = [
     {
@@ -289,7 +288,7 @@ const { mutateAsync: batchAsync, isPending: batchPending } = useAccountCommand({
       <q-badge v-if="updateCommands.length > 0" color="secondary">
         {{ updateCommands.length }} items updated
       </q-badge>
-      <q-badge v-if="deleteIds" color="negative"> {{ deleteIds.length }} items deleted </q-badge>
+      <q-badge v-if="deleteIds" color="negative"> {{ deleteIds.length }} items deleted</q-badge>
     </div>
     <AppTable
       :row-data="rows"

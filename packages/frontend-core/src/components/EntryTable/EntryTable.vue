@@ -51,7 +51,6 @@ watch(
 
 const accountMap = computed(() => new Map(props.accounts.map((account) => [account.id, account])));
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 const columnDefs = computed((): ColDef<Row>[] => {
   const results: ColDef<Row>[] = [
     {
@@ -289,7 +288,6 @@ const columnDefs = computed((): ColDef<Row>[] => {
       cellRenderer: EntryTableActionsCellRenderer,
       cellRendererParams: (params: ICellRendererParams<Row>) => {
         return {
-          // eslint-disable-next-line sonarjs/cognitive-complexity
           toggleDeleted: () => {
             if (params.node && params.data) {
               params.data.deleted = !params.data.deleted;
@@ -479,7 +477,6 @@ const createCommands = computed((): EntryCommandCreate[] => {
   return commands;
 });
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 const updateCommands = computed(() => {
   const [parentRows, childRowsByParent] = parentAndChildRows.value;
 

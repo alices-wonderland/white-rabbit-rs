@@ -7,7 +7,7 @@
     "dev:vue": "vite",
     "test": "vitest run --coverage",
     "lint:tsc": "vue-tsc --noEmit",
-    "lint:eslint": "eslint '**/*.{vue,ts,js,mjs}' --ignore-path ../../.eslintignore",
+    "lint:eslint": "eslint '**/*.{vue,ts,js,mjs}'",
     "lint": "yarn lint:eslint && yarn lint:tsc",
     "lint:fix": "yarn lint:eslint --fix",
     "build": "yarn tauri build",
@@ -16,14 +16,14 @@
     "clean": "rimraf dist/ node_modules/"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.3"
+    "@tauri-apps/api": "^1.5.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.11",
     "@vitejs/plugin-vue": "^5.0.4",
     "rimraf": "^5.0.5",
-    "vite": "^5.1.6",
-    "vitest": "^1.4.0",
-    "vue-tsc": "^2.0.6"
+    "vite": "^5.2.10",
+    "vitest": "^1.5.2",
+    "vue-tsc": "^2.0.14"
   }
 }

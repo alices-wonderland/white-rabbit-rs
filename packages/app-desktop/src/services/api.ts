@@ -7,7 +7,6 @@ export abstract class AbstractReadApi<M extends Model, Q extends Query, S extend
 {
   protected abstract convert(input: Record<string, unknown>): M;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async loadIncluded(_models: M[]): Promise<Map<string, Model>> {
     return new Map();
   }
