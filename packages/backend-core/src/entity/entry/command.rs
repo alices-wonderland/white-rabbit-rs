@@ -1,6 +1,5 @@
 use crate::entity::entry;
 use chrono::NaiveDate;
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
