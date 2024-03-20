@@ -1,3 +1,5 @@
+#![allow(async_fn_in_trait)]
+
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 
 use std::env;
