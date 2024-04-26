@@ -5,9 +5,8 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::env;
 
 pub mod entity;
-mod error;
-
-pub use error::*;
+pub mod error;
+pub use error::{Error, Result};
 
 pub async fn init(filename: &str) -> Result<DatabaseConnection> {
   let _ = dotenv::from_filename(filename);

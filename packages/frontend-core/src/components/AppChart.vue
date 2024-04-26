@@ -2,7 +2,7 @@
 import { AgCharts } from "ag-charts-community";
 import type { AgChartInstance, AgChartOptions } from "ag-charts-community";
 import { useQuasar } from "quasar";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 const quasar = useQuasar();
 const chartRef = ref<HTMLElement>();

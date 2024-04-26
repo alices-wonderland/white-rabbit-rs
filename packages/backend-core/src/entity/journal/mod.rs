@@ -1,15 +1,15 @@
+mod builder;
 mod command;
 mod database;
 mod query;
 
+pub use builder::*;
 pub use command::*;
 pub use database::*;
 pub use query::*;
 
-use crate::entity::{
-  journal_tag, normalize_description, normalize_name, normalize_tags, normalize_unit, ReadRoot,
-  WriteRoot, FIELD_ID, FIELD_NAME,
-};
+use crate::entity::{journal_tag, ReadRoot, WriteRoot, FIELD_ID, FIELD_NAME};
+use crate::error::ErrorNotFound;
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{BinOper, OnConflict};
@@ -19,57 +19,6 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 pub const TYPE: &str = "Journal";
-
-#[derive(Debug, Default)]
-pub struct Builder {
-  id: Option<Uuid>,
-  name: String,
-  description: String,
-  unit: String,
-  tags: HashSet<String>,
-}
-
-impl From<Root> for Builder {
-  fn from(value: Root) -> Self {
-    Builder {
-      id: Some(value.id),
-      name: value.name,
-      description: value.description,
-      unit: value.unit,
-      tags: value.tags,
-    }
-  }
-}
-
-impl Builder {
-  pub fn build(self) -> crate::Result<Root> {
-    let name = normalize_name(TYPE, self.name)?;
-    let description = normalize_description(TYPE, self.description)?;
-    let unit = normalize_unit(TYPE, self.unit)?;
-    let tags = normalize_tags(TYPE, self.tags)?;
-    Ok(Root { id: self.id.unwrap_or_else(Uuid::new_v4), name, description, unit, tags })
-  }
-
-  pub fn id(self, id: Uuid) -> Builder {
-    Builder { id: Some(id), ..self }
-  }
-
-  pub fn name(self, name: impl ToString) -> Builder {
-    Builder { name: name.to_string(), ..self }
-  }
-
-  pub fn description(self, description: impl ToString) -> Builder {
-    Builder { description: description.to_string(), ..self }
-  }
-
-  pub fn unit(self, unit: impl ToString) -> Builder {
-    Builder { unit: unit.to_string(), ..self }
-  }
-
-  pub fn tags(self, tags: impl IntoIterator<Item = impl ToString>) -> Builder {
-    Builder { tags: tags.into_iter().map(|s| s.to_string()).collect(), ..self }
-  }
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Sort {
@@ -359,9 +308,11 @@ impl Root {
 
     let mut updated = HashMap::new();
     for command in commands {
-      let model = models.get(&command.id).ok_or_else(|| crate::Error::NotFound {
-        typ: TYPE.to_string(),
-        values: vec![(FIELD_ID.to_string(), command.id.to_string())],
+      let model = models.get(&command.id).ok_or_else(|| {
+        crate::Error::NotFound(ErrorNotFound {
+          entity: TYPE.to_string(),
+          values: vec![(FIELD_ID.to_string(), command.id.to_string())],
+        })
       })?;
 
       if command.name.is_empty()

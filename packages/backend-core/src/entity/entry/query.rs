@@ -1,5 +1,5 @@
 use crate::entity::entry::Type;
-use crate::entity::{entry, entry_item, entry_tag, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAGS};
+use crate::entity::{entry, entry_item, entry_tag};
 use chrono::NaiveDate;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{Cond, Func, IntoCondition};
@@ -27,7 +27,7 @@ pub struct Query {
   #[serde(default)]
   pub end: Option<NaiveDate>,
   #[serde(default)]
-  pub full_text: (String, HashSet<String>),
+  pub full_text: String,
 }
 
 impl IntoCondition for Query {
@@ -77,35 +77,19 @@ impl IntoCondition for Query {
       cond = cond.add(entry::Column::Date.lte(end));
     }
 
-    let keyword = self.full_text.0.trim().to_lowercase();
+    let keyword = self.full_text.trim().to_lowercase();
     if !keyword.is_empty() {
       let keyword = format!("%{}%", keyword);
-      let mut sub_cond = Cond::any();
-      let fields = if self.full_text.1.is_empty() {
-        HashSet::from_iter([
-          FIELD_NAME.to_string(),
-          FIELD_TAGS.to_string(),
-          FIELD_DESCRIPTION.to_string(),
-        ])
-      } else {
-        self.full_text.1
-      };
-      if fields.contains(FIELD_NAME) {
-        sub_cond = sub_cond.add(
+      let sub_cond = Cond::any()
+        .add(
           Expr::expr(Func::lower(Expr::col((entry::Entity, entry::Column::Name))))
             .like(keyword.clone()),
-        );
-      }
-
-      if fields.contains(FIELD_DESCRIPTION) {
-        sub_cond = sub_cond.add(
+        )
+        .add(
           Expr::expr(Func::lower(Expr::col((entry::Entity, entry::Column::Description))))
             .like(keyword.clone()),
-        );
-      }
-
-      if fields.contains(FIELD_TAGS) {
-        sub_cond = sub_cond.add(
+        )
+        .add(
           entry::Column::Id.in_subquery(
             entry_tag::Entity::find()
               .select_only()
@@ -118,11 +102,8 @@ impl IntoCondition for Query {
               .into_query(),
           ),
         );
-      }
 
-      if !sub_cond.is_empty() {
-        cond = cond.add(sub_cond);
-      }
+      cond = cond.add(sub_cond);
     }
 
     cond
@@ -131,8 +112,7 @@ impl IntoCondition for Query {
 
 #[cfg(test)]
 mod tests {
-  use crate::entity::entry::Type;
-  use crate::entity::{entry, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAGS};
+  use crate::entity::entry::{self, Type};
   use chrono::NaiveDate;
   use sea_orm::{DbBackend, EntityTrait, QueryFilter, QueryTrait};
   use std::collections::HashSet;
@@ -148,14 +128,7 @@ mod tests {
       typ: Some(Type::Check),
       start: Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()),
       end: Some(NaiveDate::from_ymd_opt(2023, 12, 31).unwrap()),
-      full_text: (
-        "Keyword  ".to_string(),
-        HashSet::from_iter([
-          FIELD_NAME.to_string(),
-          FIELD_DESCRIPTION.to_string(),
-          FIELD_TAGS.to_string(),
-        ]),
-      ),
+      full_text: "Keyword  ".to_string(),
     };
 
     assert_eq!(

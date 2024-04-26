@@ -1,3 +1,5 @@
+mod test_runner;
+
 pub use anyhow::Result;
 use backend_core::entity::{
   account, entry, journal, MAX_SHORT_TEXT_LENGTH, MAX_TAGS_LENGTH, MIN_SHORT_TEXT_LENGTH,

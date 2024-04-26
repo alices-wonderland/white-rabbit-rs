@@ -1,4 +1,4 @@
-use crate::entity::{journal, journal_tag, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAGS};
+use crate::entity::{journal, journal_tag};
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{Cond, Func, IntoCondition};
 use sea_orm::{Condition, QuerySelect, QueryTrait};
@@ -16,7 +16,7 @@ pub struct Query {
   #[serde(default)]
   pub unit: String,
   #[serde(default)]
-  pub full_text: (String, HashSet<String>),
+  pub full_text: String,
 }
 
 impl IntoCondition for Query {
@@ -42,35 +42,19 @@ impl IntoCondition for Query {
       cond = cond.add(journal::Column::Unit.eq(unit));
     }
 
-    let keyword = self.full_text.0.trim().to_lowercase();
+    let keyword = self.full_text.trim().to_lowercase();
     if !keyword.is_empty() {
       let keyword = format!("%{}%", keyword);
-      let mut sub_cond = Cond::any();
-      let fields = if self.full_text.1.is_empty() {
-        HashSet::from_iter([
-          FIELD_NAME.to_string(),
-          FIELD_TAGS.to_string(),
-          FIELD_DESCRIPTION.to_string(),
-        ])
-      } else {
-        self.full_text.1
-      };
-      if fields.contains(FIELD_NAME) {
-        sub_cond = sub_cond.add(
+      let sub_cond = Cond::any()
+        .add(
           Expr::expr(Func::lower(Expr::col((journal::Entity, journal::Column::Name))))
             .like(keyword.clone()),
-        );
-      }
-
-      if fields.contains(FIELD_DESCRIPTION) {
-        sub_cond = sub_cond.add(
+        )
+        .add(
           Expr::expr(Func::lower(Expr::col((journal::Entity, journal::Column::Description))))
             .like(keyword.clone()),
-        );
-      }
-
-      if fields.contains(FIELD_TAGS) {
-        sub_cond = sub_cond.add(
+        )
+        .add(
           journal::Column::Id.in_subquery(
             journal_tag::Entity::find()
               .select_only()
@@ -83,11 +67,8 @@ impl IntoCondition for Query {
               .into_query(),
           ),
         );
-      }
 
-      if !sub_cond.is_empty() {
-        cond = cond.add(sub_cond);
-      }
+      cond = cond.add(sub_cond);
     }
 
     cond
@@ -96,7 +77,7 @@ impl IntoCondition for Query {
 
 #[cfg(test)]
 mod tests {
-  use crate::entity::{journal, FIELD_DESCRIPTION, FIELD_NAME, FIELD_TAGS};
+  use crate::entity::journal;
   use sea_orm::{DbBackend, EntityTrait, QueryFilter, QueryTrait};
   use std::collections::HashSet;
   use uuid::uuid;
@@ -107,14 +88,7 @@ mod tests {
       id: HashSet::from_iter([uuid!("50a1b556-b99d-4ae0-bfba-d117f9a958de")]),
       name: HashSet::from_iter(["Name 1".to_string(), "".to_string(), "  ".to_string()]),
       unit: "Unit 1".to_string(),
-      full_text: (
-        "Keyword  ".to_string(),
-        HashSet::from_iter([
-          FIELD_NAME.to_string(),
-          FIELD_DESCRIPTION.to_string(),
-          FIELD_TAGS.to_string(),
-        ]),
-      ),
+      full_text: "Keyword  ".to_string(),
     };
 
     assert_eq!(
