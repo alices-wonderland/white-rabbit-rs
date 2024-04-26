@@ -22,17 +22,11 @@ const options = computed<AgChartOptions>(() => ({
   theme: quasar.dark.isActive ? "ag-default-dark" : "ag-default",
 }));
 
-watch(
-  options,
-  (newOptions) => {
-    if (chartInst.value && created.value) {
-      AgCharts.update(chartInst.value, newOptions);
-    }
-  },
-  {
-    deep: true,
-  },
-);
+watch(options, (newOptions) => {
+  if (chartInst.value && created.value) {
+    AgCharts.update(chartInst.value, newOptions);
+  }
+});
 
 onMounted(async () => {
   chartInst.value = AgCharts.create(options.value);
@@ -40,14 +34,6 @@ onMounted(async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (chartInst.value as any).chart?.waitForUpdate();
   emits("chartReady", chartInst.value);
-});
-
-onUnmounted(() => {
-  try {
-    chartInst.value?.destroy();
-  } catch (ignored) {
-    console.log("Ignored Error: ", ignored);
-  }
 });
 </script>
 

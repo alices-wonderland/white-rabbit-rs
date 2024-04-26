@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
-tauri-build = { version = "1.5", features = [] }
+tauri-build = { version = "2.0.0-beta.13", features = [] }
 
 [dependencies]
 anyhow = "1.0"
@@ -19,7 +23,15 @@ paste = "1.0"
 sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tauri = { version = "1.6", features = ["api-all"] }
+tauri = { version = "2.0.0-beta.16", features = [] }
+tauri-plugin-clipboard-manager = "2.1.0-beta.1"
+tauri-plugin-dialog = "2.0.0-beta.6"
+tauri-plugin-fs = "2.0.0-beta.6"
+tauri-plugin-http = "2.0.0-beta.6"
+tauri-plugin-notification = "2.0.0-beta.4"
+tauri-plugin-os = "2.0.0-beta.3"
+tauri-plugin-process = "2.0.0-beta.3"
+tauri-plugin-shell = "2.0.0-beta.3"
 tokio = { version = "1.37", features = ["rt", "macros"] }
 uuid = { version = "1.8", features = ["serde", "macro-diagnostics"] }
 
@@ -30,3 +42,6 @@ custom-protocol = ["tauri/custom-protocol"]
 [dev-dependencies]
 migration = { path = "../../migration" }
 test-suite = { path = "../../test-suite" }
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-global-shortcut = "2.0.0-beta.3"
