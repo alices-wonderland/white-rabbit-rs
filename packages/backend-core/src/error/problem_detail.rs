@@ -1,40 +1,100 @@
+use crate::error::ErrorNotFound;
+use crate::Error;
 use http::StatusCode;
+use serde::de::{Error as _, Unexpected};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub trait ProblemDetail: Serialize + for<'a> Deserialize<'a> + Sized + Sync {
-  fn typ() -> &'static str;
+  fn typ(&self) -> &'static str;
 
-  fn title() -> &'static str;
+  fn title(&self) -> &'static str;
 
-  fn status() -> StatusCode;
+  fn status(&self) -> StatusCode;
 
   fn detail(&self) -> String;
 }
 
-mod status_serde {
-  use http::StatusCode;
-  use serde::{Deserialize, Deserializer, Serializer};
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct ProblemDetailDef {
+  #[serde(rename = "type")]
+  pub typ: String,
+  pub title: String,
+  pub status: u16,
+  pub detail: String,
+  #[serde(flatten)]
+  pub extra: Value,
+}
 
-  pub fn serialize<S>(value: &StatusCode, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    serializer.serialize_u16(value.as_u16())
+impl From<ProblemDetailDef> for Option<crate::Error> {
+  fn from(value: ProblemDetailDef) -> Self {
+    if value.typ == "urn:white-rabbit:error:not-found" {
+      if let Ok(err) = serde_json::from_value::<ErrorNotFound>(value.extra) {
+        return Some(crate::Error::NotFound(err));
+      }
+    }
+
+    None
   }
+}
 
-  // The signature of a deserialize_with function must follow the pattern:
-  //
-  //    fn deserialize<'de, D>(D) -> Result<T, D::Error>
-  //    where
-  //        D: Deserializer<'de>
-  //
-  // although it may also be generic over the output types T.
-  pub fn deserialize<'de, D>(deserializer: D) -> Result<StatusCode, D::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    let s = u16::deserialize(deserializer)?;
-    let dt = StatusCode::from_u16(s).map_err(serde::de::Error::custom)?;
-    Ok(dt)
+impl TryFrom<crate::Error> for ProblemDetailDef {
+  type Error = serde_json::Error;
+
+  fn try_from(value: crate::Error) -> Result<Self, Self::Error> {
+    match value {
+      Error::NotFound(err) => Ok(ProblemDetailDef {
+        typ: err.typ().to_string(),
+        title: err.title().to_string(),
+        status: err.status().as_u16(),
+        detail: err.detail(),
+        extra: serde_json::to_value(err)?,
+      }),
+      _ => Err(serde_json::error::Error::invalid_type(
+        Unexpected::StructVariant,
+        &"Error structs with ProblemDetail trait",
+      )),
+    }
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use crate::entity::{journal, FIELD_ID, FIELD_NAME};
+  use crate::error::{ErrorNotFound, ProblemDetailDef};
+
+  #[test]
+  fn test_serde() -> anyhow::Result<()> {
+    let err = crate::Error::NotFound(ErrorNotFound {
+      entity: journal::TYPE.to_string(),
+      values: vec![
+        (FIELD_ID.to_string(), "ID1".to_string()),
+        (FIELD_NAME.to_string(), "Journal 1".to_string()),
+      ],
+    });
+
+    let prob: ProblemDetailDef = err.try_into()?;
+    let serded = serde_json::to_string_pretty(&prob)?;
+    println!("Serded: {}", serded);
+
+    let deserded: ProblemDetailDef = serde_json::from_str(&serded)?;
+    assert_eq!(prob, deserded);
+    println!("Desered: {:#?}", deserded);
+
+    let deserded_err: Option<crate::Error> = deserded.into();
+    println!("Desered Err: {:#?}", deserded_err);
+
+    assert_eq!(
+      crate::Error::NotFound(ErrorNotFound {
+        entity: journal::TYPE.to_string(),
+        values: vec![
+          (FIELD_ID.to_string(), "ID1".to_string()),
+          (FIELD_NAME.to_string(), "Journal 1".to_string()),
+        ],
+      }),
+      deserded_err.unwrap()
+    );
+
+    Ok(())
   }
 }

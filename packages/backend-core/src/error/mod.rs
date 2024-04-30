@@ -6,7 +6,7 @@ use http::StatusCode;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {
   #[error("{}", .0.detail())]
   NotFound(ErrorNotFound),
@@ -26,22 +26,22 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ErrorNotFound {
   pub entity: String,
   pub values: Vec<(String, String)>,
 }
 
 impl ProblemDetail for ErrorNotFound {
-  fn typ() -> &'static str {
+  fn typ(&self) -> &'static str {
     "urn:white-rabbit:error:not-found"
   }
 
-  fn title() -> &'static str {
+  fn title(&self) -> &'static str {
     "Entity Not Found"
   }
 
-  fn status() -> StatusCode {
+  fn status(&self) -> StatusCode {
     StatusCode::NOT_FOUND
   }
 
