@@ -2,6 +2,7 @@ use crate::entity::account::{Root, Type, TYPE};
 use crate::entity::{
   normalize_description, normalize_name, normalize_tags, normalize_unit, FIELD_JOURNAL, FIELD_TYPE,
 };
+use crate::error::ErrorRequiredField;
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -38,16 +39,20 @@ impl Builder {
     let tags = normalize_tags(TYPE, self.tags)?;
     Ok(Root {
       id: self.id.unwrap_or_else(Uuid::new_v4),
-      journal_id: self.journal_id.ok_or_else(|| crate::Error::RequiredField {
-        typ: TYPE.to_string(),
-        field: FIELD_JOURNAL.to_string(),
+      journal_id: self.journal_id.ok_or_else(|| {
+        crate::Error::RequiredField(ErrorRequiredField {
+          entity: TYPE.to_string(),
+          field: FIELD_JOURNAL.to_string(),
+        })
       })?,
       name,
       description,
       unit,
-      typ: self.typ.ok_or_else(|| crate::Error::RequiredField {
-        typ: TYPE.to_string(),
-        field: FIELD_TYPE.to_string(),
+      typ: self.typ.ok_or_else(|| {
+        crate::Error::RequiredField(ErrorRequiredField {
+          entity: TYPE.to_string(),
+          field: FIELD_TYPE.to_string(),
+        })
       })?,
       tags,
     })

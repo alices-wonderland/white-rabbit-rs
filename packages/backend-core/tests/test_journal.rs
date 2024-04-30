@@ -1,4 +1,5 @@
 use backend_core::entity::{account, journal, ReadRoot, FIELD_NAME};
+use backend_core::error::ErrorExistingEntity;
 use backend_core::Error;
 use std::collections::HashSet;
 
@@ -62,7 +63,7 @@ pub async fn test_swap_name2() -> anyhow::Result<()> {
   let db = test_suite::init().await?;
   let journals = journal::Root::find_all(&db, None, Some(3), None).await?;
 
-  if let Err(Error::ExistingEntity { values, .. }) = journal::Root::update(
+  if let Err(Error::ExistingEntity(ErrorExistingEntity { values, .. })) = journal::Root::update(
     &db,
     vec![
       journal::CommandUpdate {

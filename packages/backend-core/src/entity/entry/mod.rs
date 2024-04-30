@@ -13,7 +13,7 @@ pub use query::*;
 use crate::entity::{
   account, entry_item, entry_tag, journal, ReadRoot, WriteRoot, FIELD_ID, FIELD_JOURNAL, FIELD_NAME,
 };
-use crate::error::ErrorNotFound;
+use crate::error::{ErrorExistingEntity, ErrorNotFound};
 use chrono::NaiveDate;
 use itertools::Itertools;
 use rust_decimal::Decimal;
@@ -364,13 +364,13 @@ impl Root {
       if !existings.is_empty() {
         let existing_names = existings.iter().map(|model| model.name.clone()).sorted().join(", ");
 
-        return Err(crate::Error::ExistingEntity {
-          typ: TYPE.to_string(),
+        return Err(crate::Error::ExistingEntity(ErrorExistingEntity {
+          entity: TYPE.to_string(),
           values: vec![
             (FIELD_JOURNAL.to_string(), journal_id.to_string()),
             (FIELD_NAME.to_string(), existing_names),
           ],
-        });
+        }));
       }
     }
 
@@ -448,13 +448,13 @@ impl Root {
     for model in existings_by_name {
       if let Some(updating_id) = name_mappings.get(&model.name) {
         if updating_id != &model.id && !name_mappings.values().contains(&model.id) {
-          return Err(crate::Error::ExistingEntity {
-            typ: TYPE.to_string(),
+          return Err(crate::Error::ExistingEntity(ErrorExistingEntity {
+            entity: TYPE.to_string(),
             values: vec![
               (FIELD_JOURNAL.to_string(), journal.id.to_string()),
               (FIELD_NAME.to_string(), model.name.clone()),
             ],
-          });
+          }));
         }
       }
     }

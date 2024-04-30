@@ -1,7 +1,21 @@
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-pub trait ProblemDetail: Serialize + for<'a> Deserialize<'a> + Sized + Sync {
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct ProblemDetailDef {
+  #[serde(rename = "type")]
+  pub typ: String,
+  pub title: String,
+  pub status: u16,
+  pub detail: String,
+  #[serde(flatten)]
+  pub extra: Value,
+}
+
+pub trait ProblemDetail:
+  Into<ProblemDetailDef> + Serialize + for<'a> Deserialize<'a> + Sync + Send
+{
   fn typ() -> &'static str;
 
   fn title() -> &'static str;
@@ -11,30 +25,68 @@ pub trait ProblemDetail: Serialize + for<'a> Deserialize<'a> + Sized + Sync {
   fn detail(&self) -> String;
 }
 
-mod status_serde {
-  use http::StatusCode;
-  use serde::{Deserialize, Deserializer, Serializer};
-
-  pub fn serialize<S>(value: &StatusCode, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    serializer.serialize_u16(value.as_u16())
+impl<E> From<E> for ProblemDetailDef
+where
+  E: ProblemDetail,
+{
+  fn from(value: E) -> Self {
+    ProblemDetailDef {
+      typ: E::typ().to_string(),
+      title: E::title().to_string(),
+      status: E::status().as_u16(),
+      detail: value.detail().to_string(),
+      extra: serde_json::to_value(value).unwrap(),
+    }
   }
+}
 
-  // The signature of a deserialize_with function must follow the pattern:
-  //
-  //    fn deserialize<'de, D>(D) -> Result<T, D::Error>
-  //    where
-  //        D: Deserializer<'de>
-  //
-  // although it may also be generic over the output types T.
-  pub fn deserialize<'de, D>(deserializer: D) -> Result<StatusCode, D::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    let s = u16::deserialize(deserializer)?;
-    let dt = StatusCode::from_u16(s).map_err(serde::de::Error::custom)?;
-    Ok(dt)
+#[cfg(test)]
+mod test {
+  use crate::entity::{journal, FIELD_ID, FIELD_NAME, MIN_NAME_LENGTH};
+  use crate::error::{
+    ErrorExistingEntity, ErrorInternal, ErrorNotFound, ErrorOutOfRange, ErrorRequiredField,
+  };
+
+  #[test]
+  fn test_serde() -> anyhow::Result<()> {
+    let errors = vec![
+      crate::Error::NotFound(ErrorNotFound {
+        entity: journal::TYPE.to_string(),
+        values: vec![
+          (FIELD_ID.to_string(), "ID1".to_string()),
+          (FIELD_NAME.to_string(), "Journal 1".to_string()),
+        ],
+      }),
+      crate::Error::ExistingEntity(ErrorExistingEntity {
+        entity: journal::TYPE.to_string(),
+        values: vec![
+          (FIELD_ID.to_string(), "ID2".to_string()),
+          (FIELD_NAME.to_string(), "Journal 2".to_string()),
+        ],
+      }),
+      crate::Error::OutOfRange(ErrorOutOfRange {
+        entity: journal::TYPE.to_string(),
+        field: FIELD_NAME.to_string(),
+        start: Some(MIN_NAME_LENGTH.to_string()),
+        end: None,
+      }),
+      crate::Error::RequiredField(ErrorRequiredField {
+        entity: journal::TYPE.to_string(),
+        field: FIELD_NAME.to_string(),
+      }),
+      crate::Error::Internal(ErrorInternal { message: "Invalid DB Connection".to_string() }),
+    ];
+
+    for err in errors {
+      let serded = serde_json::to_string_pretty(&err)?;
+      println!("Serded: {}", serded);
+
+      let deserded: crate::Error = serde_json::from_str(&serded)?;
+      println!("Desered Err: {:#?}", deserded);
+
+      assert_eq!(err, deserded);
+    }
+
+    Ok(())
   }
 }

@@ -9,7 +9,7 @@ pub use database::*;
 pub use query::*;
 
 use crate::entity::{journal_tag, ReadRoot, WriteRoot, FIELD_ID, FIELD_NAME};
-use crate::error::ErrorNotFound;
+use crate::error::{ErrorExistingEntity, ErrorNotFound};
 use itertools::Itertools;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{BinOper, OnConflict};
@@ -234,10 +234,10 @@ impl Root {
     if !existings.is_empty() {
       let existing_names = existings.iter().map(|model| model.name.clone()).sorted().join(", ");
 
-      return Err(crate::Error::ExistingEntity {
-        typ: TYPE.to_string(),
+      return Err(crate::Error::ExistingEntity(ErrorExistingEntity {
+        entity: TYPE.to_string(),
         values: vec![(FIELD_NAME.to_string(), existing_names)],
-      });
+      }));
     }
 
     let roots: Vec<_> = commands_map
@@ -291,10 +291,10 @@ impl Root {
       //  3. AND, the existing model will not change the name
       if let Some(updating_id) = name_mappings.get(&model.name) {
         if updating_id != &model.id && !name_mappings.values().contains(&model.id) {
-          return Err(crate::Error::ExistingEntity {
-            typ: TYPE.to_string(),
+          return Err(crate::Error::ExistingEntity(ErrorExistingEntity {
+            entity: TYPE.to_string(),
             values: vec![(FIELD_NAME.to_string(), model.name.clone())],
-          });
+          }));
         }
       }
     }

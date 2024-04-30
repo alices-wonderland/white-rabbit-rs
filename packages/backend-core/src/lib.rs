@@ -6,6 +6,7 @@ use std::env;
 
 pub mod entity;
 pub mod error;
+
 pub use error::{Error, Result};
 
 pub async fn init(filename: &str) -> Result<DatabaseConnection> {

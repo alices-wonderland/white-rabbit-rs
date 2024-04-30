@@ -23,15 +23,15 @@ paste = "1.0"
 sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tauri = { version = "2.0.0-beta.16", features = [] }
-tauri-plugin-clipboard-manager = "2.1.0-beta.1"
-tauri-plugin-dialog = "2.0.0-beta.6"
-tauri-plugin-fs = "2.0.0-beta.6"
-tauri-plugin-http = "2.0.0-beta.6"
-tauri-plugin-notification = "2.0.0-beta.4"
-tauri-plugin-os = "2.0.0-beta.3"
-tauri-plugin-process = "2.0.0-beta.3"
-tauri-plugin-shell = "2.0.0-beta.3"
+tauri = { version = "2.0.0-beta.17", features = [] }
+tauri-plugin-clipboard-manager = "2.1.0-beta.2"
+tauri-plugin-dialog = "2.0.0-beta.7"
+tauri-plugin-fs = "2.0.0-beta.7"
+tauri-plugin-http = "2.0.0-beta.7"
+tauri-plugin-notification = "2.0.0-beta.5"
+tauri-plugin-os = "2.0.0-beta.4"
+tauri-plugin-process = "2.0.0-beta.4"
+tauri-plugin-shell = "2.0.0-beta.4"
 tokio = { version = "1.37", features = ["rt", "macros"] }
 uuid = { version = "1.8", features = ["serde", "macro-diagnostics"] }
 
@@ -44,4 +44,4 @@ migration = { path = "../../migration" }
 test-suite = { path = "../../test-suite" }
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
-tauri-plugin-global-shortcut = "2.0.0-beta.3"
+tauri-plugin-global-shortcut = "2.0.0-beta.4"

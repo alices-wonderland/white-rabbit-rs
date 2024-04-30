@@ -3,7 +3,7 @@ use crate::entity::{
   account, normalize_description, normalize_name, normalize_tags, FIELD_ID, FIELD_JOURNAL,
   FIELD_TYPE,
 };
-use crate::error::ErrorNotFound;
+use crate::error::{ErrorNotFound, ErrorOutOfRange, ErrorRequiredField};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
@@ -42,9 +42,11 @@ impl Builder {
     let description = normalize_description(TYPE, self.description)?;
     let tags = normalize_tags(TYPE, self.tags)?;
     let mut filtered_items = HashMap::new();
-    let journal_id = self.journal_id.ok_or_else(|| crate::Error::RequiredField {
-      typ: TYPE.to_string(),
-      field: FIELD_JOURNAL.to_string(),
+    let journal_id = self.journal_id.ok_or_else(|| {
+      crate::Error::RequiredField(ErrorRequiredField {
+        entity: TYPE.to_string(),
+        field: FIELD_JOURNAL.to_string(),
+      })
     })?;
 
     for Item { account, amount, price } in self.items {
@@ -58,20 +60,20 @@ impl Builder {
             ],
           }));
         } else if amount.is_sign_negative() {
-          return Err(crate::Error::OutOfRange {
-            typ: TYPE.to_string(),
+          return Err(crate::Error::OutOfRange(ErrorOutOfRange {
+            entity: TYPE.to_string(),
             field: FIELD_AMOUNT.to_string(),
             start: Some(0.to_string()),
             end: None,
-          });
+          }));
         } else if price <= Decimal::ZERO {
           {
-            return Err(crate::Error::OutOfRange {
-              typ: TYPE.to_string(),
+            return Err(crate::Error::OutOfRange(ErrorOutOfRange {
+              entity: TYPE.to_string(),
               field: FIELD_PRICE.to_string(),
               start: Some(0.to_string()),
               end: None,
-            });
+            }));
           }
         }
 
@@ -89,9 +91,11 @@ impl Builder {
       journal_id,
       name,
       description,
-      typ: self.typ.ok_or_else(|| crate::Error::RequiredField {
-        typ: TYPE.to_string(),
-        field: FIELD_TYPE.to_string(),
+      typ: self.typ.ok_or_else(|| {
+        crate::Error::RequiredField(ErrorRequiredField {
+          entity: TYPE.to_string(),
+          field: FIELD_TYPE.to_string(),
+        })
       })?,
       date: self.date,
       tags,
