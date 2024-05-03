@@ -3,7 +3,7 @@
 use backend_core::entity::{entry, hierarchy_report, Presentation, ReadRoot};
 use backend_core::{init, Error};
 use futures::TryFutureExt;
-use sea_orm::{DbConn, TransactionTrait};
+use sea_orm::{DbConn, TransactionError, TransactionTrait};
 use std::collections::HashSet;
 use tauri::Manager;
 use uuid::Uuid;
@@ -15,7 +15,7 @@ macro_rules! generate_handlers {
       async fn [<$entity _find_by_id>](
         db: ::tauri::State<'_, DbConn>,
         id: Uuid,
-      ) -> Result<Option<::backend_core::entity::$entity::Root>, String> {
+      ) -> ::backend_core::Result<Option<::backend_core::entity::$entity::Root>> {
         db.inner()
           .transaction(|tx| {
             Box::pin(async move {
@@ -26,7 +26,10 @@ macro_rules! generate_handlers {
               .await
             })
           })
-          .map_err(|err| err.to_string())
+          .map_err(|err| match err {
+            TransactionError::Connection(err) => err.into(),
+            TransactionError::Transaction(err) => err,
+          })
           .await
       }
 
@@ -36,12 +39,15 @@ macro_rules! generate_handlers {
         query: Option<::backend_core::entity::$entity::Query>,
         size: Option<u64>,
         sort: Option<::backend_core::entity::$entity::Sort>,
-      ) -> Result<Vec<::backend_core::entity::$entity::Root>, String> {
+      ) -> ::backend_core::Result<Vec<::backend_core::entity::$entity::Root>> {
         db.inner()
           .transaction(|tx| {
             Box::pin(async move { ::backend_core::entity::$entity::Root::find_all(tx, query, size, sort).await })
           })
-          .map_err(|err| err.to_string())
+          .map_err(|err| match err {
+            TransactionError::Connection(err) => err.into(),
+            TransactionError::Transaction(err) => err,
+          })
           .await
       }
 
@@ -49,10 +55,13 @@ macro_rules! generate_handlers {
       async fn [<$entity _handle_command>](
         db: ::tauri::State<'_, DbConn>,
         command: ::backend_core::entity::$entity::Command,
-      ) -> Result<Vec<::backend_core::entity::$entity::Root>, String> {
+      ) -> ::backend_core::Result<Vec<::backend_core::entity::$entity::Root>> {
         db.inner()
           .transaction(|tx| Box::pin(async move { ::backend_core::entity::$entity::Root::handle(tx, command).await }))
-          .map_err(|err| err.to_string())
+          .map_err(|err| match err {
+            TransactionError::Connection(err) => err.into(),
+            TransactionError::Transaction(err) => err,
+          })
           .await
       }
     }
@@ -66,7 +75,7 @@ generate_handlers!(account);
 async fn entry_find_by_id(
   db: tauri::State<'_, DbConn>,
   id: Uuid,
-) -> Result<Option<entry::Presentation>, String> {
+) -> backend_core::Result<Option<entry::Presentation>> {
   db.inner()
     .transaction::<_, _, Error>(|tx| {
       Box::pin(async move {
@@ -83,7 +92,10 @@ async fn entry_find_by_id(
         Ok(entry::Presentation::from_roots(tx, root).await?.into_iter().last())
       })
     })
-    .map_err(|err| err.to_string())
+    .map_err(|err| match err {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    })
     .await
 }
 
@@ -93,7 +105,7 @@ async fn entry_find_all(
   query: Option<entry::Query>,
   size: Option<u64>,
   sort: Option<entry::Sort>,
-) -> Result<Vec<entry::Presentation>, String> {
+) -> backend_core::Result<Vec<entry::Presentation>> {
   db.inner()
     .transaction(|tx| {
       Box::pin(async move {
@@ -101,7 +113,10 @@ async fn entry_find_all(
         entry::Presentation::from_roots(tx, roots).await
       })
     })
-    .map_err(|err| err.to_string())
+    .map_err(|err| match err {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    })
     .await
 }
 
@@ -109,7 +124,7 @@ async fn entry_find_all(
 async fn entry_handle_command(
   db: tauri::State<'_, DbConn>,
   command: entry::Command,
-) -> Result<Vec<entry::Presentation>, String> {
+) -> backend_core::Result<Vec<entry::Presentation>> {
   db.inner()
     .transaction(|tx| {
       Box::pin(async move {
@@ -117,7 +132,10 @@ async fn entry_handle_command(
         entry::Presentation::from_roots(tx, roots).await
       })
     })
-    .map_err(|err| err.to_string())
+    .map_err(|err| match err {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    })
     .await
 }
 
@@ -125,7 +143,7 @@ async fn entry_handle_command(
 async fn hierarchy_report_find_by_id(
   db: tauri::State<'_, DbConn>,
   id: String,
-) -> Result<Option<hierarchy_report::Root>, String> {
+) -> backend_core::Result<Option<hierarchy_report::Root>> {
   db.inner()
     .transaction(|tx| {
       Box::pin(hierarchy_report::Root::find_one(
@@ -133,7 +151,10 @@ async fn hierarchy_report_find_by_id(
         Some(hierarchy_report::Query { id: HashSet::from_iter([id]), ..Default::default() }),
       ))
     })
-    .map_err(|err| err.to_string())
+    .map_err(|err| match err {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    })
     .await
 }
 
@@ -141,10 +162,13 @@ async fn hierarchy_report_find_by_id(
 async fn hierarchy_report_find_all(
   db: tauri::State<'_, DbConn>,
   query: Option<hierarchy_report::Query>,
-) -> Result<Vec<hierarchy_report::Root>, String> {
+) -> backend_core::Result<Vec<hierarchy_report::Root>> {
   db.inner()
     .transaction(|tx| Box::pin(hierarchy_report::Root::find_all(tx, query, None, None)))
-    .map_err(|err| err.to_string())
+    .map_err(|err| match err {
+      TransactionError::Connection(err) => err.into(),
+      TransactionError::Transaction(err) => err,
+    })
     .await
 }
 

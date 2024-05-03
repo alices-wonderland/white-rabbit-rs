@@ -24,7 +24,7 @@ import {
 } from "@core/services";
 import { useQuery, type UseQueryOptions } from "@tanstack/vue-query";
 import isEmpty from "lodash/isEmpty";
-import { computed, isRef } from "vue";
+import { computed, toValue } from "vue";
 
 const useById = <A extends ReadApi<M>, M extends Model>(
   key: symbol,
@@ -33,12 +33,11 @@ const useById = <A extends ReadApi<M>, M extends Model>(
   options?: UseQueryOptions<[M, Map<string, Model>] | null>,
 ) => {
   const api = useInject<A>(key);
-  const enabled = computed(() =>
-    isRef(id) ? !!id.value && !isEmpty(id.value) : !!id && !isEmpty(id),
-  );
+  const enabled = computed(() => !isEmpty(toValue(id)));
+  const queryKey = computed((): [string, string | undefined] => [methodName, toValue(id)]);
 
   return useQuery<[M, Map<string, Model>] | null>({
-    queryKey: [methodName, id],
+    queryKey: queryKey,
     queryFn: async ({ queryKey: [_key, idValue] }) => {
       if (idValue && !isEmpty(idValue)) {
         return await api.findById(idValue as string, true);
