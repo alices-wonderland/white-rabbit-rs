@@ -1,6 +1,24 @@
-import type { Command, FindAllArgs, Query, ReadApi, Model, WriteApi } from "@core/services";
+import type {
+  Command,
+  FindAllArgs,
+  Query,
+  ReadApi,
+  Model,
+  WriteApi,
+  ProblemDetail,
+} from "@core/services";
 import { invoke } from "@tauri-apps/api/core";
 import { Notify } from "quasar";
+
+const handleError = (e: ProblemDetail) => {
+  Notify.create({
+    color: "negative",
+    message: `<strong>${e.title}</strong>
+<br>
+${e.detail}`,
+    html: true,
+  });
+};
 
 export abstract class AbstractReadApi<M extends Model, Q extends Query, S extends string = string>
   implements ReadApi<M, Q, S>
@@ -26,8 +44,7 @@ export abstract class AbstractReadApi<M extends Model, Q extends Query, S extend
         sort,
       });
     } catch (e) {
-      console.error(e);
-      throw e;
+      handleError(e as ProblemDetail);
     }
 
     const models = response.map((record) => this.convert(record));
@@ -41,8 +58,7 @@ export abstract class AbstractReadApi<M extends Model, Q extends Query, S extend
         id,
       });
     } catch (e) {
-      console.error(e);
-      throw e;
+      handleError(e as ProblemDetail);
     }
 
     if (response) {
@@ -64,6 +80,7 @@ export abstract class AbstractWriteApi<
   implements WriteApi<M, Q, C, S>
 {
   protected abstract get handleCommandKey(): string;
+
   async handleCommand(command: C): Promise<M[]> {
     let response: Record<string, unknown>[] = [];
 
@@ -72,11 +89,7 @@ export abstract class AbstractWriteApi<
         command,
       });
     } catch (e) {
-      Notify.create({
-        color: "negative",
-        message: e as string,
-      });
-      throw new Error(e as string);
+      handleError(e as ProblemDetail);
     }
 
     return response.map((record) => this.convert(record));

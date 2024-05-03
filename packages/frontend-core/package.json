@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/frontend-core",
-  "packageManager": "yarn@4.1.1",
+  "packageManager": "yarn@4.2.2",
   "version": "0.1.0",
   "scripts": {
     "test": "vitest run --coverage",
@@ -25,23 +25,23 @@
     "@ag-grid-enterprise/row-grouping": "^31.3.1",
     "@ag-grid-enterprise/set-filter": "^31.3.1",
     "@quasar/extras": "^1.16.11",
-    "@tanstack/vue-query": "^5.32.1",
+    "@tanstack/vue-query": "^5.35.2",
     "@vueuse/core": "^10.9.0",
     "ag-charts-community": "^9.3.1",
     "date-fns": "^3.6.0",
     "lodash": "^4.17.21",
-    "quasar": "^2.15.4",
+    "quasar": "^2.16.2",
     "tailwindcss": "^3.4.3",
     "uuid": "^9.0.1",
-    "vue": "^3.4.26",
+    "vue": "^3.4.27",
     "vue-i18n": "^9.13.1",
     "vue-router": "^4.3.2"
   },
   "devDependencies": {
     "@types/uuid": "^9.0.8",
     "rimraf": "^5.0.5",
-    "vite": "^5.2.10",
-    "vitest": "^1.5.3",
+    "vite": "^5.2.11",
+    "vitest": "^1.6.0",
     "vue-tsc": "^2.0.16"
   }
 }
