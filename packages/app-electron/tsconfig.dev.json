@@ -1,0 +1,9 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["*.config.ts", "*.d.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false
+  }
+}

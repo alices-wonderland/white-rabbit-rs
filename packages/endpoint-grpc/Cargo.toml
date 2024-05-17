@@ -1,0 +1,29 @@
+[package]
+name = "endpoint-grpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+backend-core = { path = "../backend-core" }
+dotenv = "0.15"
+env_logger = "0.11"
+futures = "0.3"
+log = "0.4"
+prost = "0.12"
+prost-types = "0.12"
+sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.37", features = ["macros", "rt-multi-thread"] }
+tonic = { version = "0.11", features = ["gzip"] }
+tonic-reflection = "0.11"
+uuid = { version = "1.8", features = ["serde", "macro-diagnostics"] }
+
+[build-dependencies]
+tonic-build = "0.11"
+
+[dev-dependencies]
+migration = { path = "../migration" }
+test-suite = { path = "../test-suite" }

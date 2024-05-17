@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "packages/app-tauri/src-tauri",
   "packages/backend-core",
+  "packages/endpoint-grpc",
   "packages/migration",
   "packages/test-suite",
 ]
