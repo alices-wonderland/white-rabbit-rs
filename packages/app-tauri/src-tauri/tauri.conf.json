@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "identifier": "com.ukonnra.wonderland.whiterabbit",
   "build": {
-    "beforeDevCommand": "yarn workspace @white-rabbit/app-desktop run dev:vue",
-    "beforeBuildCommand": "yarn workspace @white-rabbit/app-desktop run build:vue",
+    "beforeDevCommand": "yarn workspace @white-rabbit/app-tauri run dev:vue",
+    "beforeBuildCommand": "yarn workspace @white-rabbit/app-tauri run build:vue",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173/"
   },

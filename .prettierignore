@@ -8,4 +8,4 @@ out/
 target/
 .yarn
 
-packages/app-desktop/src-tauri/gen/schemas/
+packages/app-tauri/src-tauri/gen/schemas/

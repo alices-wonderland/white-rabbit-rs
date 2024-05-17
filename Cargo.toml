@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "packages/app-desktop/src-tauri",
+  "packages/app-tauri/src-tauri",
   "packages/backend-core",
   "packages/migration",
   "packages/test-suite",

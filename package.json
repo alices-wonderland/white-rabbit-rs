@@ -9,7 +9,7 @@
   },
   "workspaces": [
     "packages/frontend-core",
-    "packages/app-desktop"
+    "packages/app-tauri"
   ],
   "scripts": {
     "postinstall": "husky",
