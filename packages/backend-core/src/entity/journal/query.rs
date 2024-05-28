@@ -16,6 +16,8 @@ pub struct Query {
   #[serde(default)]
   pub unit: String,
   #[serde(default)]
+  pub tags: HashSet<String>,
+  #[serde(default)]
   pub full_text: String,
 }
 
@@ -40,6 +42,29 @@ impl IntoCondition for Query {
     let unit = self.unit.trim().to_string();
     if !unit.is_empty() {
       cond = cond.add(journal::Column::Unit.eq(unit));
+    }
+
+    let tags = self
+      .tags
+      .iter()
+      .filter_map(|tag| match tag.trim() {
+        "" => None,
+        val => Some(val.to_string()),
+      })
+      .collect::<HashSet<_>>();
+    if !tags.is_empty() {
+      cond = cond.add(
+        journal::Column::Id.in_subquery(
+          journal_tag::Entity::find()
+            .select_only()
+            .distinct()
+            .column(journal_tag::Column::JournalId)
+            .filter(
+              Expr::expr(Expr::col((journal_tag::Entity, journal_tag::Column::Tag))).is_in(tags),
+            )
+            .into_query(),
+        ),
+      );
     }
 
     let keyword = self.full_text.trim().to_lowercase();
@@ -89,6 +114,7 @@ mod tests {
       name: HashSet::from_iter(["Name 1".to_string(), "".to_string(), "  ".to_string()]),
       unit: "Unit 1".to_string(),
       full_text: "Keyword  ".to_string(),
+      ..Default::default()
     };
 
     assert_eq!(
