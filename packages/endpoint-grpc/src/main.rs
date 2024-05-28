@@ -1,4 +1,5 @@
-use backend_core::entity::{journal, ReadRoot};
+use backend_core::entity::{journal, ReadRoot, FIELD_ID};
+use backend_core::error::ProblemDetailDef;
 use backend_core::init;
 use pb::journal_service_server::{JournalService, JournalServiceServer};
 use pb::{Journal, JournalQuery, JournalsResponse};
@@ -10,12 +11,62 @@ use tonic::codegen::InterceptedService;
 use tonic::metadata::MetadataValue;
 use tonic::{transport::Server, Code, Request, Response, Status};
 use tonic_reflection::server::Builder;
+use uuid::Uuid;
 
 pub mod pb {
   tonic::include_proto!("whiterabbit.journal");
 
   pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
     tonic::include_file_descriptor_set!("journal_descriptor");
+}
+
+fn map_err(value: backend_core::Error) -> Status {
+  let value: ProblemDetailDef = value.into();
+  let code = match value.status {
+    401 => Code::Unauthenticated,
+    404 => Code::NotFound,
+    _ => Code::Unknown,
+  };
+  let details = serde_json::to_string(&value).unwrap_or_default();
+  Status::with_details(code, value.detail, details.into())
+}
+
+impl From<Vec<journal::Root>> for JournalsResponse {
+  fn from(results: Vec<journal::Root>) -> Self {
+    Self { values: results.into_iter().map(|model| model.into()).collect() }
+  }
+}
+
+impl From<journal::Root> for Journal {
+  fn from(model: journal::Root) -> Self {
+    Self {
+      id: model.id.to_string(),
+      created_date: None,
+      name: model.name,
+      description: model.description,
+      unit: model.unit,
+      tags: Vec::from_iter(model.tags),
+    }
+  }
+}
+
+impl TryFrom<JournalQuery> for journal::Query {
+  type Error = Status;
+
+  fn try_from(value: JournalQuery) -> Result<Self, Self::Error> {
+    Ok(Self {
+      id: value
+        .id
+        .iter()
+        .map(|v| v.parse())
+        .collect::<Result<HashSet<_>, _>>()
+        .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?,
+      name: HashSet::from_iter(value.name.clone()),
+      unit: value.unit.clone(),
+      tags: value.tags.iter().cloned().collect(),
+      full_text: value.full_text.clone(),
+    })
+  }
 }
 
 #[derive(Debug)]
@@ -30,65 +81,31 @@ impl JournalService for JournalServiceImpl {
     request: Request<JournalQuery>,
   ) -> Result<Response<JournalsResponse>, Status> {
     let query = request.get_ref();
-    log::info!("Journal Query: {:#?}", query);
-    let results = journal::Root::find_all(
-      self.db.as_ref(),
-      Some(journal::Query {
-        id: query
-          .id
-          .iter()
-          .map(|v| v.parse())
-          .collect::<Result<HashSet<_>, _>>()
-          .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?,
-        name: HashSet::from_iter(query.name.clone()),
-        unit: query.unit.clone(),
-        full_text: query.full_text.clone(),
-      }),
-      None,
-      None,
-    )
-    .await
-    .map_err(|err| Status::new(Code::Internal, err.to_string()))?;
+    let results =
+      journal::Root::find_all(self.db.as_ref(), Some(query.clone().try_into()?), None, None)
+        .await
+        .map_err(map_err)?;
 
-    Ok(Response::new(JournalsResponse {
-      values: results
-        .into_iter()
-        .map(|model| Journal {
-          id: model.id.to_string(),
-          name: model.name,
-          description: model.description,
-          unit: model.unit,
-          tags: Vec::from_iter(model.tags),
-          ..Default::default()
-        })
-        .collect(),
-    }))
+    Ok(Response::new(results.into()))
   }
 
   async fn find_by_id(&self, request: Request<String>) -> Result<Response<Journal>, Status> {
+    let id: Uuid =
+      request.get_ref().parse().map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?;
     if let Some(model) = journal::Root::find_one(
       self.db.as_ref(),
-      Some(journal::Query {
-        id: HashSet::from_iter([request
-          .get_ref()
-          .parse()
-          .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?]),
-        ..Default::default()
-      }),
+      Some(journal::Query { id: HashSet::from_iter([id]), ..Default::default() }),
     )
     .await
-    .map_err(|err| Status::new(Code::Internal, err.to_string()))?
-    .map(|model| Journal {
-      id: model.id.to_string(),
-      name: model.name,
-      description: model.description,
-      unit: model.unit,
-      tags: Vec::from_iter(model.tags),
-      ..Default::default()
-    }) {
+    .map_err(map_err)?
+    .map(|model| model.into())
+    {
       Ok(Response::new(model))
     } else {
-      Err(Status::not_found("Journal Not Found"))
+      Err(map_err(backend_core::Error::NotFound(backend_core::error::ErrorNotFound {
+        entity: journal::TYPE.to_string(),
+        values: vec![(FIELD_ID.to_string(), id.to_string())],
+      })))
     }
   }
 }

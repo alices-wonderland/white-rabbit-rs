@@ -26,18 +26,24 @@ pub enum Error {
   Internal(ErrorInternal),
 }
 
+impl From<Error> for ProblemDetailDef {
+  fn from(value: Error) -> Self {
+    match value {
+      Error::NotFound(err) => ProblemDetailDef::from(err.clone()),
+      Error::ExistingEntity(err) => ProblemDetailDef::from(err.clone()),
+      Error::OutOfRange(err) => ProblemDetailDef::from(err.clone()),
+      Error::RequiredField(err) => ProblemDetailDef::from(err.clone()),
+      Error::Internal(err) => ProblemDetailDef::from(err.clone()),
+    }
+  }
+}
+
 impl Serialize for Error {
   fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
   where
     S: Serializer,
   {
-    match self {
-      Error::NotFound(err) => ProblemDetailDef::from(err.clone()).serialize(serializer),
-      Error::ExistingEntity(err) => ProblemDetailDef::from(err.clone()).serialize(serializer),
-      Error::OutOfRange(err) => ProblemDetailDef::from(err.clone()).serialize(serializer),
-      Error::RequiredField(err) => ProblemDetailDef::from(err.clone()).serialize(serializer),
-      Error::Internal(err) => ProblemDetailDef::from(err.clone()).serialize(serializer),
-    }
+    ProblemDetailDef::from(self.clone()).serialize(serializer)
   }
 }
 
