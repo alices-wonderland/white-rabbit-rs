@@ -17,6 +17,9 @@ jobs:
           cache: "yarn"
           cache-dependency-path: yarn.lock
       - uses: dtolnay/rust-toolchain@stable
+      - uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/cache@v4
         with:
           path: |
@@ -30,6 +33,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev
       - run: |
+          rustup toolchain install nightly
           cargo install grcov && cargo install cargo-sort
           yarn && yarn workspace @white-rabbit/app-tauri run build:vue
           yarn lint && yarn test:coverage
@@ -39,7 +43,6 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: target/debug/coverage/lcov.info
-          flags: unittests,backend
       - name: Push coverage to Codacy
         if: matrix.platform == 'ubuntu-latest'
         uses: codacy/codacy-coverage-reporter-action@v1

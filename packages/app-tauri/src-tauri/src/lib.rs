@@ -5,7 +5,7 @@ use backend_core::{init, Error};
 use futures::TryFutureExt;
 use sea_orm::{DbConn, TransactionError, TransactionTrait};
 use std::collections::HashSet;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use uuid::Uuid;
 
 macro_rules! generate_handlers {

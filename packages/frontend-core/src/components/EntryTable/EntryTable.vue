@@ -296,14 +296,14 @@ const columnDefs = computed((): ColDef<Row>[] => {
               if (params.data instanceof ChildRow && params.node.parent) {
                 parent = params.node.parent;
               } else if (params.data instanceof ParentRow) {
-                for (const child of params.node.allLeafChildren) {
+                for (const child of params.node.allLeafChildren ?? []) {
                   if (child.data instanceof ChildRow) {
                     child.data.deleted = params.data.deleted;
                   }
                 }
               }
 
-              params.api.redrawRows({ rowNodes: [parent, ...parent.allLeafChildren] });
+              params.api.redrawRows({ rowNodes: [parent, ...(parent.allLeafChildren ?? [])] });
               if (params.data instanceof ChildRow) {
                 triggerRef(rows);
               } else if (params.data instanceof ParentRow) {

@@ -17,6 +17,6 @@ itertools = "0.13"
 log = "0.4"
 migration = { path = "../migration" }
 rand = "0.8"
-rust_decimal = "1.35"
-tokio = { version = "1.37", features = ["rt", "macros"] }
-uuid = { version = "1.8", features = ["serde", "v4", "macro-diagnostics"] }
+rust_decimal = "1.36"
+tokio = { version = "1.40", features = ["rt", "macros"] }
+uuid = { version = "1.10", features = ["serde", "v4", "macro-diagnostics"] }
