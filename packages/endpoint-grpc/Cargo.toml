@@ -16,7 +16,7 @@ prost-types = "0.12"
 sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.37", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread"] }
 tonic = { version = "0.11", features = ["gzip"] }
 tonic-reflection = "0.11"
 uuid = { version = "1.8", features = ["serde", "macro-diagnostics"] }
