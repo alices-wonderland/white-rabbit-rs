@@ -5724,9 +5724,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-global-shortcut"
-version = "2.0.0-beta.5"
+version = "2.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be58cd166d7e2729535f9e50cf4dda78de7410068cb295765fd8bdb4978a01b7"
+checksum = "b2373253fdd9c72f3ae7d26258a8fc92c691884a982aaa65b9798bf44dfa079e"
 dependencies = [
  "global-hotkey",
  "log",
