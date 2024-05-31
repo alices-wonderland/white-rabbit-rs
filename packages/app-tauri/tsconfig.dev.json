@@ -1,9 +1,0 @@
-{
-  "extends": "@vue/tsconfig/tsconfig.json",
-  "compilerOptions": {
-    "composite": true,
-    "noEmit": false
-  },
-  "include": ["*.config.ts", "*.config.js"],
-  "exclude": []
-}

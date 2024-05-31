@@ -9,7 +9,6 @@
   },
   "workspaces": [
     "packages/frontend-core",
-    "packages/app-tauri",
     "packages/app-electron"
   ],
   "scripts": {

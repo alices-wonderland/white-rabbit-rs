@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/app-tauri/tsconfig.dev.json"
+      "path": "./packages/app-electron/tsconfig.dev.json"
     }
   ]
 }

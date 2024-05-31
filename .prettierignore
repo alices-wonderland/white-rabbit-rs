@@ -7,5 +7,3 @@ out/
 .vite/
 target/
 .yarn
-
-packages/app-tauri/src-tauri/gen/schemas/

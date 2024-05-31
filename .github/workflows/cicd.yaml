@@ -35,8 +35,7 @@ jobs:
       - run: |
           rustup toolchain install nightly
           cargo install grcov && cargo install cargo-sort
-          yarn && yarn workspace @white-rabbit/app-tauri run build:vue
-          yarn lint && yarn test:coverage
+          yarn && yarn lint && yarn test:coverage
         name: Test and coverage
       - name: Push coverage to Codecov
         if: matrix.platform == 'ubuntu-latest'
