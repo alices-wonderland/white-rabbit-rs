@@ -22,6 +22,8 @@ pub struct Query {
   #[serde(rename = "type")]
   pub typ: Option<Type>,
   #[serde(default)]
+  pub tags: HashSet<String>,
+  #[serde(default)]
   pub full_text: String,
 }
 
@@ -104,6 +106,7 @@ mod tests {
       unit: "Unit 1".to_string(),
       typ: Some(Type::Asset),
       journal_id: HashSet::from_iter([uuid!("50a1b556-b99d-4ae0-bfba-d117f9a958de")]),
+      tags: HashSet::default(),
       full_text: "Keyword  ".to_string(),
     };
 

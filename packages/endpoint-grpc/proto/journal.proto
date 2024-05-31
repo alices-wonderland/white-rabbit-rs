@@ -14,14 +14,6 @@ message Journal {
   repeated string tags = 6;
 }
 
-message JournalsResponse {
-  repeated Journal values = 1;
-}
-
-message JournalResponse {
-  Journal value = 1;
-}
-
 message JournalQuery {
   repeated string id = 1;
   repeated string name = 2;
@@ -30,7 +22,15 @@ message JournalQuery {
   string fullText = 5;
 }
 
+message JournalsResponse {
+  repeated Journal values = 1;
+}
+
+message JournalResponse {
+  Journal value = 1;
+}
+
 service JournalService {
-  rpc  FindAll(JournalQuery) returns (JournalsResponse);
-  rpc  FindById(google.protobuf.StringValue) returns (Journal);
+  rpc FindAll(JournalQuery) returns (JournalsResponse);
+  rpc FindById(google.protobuf.StringValue) returns (Journal);
 }
