@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package whiterabbit.account.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+message Account {
+  string id = 1;
+  google.protobuf.Timestamp created_date = 2;
+  string journal_id = 3;
+  string name = 4;
+  string description = 5;
+  string unit = 6;
+  AccountType type = 7;
+  repeated string tags = 8;
+}
+
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  ACCOUNT_TYPE_INCOME = 1;
+  ACCOUNT_TYPE_EXPENSE = 2;
+  ACCOUNT_TYPE_ASSET = 3;
+  ACCOUNT_TYPE_LIABILITY = 4;
+  ACCOUNT_TYPE_EQUITY = 5;
+}
+
+message AccountQuery {
+  repeated string id = 1;
+  repeated string journal_id = 2;
+  repeated string name = 3;
+  string unit = 4;
+  AccountType type = 5;
+  repeated string tags = 6;
+  string full_text = 7;
+}
+
+message FindAllRequest {
+  AccountQuery query = 1;
+}
+
+message FindAllResponse {
+  repeated Account values = 1;
+  map<string, google.protobuf.Any> included = 2;
+}
+
+message FindByIdRequest {
+  string id = 1;
+}
+
+message FindByIdResponse {
+  Account value = 1;
+  map<string, google.protobuf.Any> included = 2;
+}
+
+service AccountService {
+  rpc FindAll(FindAllRequest) returns (FindAllResponse);
+  rpc FindById(FindByIdRequest) returns (FindByIdResponse);
+}

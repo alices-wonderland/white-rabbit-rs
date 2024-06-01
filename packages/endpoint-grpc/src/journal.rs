@@ -1,11 +1,14 @@
 use crate::interceptors::check_auth;
 use crate::map_err;
-use backend_core::entity::{journal, ReadRoot, FIELD_ID};
+use backend_core::entity::{journal, ReadRoot};
 use pb::journal_service_server::{JournalService, JournalServiceServer};
-use pb::{Journal, JournalQuery, JournalsResponse};
+use pb::{
+  FindAllRequest, FindAllResponse, FindByIdRequest, FindByIdResponse, Journal, JournalQuery,
+};
 use sea_orm::DatabaseConnection;
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 use tonic::codec::CompressionEncoding;
 use tonic::codegen::InterceptedService;
 use tonic::transport::server::Routes;
@@ -13,29 +16,42 @@ use tonic::{Code, Request, Response, Status};
 use tonic_reflection::server::Builder;
 use uuid::Uuid;
 
-mod pb {
-  tonic::include_proto!("whiterabbit.journal");
+pub(crate) mod pb {
+  tonic::include_proto!("whiterabbit.journal.v1");
 
   pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
     tonic::include_file_descriptor_set!("journal_descriptor");
 }
 
-impl From<Vec<journal::Root>> for JournalsResponse {
+impl prost::Name for Journal {
+  const PACKAGE: &'static str = "whiterabbit.journal.v1";
+  const NAME: &'static str = "Journal";
+}
+
+impl From<Vec<journal::Root>> for FindAllResponse {
   fn from(results: Vec<journal::Root>) -> Self {
     Self { values: results.into_iter().map(|model| model.into()).collect() }
   }
 }
 
 impl From<journal::Root> for Journal {
-  fn from(model: journal::Root) -> Self {
+  fn from(value: journal::Root) -> Self {
     Self {
-      id: model.id.to_string(),
-      created_date: None,
-      name: model.name,
-      description: model.description,
-      unit: model.unit,
-      tags: Vec::from_iter(model.tags),
+      id: value.id.to_string(),
+      created_date: Some(
+        (SystemTime::now() + Duration::from_secs(rand::random::<u64>() % 1_000_000)).into(),
+      ),
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      tags: Vec::from_iter(value.tags),
     }
+  }
+}
+
+impl From<journal::Root> for FindByIdResponse {
+  fn from(value: journal::Root) -> Self {
+    Self { value: Some(value.into()) }
   }
 }
 
@@ -67,35 +83,32 @@ pub struct JournalServiceImpl {
 impl JournalService for JournalServiceImpl {
   async fn find_all(
     &self,
-    request: Request<JournalQuery>,
-  ) -> Result<Response<JournalsResponse>, Status> {
-    let query = request.get_ref();
-    let results =
-      journal::Root::find_all(self.db.as_ref(), Some(query.clone().try_into()?), None, None)
-        .await
-        .map_err(map_err)?;
+    request: Request<FindAllRequest>,
+  ) -> Result<Response<FindAllResponse>, Status> {
+    let query = request.get_ref().query.clone().unwrap_or_default();
+    let results = journal::Root::find_all(self.db.as_ref(), Some(query.try_into()?), None, None)
+      .await
+      .map_err(map_err)?;
 
     Ok(Response::new(results.into()))
   }
 
-  async fn find_by_id(&self, request: Request<String>) -> Result<Response<Journal>, Status> {
+  async fn find_by_id(
+    &self,
+    request: Request<FindByIdRequest>,
+  ) -> Result<Response<FindByIdResponse>, Status> {
     let id: Uuid =
-      request.get_ref().parse().map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?;
-    if let Some(model) = journal::Root::find_one(
+      request.get_ref().id.parse().map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?;
+
+    let model = journal::Root::find_one(
       self.db.as_ref(),
       Some(journal::Query { id: HashSet::from_iter([id]), ..Default::default() }),
     )
     .await
     .map_err(map_err)?
-    .map(|model| model.into())
-    {
-      Ok(Response::new(model))
-    } else {
-      Err(map_err(backend_core::Error::NotFound(backend_core::error::ErrorNotFound {
-        entity: journal::TYPE.to_string(),
-        values: vec![(FIELD_ID.to_string(), id.to_string())],
-      })))
-    }
+    .map(|model| model.into());
+
+    Ok(Response::new(FindByIdResponse { value: model }))
   }
 }
 

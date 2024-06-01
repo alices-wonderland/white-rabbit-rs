@@ -6,8 +6,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   for entity in ["journal", "account"] {
     tonic_build::configure()
-      .file_descriptor_set_path(out_dir.join(format!("{}_descriptor.bin", entity)))
-      .compile(&[format!("proto/{}.proto", entity)], &["proto"])
+      .file_descriptor_set_path(out_dir.join(format!("{entity}_descriptor.bin")))
+      .compile(&[format!("proto/whiterabbit/{entity}/v1/{entity}.proto")], &["proto"])
       .unwrap();
   }
 
