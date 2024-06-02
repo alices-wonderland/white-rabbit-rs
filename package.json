@@ -58,7 +58,7 @@
     "markdownlint-cli": "^0.41.0",
     "postcss": "^8.4.38",
     "postcss-html": "^1.7.0",
-    "postcss-load-config": "^5.1.0",
+    "postcss-load-config": "^6.0.0",
     "prettier": "^3.2.5",
     "rimraf": "^5.0.7",
     "rollup-plugin-visualizer": "^5.12.0",
