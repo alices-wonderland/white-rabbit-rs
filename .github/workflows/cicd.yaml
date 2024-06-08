@@ -27,11 +27,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev
       - run: |
           rustup toolchain install nightly
           cargo install grcov && cargo install cargo-sort
@@ -40,8 +35,10 @@ jobs:
       - name: Push coverage to Codecov
         if: matrix.platform == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          files: target/debug/coverage/lcov.info
+          files: target/debug/coverage/lcov.info,coverage/coverage-final.json
       - name: Push coverage to Codacy
         if: matrix.platform == 'ubuntu-latest'
         uses: codacy/codacy-coverage-reporter-action@v1
@@ -49,7 +46,7 @@ jobs:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: target/debug/coverage/lcov.info
+          coverage-reports: target/debug/coverage/lcov.info,coverage/coverage-final.json
       - name: SonarCloud Scan
         if: matrix.platform == 'ubuntu-latest'
         uses: sonarsource/sonarcloud-github-action@master

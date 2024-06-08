@@ -22,7 +22,7 @@ pub(crate) fn map_err(value: backend_core::Error) -> Status {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let db = Arc::new(init(".desktop.test.env").await?);
+  let db = Arc::new(init(".env").await?);
   let addr = "[::1]:50051".parse()?;
   let reflection = Builder::configure();
 
