@@ -5,7 +5,11 @@
 
 import { configure } from "quasar/wrappers";
 import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
 import dotenv from "dotenv";
+
+const nativeDir = path.resolve(__dirname, "target/release");
 
 export default configure((ctx) => {
   return {
@@ -105,8 +109,8 @@ export default configure((ctx) => {
     framework: {
       config: {},
 
-      // iconSet: 'material-icons', // Quasar icon set
-      // lang: 'en-US', // Quasar language pack
+      iconSet: "material-icons", // Quasar icon set
+      lang: "en-US", // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact
       // (like functional components as one of the examples),
@@ -116,7 +120,7 @@ export default configure((ctx) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ["Notify"],
     },
 
     // animations: 'all', // --- includes all animations
@@ -209,6 +213,12 @@ export default configure((ctx) => {
         // protocol: 'myapp://path',
         // Windows only
         // win32metadata: { ... }
+        extraResource: fs
+          .readdirSync(nativeDir)
+          .filter((file) => {
+            return file.startsWith("endpoint-grpc");
+          })
+          .map((file) => path.resolve(nativeDir, file)),
       },
 
       builder: {

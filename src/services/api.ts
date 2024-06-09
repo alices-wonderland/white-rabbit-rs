@@ -3,7 +3,7 @@ export interface ReadApi<
   Q extends Query = Query,
   S extends string = string,
 > {
-  findById(id: string, loadIncluded?: boolean): Promise<[M, Map<string, Model>] | null>;
+  findById(id: string, loadIncluded?: boolean): Promise<[M, Map<string, Model>] | undefined>;
 
   findAll(args: FindAllArgs<Q, S>, loadIncluded?: boolean): Promise<[M[], Map<string, Model>]>;
 }

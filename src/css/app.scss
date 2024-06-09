@@ -1,1 +1,4 @@
 // app global css in SCSS form
+@use "@ag-grid-community/styles" as ag;
+
+@include ag.grid-styles((themes: (alpine, alpine-dark)));

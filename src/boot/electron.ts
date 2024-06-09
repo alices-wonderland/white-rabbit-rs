@@ -1,12 +1,17 @@
 import { boot } from "quasar/wrappers";
 
+import { ACCOUNT_API_KEY, type AccountApi } from "src/services/account";
+import { ENTRY_API_KEY, type EntryApi } from "src/services/entry";
+import { HIERARCHY_REPORT_API_KEY, type HierarchyReportApi } from "src/services/hierarchy-report";
+import { JOURNAL_API_KEY, type JournalApi } from "src/services/journal";
+
 declare global {
   interface Window {
     electron: {
-      journalFindById: (id: string) => object | undefined;
-      journalFindAll: (query: object) => [object[], Map<string, object>];
-      accountFindById: (id: string) => object | undefined;
-      accountFindAll: (query: object) => [object[], Map<string, object>];
+      journalApi: JournalApi;
+      accountApi: AccountApi;
+      entryApi: EntryApi;
+      hierarchyReportApi: HierarchyReportApi;
     };
   }
 }
@@ -16,17 +21,55 @@ declare global {
 export default boot(async ({ app }) => {
   console.log("[Boot Electron] Initializing...");
 
-  const journalFindById = (id: string) => window.electron.journalFindById(id);
-  const journalFindAll = (query: object) => {
-    console.log("Journal Find All render side: ", query);
-    return window.electron.journalFindAll(query);
-  };
+  app.provide<JournalApi>(JOURNAL_API_KEY, {
+    async findAll(args, loadIncluded) {
+      return window.electron.journalApi.findAll(args, loadIncluded);
+    },
 
-  const accountFindById = (id: string) => window.electron.accountFindById(id);
-  const accountFindAll = (query: object) => window.electron.accountFindAll(query);
+    async findById(id, loadIncluded) {
+      return window.electron.journalApi.findById(id, loadIncluded);
+    },
 
-  app.provide("journalFindById", journalFindById);
-  app.provide("journalFindAll", journalFindAll);
-  app.provide("accountFindById", accountFindById);
-  app.provide("accountFindAll", accountFindAll);
+    async handleCommand(command) {
+      return window.electron.journalApi.handleCommand(command);
+    },
+  });
+
+  app.provide<AccountApi>(ACCOUNT_API_KEY, {
+    async findAll(args, loadIncluded) {
+      return window.electron.accountApi.findAll(args, loadIncluded);
+    },
+
+    async findById(id, loadIncluded) {
+      return window.electron.accountApi.findById(id, loadIncluded);
+    },
+
+    async handleCommand(command) {
+      return window.electron.accountApi.handleCommand(command);
+    },
+  });
+
+  app.provide<EntryApi>(ENTRY_API_KEY, {
+    async findAll(args, loadIncluded) {
+      return window.electron.entryApi.findAll(args, loadIncluded);
+    },
+
+    async findById(id, loadIncluded) {
+      return window.electron.entryApi.findById(id, loadIncluded);
+    },
+
+    async handleCommand(command) {
+      return window.electron.entryApi.handleCommand(command);
+    },
+  });
+
+  app.provide<HierarchyReportApi>(HIERARCHY_REPORT_API_KEY, {
+    async findAll(args, loadIncluded) {
+      return window.electron.hierarchyReportApi.findAll(args, loadIncluded);
+    },
+
+    async findById(id, loadIncluded) {
+      return window.electron.hierarchyReportApi.findById(id, loadIncluded);
+    },
+  });
 });

@@ -1,17 +1,37 @@
 import { RouteRecordRaw } from "vue-router";
+import AppLayout from "layouts/AppLayout.vue";
+import JournalBreadcrumb from "components/JournalBreadcrumb.vue";
+
+export const ROUTE_JOURNALS = Symbol("ROUTE_JOURNALS");
+export const ROUTE_JOURNAL = Symbol("ROUTE_JOURNAL");
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
-    component: () => import("layouts/MainLayout.vue"),
-    children: [{ path: "", component: () => import("pages/IndexPage.vue") }],
+    component: AppLayout,
+    children: [
+      {
+        path: "/journals",
+        name: ROUTE_JOURNALS,
+        components: {
+          default: () => import("pages/JournalsPage/JournalsPage.vue"),
+          toolbar: JournalBreadcrumb,
+        },
+      },
+      {
+        path: ":id",
+        name: ROUTE_JOURNAL,
+        components: {
+          default: () => import("pages/JournalPage.vue"),
+          toolbar: JournalBreadcrumb,
+        },
+      },
+    ],
   },
 
-  // Always leave this as last one,
-  // but you can also remove it
   {
-    path: "/:catchAll(.*)*",
-    component: () => import("pages/ErrorNotFound.vue"),
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
   },
 ];
 
