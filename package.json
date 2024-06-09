@@ -98,6 +98,8 @@
     "@bufbuild/protobuf": "^1.10.0",
     "@grpc/grpc-js": "^1.10.8",
     "@quasar/extras": "^1.16.11",
+    "@tanstack/vue-query": "^5.41.0",
+    "@vueuse/core": "^10.10.0",
     "google-protobuf": "^3.21.2",
     "pinia": "^2.1.7",
     "quasar": "^2.16.4",

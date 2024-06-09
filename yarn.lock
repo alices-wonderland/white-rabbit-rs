@@ -2851,6 +2851,40 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/match-sorter-utils@npm:^8.15.1":
+  version: 8.15.1
+  resolution: "@tanstack/match-sorter-utils@npm:8.15.1"
+  dependencies:
+    remove-accents: "npm:0.5.0"
+  checksum: 10/5a42964a6b45ec1cbc43720953156070751ce589c95825df2d3cb392978e37b1bbcd418853426902e18470b29939076255b3239241133d77f220c3be693a60b1
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:5.40.0":
+  version: 5.40.0
+  resolution: "@tanstack/query-core@npm:5.40.0"
+  checksum: 10/d7f022295aa392c2f8903f56b87039b925e4bfe26c5e8efdc482f2615d830f02f1b49ffda35838ff682d4546de87817f445db260f225ed1caf8c24eb8c197cf9
+  languageName: node
+  linkType: hard
+
+"@tanstack/vue-query@npm:^5.41.0":
+  version: 5.41.0
+  resolution: "@tanstack/vue-query@npm:5.41.0"
+  dependencies:
+    "@tanstack/match-sorter-utils": "npm:^8.15.1"
+    "@tanstack/query-core": "npm:5.40.0"
+    "@vue/devtools-api": "npm:^6.5.1"
+    vue-demi: "npm:^0.14.7"
+  peerDependencies:
+    "@vue/composition-api": ^1.1.2
+    vue: ^2.6.0 || ^3.3.0
+  peerDependenciesMeta:
+    "@vue/composition-api":
+      optional: true
+  checksum: 10/d8baa642c1d77f5192ab32afa7bed60502bf2aea3aaecf9839cd3665a8cfb19c72fc030ec5fbce2f14206ae6e22826734e38009d150810ec4ac5c7553675cf2f
+  languageName: node
+  linkType: hard
+
 "@types/body-parser@npm:*":
   version: 1.19.5
   resolution: "@types/body-parser@npm:1.19.5"
@@ -3146,6 +3180,13 @@ __metadata:
   version: 2.0.7
   resolution: "@types/trusted-types@npm:2.0.7"
   checksum: 10/8e4202766a65877efcf5d5a41b7dd458480b36195e580a3b1085ad21e948bc417d55d6f8af1fd2a7ad008015d4117d5fdfe432731157da3c68678487174e4ba3
+  languageName: node
+  linkType: hard
+
+"@types/web-bluetooth@npm:^0.0.20":
+  version: 0.0.20
+  resolution: "@types/web-bluetooth@npm:0.0.20"
+  checksum: 10/2faa323e5c994e9468fff4675e3b6d35f3730eb4dc7c761d02267fb6246dbfd659fd8f3583db0872aae05b3ee139799c25655bbe79bf1b56c08c06e665db814b
   languageName: node
   linkType: hard
 
@@ -3532,6 +3573,34 @@ __metadata:
   version: 0.5.1
   resolution: "@vue/tsconfig@npm:0.5.1"
   checksum: 10/1f8e51eae0aae92ea518f0713394135bf1f8a80decd486417fb3701851e903a4c18bc12db6c8d3223e1e0bd1dc01c70668bd7703382a130fd250867b772002ce
+  languageName: node
+  linkType: hard
+
+"@vueuse/core@npm:^10.10.0":
+  version: 10.10.0
+  resolution: "@vueuse/core@npm:10.10.0"
+  dependencies:
+    "@types/web-bluetooth": "npm:^0.0.20"
+    "@vueuse/metadata": "npm:10.10.0"
+    "@vueuse/shared": "npm:10.10.0"
+    vue-demi: "npm:>=0.14.7"
+  checksum: 10/f604a2f007ea550e969b659449b30ccc3aff93950e28bbd5d53bf22c9d0a175188bae23d40e954951b7ba8e646d831e1283f659a73c10d034d7f624c1845894c
+  languageName: node
+  linkType: hard
+
+"@vueuse/metadata@npm:10.10.0":
+  version: 10.10.0
+  resolution: "@vueuse/metadata@npm:10.10.0"
+  checksum: 10/b7cfda1f4e874f198cca8f8d9f6b82c59cdbb9e769073b5e4f49f795d895b86121d53cdb60c11b5949e8cd676b7988556aeff68098068129d032d4b3c6ea919c
+  languageName: node
+  linkType: hard
+
+"@vueuse/shared@npm:10.10.0":
+  version: 10.10.0
+  resolution: "@vueuse/shared@npm:10.10.0"
+  dependencies:
+    vue-demi: "npm:>=0.14.7"
+  checksum: 10/20d1c40a15ae0f9f474da9d748c53b43eb1c38be2ef2ebe22261e92914748f1d1b6b00359aab7b41d42f76f39ebb5fb8da7345d0bb034c4d36bebe020f3e5255
   languageName: node
   linkType: hard
 
@@ -10095,6 +10164,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"remove-accents@npm:0.5.0":
+  version: 0.5.0
+  resolution: "remove-accents@npm:0.5.0"
+  checksum: 10/4aa1a9d0c18468515a33c6760b0f8e28dfbceddcb846fac90b2189445445b27b11cc1df9fbceb97b4449438bc13250d77b27d4ab325b2d69933acc156d6c5b50
+  languageName: node
+  linkType: hard
+
 "require-directory@npm:^2.1.1":
   version: 2.1.1
   resolution: "require-directory@npm:2.1.1"
@@ -12143,7 +12219,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-demi@npm:>=0.14.5":
+"vue-demi@npm:>=0.14.5, vue-demi@npm:>=0.14.7, vue-demi@npm:^0.14.7":
   version: 0.14.8
   resolution: "vue-demi@npm:0.14.8"
   peerDependencies:
@@ -12385,6 +12461,7 @@ __metadata:
     "@quasar/extras": "npm:^1.16.11"
     "@quasar/quasar-app-extension-testing-unit-vitest": "npm:^1.0.0"
     "@quasar/vite-plugin": "npm:^1.7.0"
+    "@tanstack/vue-query": "npm:^5.41.0"
     "@types/eslint": "npm:^8.56.10"
     "@types/google-protobuf": "npm:^3.15.12"
     "@types/jsdom": "npm:^21.1.7"
@@ -12395,6 +12472,7 @@ __metadata:
     "@vue/compiler-dom": "npm:^3.4.27"
     "@vue/test-utils": "npm:^2.4.6"
     "@vue/tsconfig": "npm:^0.5.1"
+    "@vueuse/core": "npm:^10.10.0"
     autoprefixer: "npm:^10.4.19"
     commitizen: "npm:^4.3.0"
     commitlint: "npm:^19.3.0"
