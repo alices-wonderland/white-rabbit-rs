@@ -4,8 +4,7 @@ import os from "os";
 import { fileURLToPath } from "url";
 import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
 
-import { AccountServiceClient } from "./proto/gen/whiterabbit/account/v1/account";
-import { JournalQuery, JournalServiceClient } from "./proto/gen/whiterabbit/journal/v1/journal";
+import { initializeJournalApi } from "./services/journal-api-main";
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -13,8 +12,6 @@ const platform = process.platform || os.platform();
 const currentDir = fileURLToPath(new URL(".", import.meta.url));
 
 let mainWindow: BrowserWindow | undefined;
-let journalClient: JournalServiceClient | undefined;
-let accountClient: AccountServiceClient | undefined;
 
 function createWindow() {
   /**
@@ -60,14 +57,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  journalClient = new JournalServiceClient(
-    process.env.VITE_API_URL_BASE ?? "[::1]:50051",
-    ChannelCredentials.createInsecure(),
-  );
-  accountClient = new AccountServiceClient(
-    process.env.VITE_API_URL_BASE ?? "[::1]:50051",
-    ChannelCredentials.createInsecure(),
-  );
+  initializeJournalApi();
   createWindow();
 });
 
@@ -80,79 +70,5 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (mainWindow === undefined) {
     createWindow();
-  }
-});
-
-ipcMain.handle("journalFindById", async (_e, args) => {
-  console.log("journalFindById: ", args);
-  if (journalClient && args.id) {
-    const metadata = new Metadata();
-    metadata.set("authorization", "Bearer some-secret-token");
-
-    return new Promise((resolve, reject) => {
-      journalClient!.findById({ id: `${args.id}` }, metadata, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data.value);
-        }
-      });
-    });
-  }
-});
-
-ipcMain.handle("journalFindAll", async (_e, args) => {
-  console.log("journalFindAll: ", args);
-  if (journalClient && args.query) {
-    const metadata = new Metadata();
-    metadata.set("authorization", "Bearer some-secret-token");
-
-    return new Promise((resolve, reject) => {
-      journalClient!.findAll(
-        { query: JournalQuery.fromPartial(args.query) },
-        metadata,
-        (err, data) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve([data.values, new Map()]);
-          }
-        },
-      );
-    });
-  }
-});
-
-ipcMain.handle("accountFindById", async (_e, args) => {
-  if (accountClient && args.id) {
-    const metadata = new Metadata();
-    metadata.set("authorization", "Bearer some-secret-token");
-
-    return new Promise((resolve, reject) => {
-      accountClient!.findById({ id: `${args.id}` }, metadata, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data.value);
-        }
-      });
-    });
-  }
-});
-
-ipcMain.handle("accountFindAll", async (_e, args) => {
-  if (accountClient && args.query) {
-    const metadata = new Metadata();
-    metadata.set("authorization", "Bearer some-secret-token");
-
-    return new Promise((resolve, reject) => {
-      accountClient!.findAll({ query: args.query }, metadata, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve([data.values, new Map()]);
-        }
-      });
-    });
   }
 });

@@ -28,11 +28,9 @@
  * }
  */
 
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge } from "electron";
+import { journalApiPreload } from "./services/journal-api-preload";
 
 contextBridge.exposeInMainWorld("electron", {
-  journalFindById: (id: string) => ipcRenderer.invoke("journalFindById", { id }),
-  journalFindAll: (query: object) => ipcRenderer.invoke("journalFindAll", { query }),
-  accountFindById: (id: string) => ipcRenderer.invoke("accountFindById", { id }),
-  accountFindAll: (query: object) => ipcRenderer.invoke("accountFindAll", { query }),
+  journalApi: journalApiPreload,
 });

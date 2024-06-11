@@ -4,8 +4,22 @@ export const ACCOUNT_API_KEY = Symbol("ACCOUNT_API_KEY");
 
 export const ACCOUNT_TYPE = "accounts";
 
+export const ACCOUNT_FIELDS = [
+  "id",
+  "createdDate",
+  "journalId",
+  "name",
+  "description",
+  "unit",
+  "type",
+  "tags",
+] as const;
+
+export type AccountField = (typeof ACCOUNT_FIELDS)[number];
+
 export class Account implements Model<typeof ACCOUNT_TYPE> {
   id: string;
+  createdDate: string;
   journalId: string;
   name: string;
   description: string;
@@ -13,8 +27,18 @@ export class Account implements Model<typeof ACCOUNT_TYPE> {
   type: AccountType;
   tags: string[];
 
-  constructor({ id, journalId, name, description, unit, type, tags }: Omit<Account, "modelType">) {
+  constructor({
+    id,
+    createdDate,
+    journalId,
+    name,
+    description,
+    unit,
+    type,
+    tags,
+  }: Pick<Account, AccountField>) {
     this.id = id;
+    this.createdDate = createdDate;
     this.journalId = journalId;
     this.name = name;
     this.description = description;

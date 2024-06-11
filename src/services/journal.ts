@@ -6,15 +6,21 @@ export const JOURNAL_API_KEY = Symbol("JOURNAL_API_KEY");
 
 export const JOURNAL_ICON = "book";
 
+export const JOURNAL_FIELDS = ["id", "createdDate", "name", "description", "unit", "tags"] as const;
+
+export type JournalField = (typeof JOURNAL_FIELDS)[number];
+
 export class Journal implements Model<typeof JOURNAL_TYPE> {
   id: string;
+  createdDate: string;
   name: string;
   description: string;
   unit: string;
   tags: string[];
 
-  constructor({ id, name, description, unit, tags }: Omit<Journal, "modelType">) {
+  constructor({ id, createdDate, name, description, unit, tags }: Pick<Journal, JournalField>) {
     this.id = id;
+    this.createdDate = createdDate;
     this.name = name;
     this.description = description;
     this.unit = unit;
