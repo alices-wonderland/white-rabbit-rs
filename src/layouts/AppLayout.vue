@@ -25,6 +25,7 @@
 
     <q-page-container>
       <q-page padding class="flex justify-center">
+        <div>Route: {{ route.fullPath }}</div>
         <router-view />
       </q-page>
     </q-page-container>
@@ -37,12 +38,14 @@ import { useI18n } from "vue-i18n";
 import langEnUS from "quasar/lang/en-US";
 import langZhCH from "quasar/lang/zh-CN";
 import { useQuasar } from "quasar";
+import { useRoute } from "vue-router";
 
 import { useDark } from "src/composable/useDark";
 
 const quasar = useQuasar();
 const { locale } = useI18n();
 const [isDark, toggleDark] = useDark();
+const route = useRoute();
 
 const darkIcon = computed(() => (isDark.value ? "dark_mode" : "light_mode"));
 

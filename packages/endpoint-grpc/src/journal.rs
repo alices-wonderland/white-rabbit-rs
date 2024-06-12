@@ -1,4 +1,3 @@
-use crate::interceptors::check_auth;
 use crate::map_err;
 use backend_core::entity::{journal, ReadRoot};
 use pb::journal_service_server::{JournalService, JournalServiceServer};
@@ -10,7 +9,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tonic::codec::CompressionEncoding;
-use tonic::codegen::InterceptedService;
 use tonic::transport::server::Routes;
 use tonic::{Code, Request, Response, Status};
 use tonic_reflection::server::Builder;
@@ -117,12 +115,9 @@ pub(crate) fn init(
   routes: Routes,
   db: Arc<DatabaseConnection>,
 ) -> (Builder, Routes) {
-  let service = InterceptedService::new(
-    JournalServiceServer::new(JournalServiceImpl { db })
-      .send_compressed(CompressionEncoding::Gzip)
-      .accept_compressed(CompressionEncoding::Gzip),
-    check_auth,
-  );
+  let service = JournalServiceServer::new(JournalServiceImpl { db })
+    .send_compressed(CompressionEncoding::Gzip)
+    .accept_compressed(CompressionEncoding::Gzip);
 
   (
     reflection_builder.register_encoded_file_descriptor_set(pb::FILE_DESCRIPTOR_SET),

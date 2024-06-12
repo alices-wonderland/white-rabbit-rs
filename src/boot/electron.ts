@@ -23,11 +23,13 @@ export default boot(async ({ app }) => {
 
   app.provide<JournalApi>(JOURNAL_API_KEY, {
     async findAll(args, loadIncluded) {
-      return window.electron.journalApi.findAll(args, loadIncluded);
+      const values = window.electron.journalApi.findAll(args, loadIncluded);
+      return values;
     },
 
     async findById(id, loadIncluded) {
-      return window.electron.journalApi.findById(id, loadIncluded);
+      const value = window.electron.journalApi.findById(id, loadIncluded);
+      return value;
     },
 
     async handleCommand(command) {

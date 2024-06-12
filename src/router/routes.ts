@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: AppLayout,
+    redirect: "/journals",
     children: [
       {
         path: "/journals",
@@ -31,7 +32,7 @@ const routes: RouteRecordRaw[] = [
 
   {
     path: "/:pathMatch(.*)*",
-    redirect: "/",
+    redirect: "/journals",
   },
 ];
 

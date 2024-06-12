@@ -15,7 +15,7 @@ const searchDebounced = refDebounced(search, 500);
 
 const journalsArgs = computed<FindAllArgs<JournalQuery, JournalSort>>(() => ({
   query: {
-    fullText: searchDebounced.value ? [searchDebounced.value, ["name"]] : undefined,
+    fullText: searchDebounced.value,
   },
   sort: "name",
 }));

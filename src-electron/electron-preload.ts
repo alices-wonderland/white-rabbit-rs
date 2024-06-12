@@ -28,9 +28,62 @@
  * }
  */
 
-import { contextBridge } from "electron";
-import { journalApiPreload } from "./services/journal-api-preload";
+import { contextBridge, ipcRenderer } from "electron";
+import { AccountApi } from "src/services/account";
+import { EntryApi } from "src/services/entry";
+import { HierarchyReportApi } from "src/services/hierarchy-report";
+import { JournalApi } from "src/services/journal";
 
 contextBridge.exposeInMainWorld("electron", {
-  journalApi: journalApiPreload,
+  journalApi: {
+    findAll(args, loadIncluded) {
+      return ipcRenderer.invoke("journalApi.findAll", args, loadIncluded);
+    },
+
+    findById(id, loadIncluded) {
+      return ipcRenderer.invoke("journalApi.findById", id, loadIncluded);
+    },
+
+    handleCommand(command) {
+      return ipcRenderer.invoke("journalApi.handleCommand", command);
+    },
+  } satisfies JournalApi,
+
+  accountApi: {
+    findAll(args, loadIncluded) {
+      return ipcRenderer.invoke("accountApi.findAll", args, loadIncluded);
+    },
+
+    findById(id, loadIncluded) {
+      return ipcRenderer.invoke("accountApi.findById", id, loadIncluded);
+    },
+
+    handleCommand(command) {
+      return ipcRenderer.invoke("accountApi.handleCommand", command);
+    },
+  } satisfies AccountApi,
+
+  entryApi: {
+    findAll(args, loadIncluded) {
+      return ipcRenderer.invoke("entryApi.findAll", args, loadIncluded);
+    },
+
+    findById(id, loadIncluded) {
+      return ipcRenderer.invoke("entryApi.findById", id, loadIncluded);
+    },
+
+    handleCommand(command) {
+      return ipcRenderer.invoke("entryApi.handleCommand", command);
+    },
+  } satisfies EntryApi,
+
+  hierarchyReportApi: {
+    findAll(args, loadIncluded) {
+      return ipcRenderer.invoke("hierarchyReportApi.findAll", args, loadIncluded);
+    },
+
+    findById(id, loadIncluded) {
+      return ipcRenderer.invoke("hierarchyReportApi.findById", id, loadIncluded);
+    },
+  } satisfies HierarchyReportApi,
 });

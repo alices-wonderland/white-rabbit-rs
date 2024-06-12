@@ -19,7 +19,7 @@ export type AccountField = (typeof ACCOUNT_FIELDS)[number];
 
 export class Account implements Model<typeof ACCOUNT_TYPE> {
   id: string;
-  createdDate: string;
+  createdDate?: string;
   journalId: string;
   name: string;
   description: string;
@@ -61,10 +61,11 @@ export type AccountSort = "name" | "unit" | "type" | "journal";
 export interface AccountQuery extends Query {
   readonly id?: string[];
   readonly journalId?: string[];
-  readonly name?: string;
+  readonly name?: string[];
   readonly unit?: string;
   readonly type?: AccountType;
-  readonly fullText?: [string, string[]];
+  readonly tags?: string[];
+  readonly fullText?: string;
 }
 
 export interface AccountCommandCreate extends Command<`${typeof ACCOUNT_TYPE}:create`> {

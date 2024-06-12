@@ -12,7 +12,7 @@ export type JournalField = (typeof JOURNAL_FIELDS)[number];
 
 export class Journal implements Model<typeof JOURNAL_TYPE> {
   id: string;
-  createdDate: string;
+  createdDate?: string;
   name: string;
   description: string;
   unit: string;
@@ -38,7 +38,7 @@ export interface JournalQuery extends Query {
   readonly id?: string[];
   readonly name?: string[];
   readonly unit?: string;
-  readonly fullText?: [string, string[]];
+  readonly fullText?: string;
 }
 
 export interface JournalCommandCreate extends Command<`${typeof JOURNAL_TYPE}:create`> {

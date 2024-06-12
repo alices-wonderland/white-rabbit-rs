@@ -1,10 +1,9 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
-import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
-
-import { initializeJournalApi } from "./services/journal-api-main";
+import { JournalApiImpl } from "./services/journal";
+import { AccountApiImpl } from "./services/account";
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -12,6 +11,8 @@ const platform = process.platform || os.platform();
 const currentDir = fileURLToPath(new URL(".", import.meta.url));
 
 let mainWindow: BrowserWindow | undefined;
+let journalApi: JournalApiImpl;
+let accountApi: AccountApiImpl;
 
 function createWindow() {
   /**
@@ -57,11 +58,19 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  initializeJournalApi();
+  journalApi = new JournalApiImpl();
+  accountApi = new AccountApiImpl();
+
+  journalApi.initialize();
+  accountApi.initialize();
+
   createWindow();
 });
 
 app.on("window-all-closed", () => {
+  journalApi.uninitialize();
+  accountApi.uninitialize();
+
   if (platform !== "darwin") {
     app.quit();
   }
