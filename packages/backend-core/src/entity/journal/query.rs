@@ -23,6 +23,8 @@ pub struct Query {
 
 impl IntoCondition for Query {
   fn into_condition(self) -> Condition {
+    println!("Journal Query Core: {self:?}");
+
     let mut cond = Cond::all();
 
     if !self.id.is_empty() {

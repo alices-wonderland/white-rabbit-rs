@@ -1,10 +1,12 @@
 use crate::journal::pb::Journal;
-use crate::map_err;
+use crate::{decode_strings, decode_uuid, decode_uuids, map_err};
 use backend_core::entity::{account, journal, ReadRoot};
+use itertools::Itertools;
 use pb::account_service_server::{AccountService, AccountServiceServer};
 use pb::{
-  Account, AccountQuery, AccountType, FindAllRequest, FindAllResponse, FindByIdRequest,
-  FindByIdResponse,
+  account_command, Account, AccountCommand, AccountCommandBatch, AccountCommandCreate,
+  AccountCommandDelete, AccountCommandUpdate, AccountQuery, AccountType, FindAllRequest,
+  FindAllResponse, FindByIdRequest, FindByIdResponse, HandleCommandRequest, HandleCommandResponse,
 };
 use sea_orm::DatabaseConnection;
 use std::collections::{HashMap, HashSet};
@@ -27,6 +29,8 @@ impl prost::Name for Account {
   const PACKAGE: &'static str = "whiterabbit.account.v1";
   const NAME: &'static str = "Account";
 }
+
+// Model -> Proto
 
 impl From<Vec<account::Root>> for FindAllResponse {
   fn from(results: Vec<account::Root>) -> Self {
@@ -60,18 +64,22 @@ impl From<account::Root> for FindByIdResponse {
   }
 }
 
-impl From<AccountType> for Option<account::Type> {
-  fn from(value: AccountType) -> Self {
+fn decode_type(value: i32) -> Result<account::Type, Status> {
+  if let Ok(value) = AccountType::try_from(value) {
     match value {
-      AccountType::Income => Some(account::Type::Income),
-      AccountType::Expense => Some(account::Type::Expense),
-      AccountType::Asset => Some(account::Type::Asset),
-      AccountType::Liability => Some(account::Type::Liability),
-      AccountType::Equity => Some(account::Type::Equity),
-      AccountType::Unspecified => None,
+      AccountType::Income => return Ok(account::Type::Income),
+      AccountType::Expense => return Ok(account::Type::Expense),
+      AccountType::Asset => return Ok(account::Type::Asset),
+      AccountType::Liability => return Ok(account::Type::Liability),
+      AccountType::Equity => return Ok(account::Type::Equity),
+      _ => {}
     }
   }
+
+  Err(Status::invalid_argument("Invalid Account type"))
 }
+
+// Proto -> Model
 
 impl From<account::Type> for AccountType {
   fn from(value: account::Type) -> Self {
@@ -90,24 +98,76 @@ impl TryFrom<AccountQuery> for account::Query {
 
   fn try_from(value: AccountQuery) -> Result<Self, Self::Error> {
     Ok(Self {
-      id: value
-        .id
-        .iter()
-        .map(|v| v.parse())
-        .collect::<Result<HashSet<_>, _>>()
-        .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?,
-      journal_id: value
-        .journal_id
-        .iter()
-        .map(|v| v.parse())
-        .collect::<Result<HashSet<_>, _>>()
-        .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?,
-
-      name: HashSet::from_iter(value.name.clone()),
-      unit: value.unit.clone(),
-      typ: AccountType::try_from(value.r#type).ok().and_then(|v| v.into()),
+      id: decode_uuids(value.id)?,
+      journal_id: decode_uuids(value.journal_id)?,
+      name: HashSet::from_iter(value.name),
+      unit: value.unit,
+      typ: decode_type(value.r#type).ok(),
       tags: value.tags.iter().cloned().collect(),
-      full_text: value.full_text.clone(),
+      full_text: value.full_text,
+    })
+  }
+}
+
+impl TryFrom<AccountCommandCreate> for account::CommandCreate {
+  type Error = Status;
+
+  fn try_from(value: AccountCommandCreate) -> Result<Self, Self::Error> {
+    Ok(account::CommandCreate {
+      journal_id: decode_uuid(value.journal_id)?,
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      typ: decode_type(value.r#type)?,
+      tags: HashSet::from_iter(value.tags),
+    })
+  }
+}
+
+impl TryFrom<AccountCommandUpdate> for account::CommandUpdate {
+  type Error = Status;
+
+  fn try_from(value: AccountCommandUpdate) -> Result<Self, Self::Error> {
+    Ok(account::CommandUpdate {
+      id: decode_uuid(value.id)?,
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      typ: decode_type(value.r#type).ok(),
+      tags: value.tags.map(decode_strings),
+    })
+  }
+}
+
+impl TryFrom<AccountCommandDelete> for account::CommandDelete {
+  type Error = Status;
+
+  fn try_from(value: AccountCommandDelete) -> Result<Self, Self::Error> {
+    Ok(account::CommandDelete { id: decode_uuids(value.id)? })
+  }
+}
+
+impl TryFrom<AccountCommandBatch> for account::CommandBatch {
+  type Error = Status;
+
+  fn try_from(value: AccountCommandBatch) -> Result<Self, Self::Error> {
+    Ok(account::CommandBatch {
+      create: value.create.into_iter().map(|c| c.try_into()).try_collect()?,
+      update: value.update.into_iter().map(|c| c.try_into()).try_collect()?,
+      delete: decode_uuids(value.delete)?,
+    })
+  }
+}
+
+impl TryFrom<account_command::Command> for account::Command {
+  type Error = Status;
+
+  fn try_from(value: account_command::Command) -> Result<Self, Self::Error> {
+    Ok(match value {
+      account_command::Command::Create(command) => account::Command::Create(command.try_into()?),
+      account_command::Command::Update(command) => account::Command::Update(command.try_into()?),
+      account_command::Command::Delete(command) => account::Command::Delete(command.try_into()?),
+      account_command::Command::Batch(command) => account::Command::Batch(command.try_into()?),
     })
   }
 }
@@ -193,6 +253,24 @@ impl AccountService for AccountServiceImpl {
         .collect::<HashMap<_, _>>(),
       value: model.map(Account::from),
     }))
+  }
+
+  async fn handle_command(
+    &self,
+    request: Request<HandleCommandRequest>,
+  ) -> Result<Response<HandleCommandResponse>, Status> {
+    if let Some(AccountCommand { command: Some(command) }) = request.get_ref().command.clone() {
+      let command: account::Command = command.try_into()?;
+      let values = account::Root::handle(self.db.as_ref(), command)
+        .await
+        .map_err(map_err)?
+        .into_iter()
+        .map(|model| model.into())
+        .collect();
+      Ok(Response::new(HandleCommandResponse { values }))
+    } else {
+      Err(Status::invalid_argument("Command field should not be empty"))
+    }
   }
 }
 

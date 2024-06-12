@@ -38,7 +38,7 @@ impl Builder {
     let unit = normalize_unit(TYPE, self.unit)?;
     let tags = normalize_tags(TYPE, self.tags)?;
     Ok(Root {
-      id: self.id.unwrap_or_else(Uuid::new_v4),
+      id: self.id.unwrap_or_else(Uuid::now_v7),
       journal_id: self.journal_id.ok_or_else(|| {
         crate::Error::RequiredField(ErrorRequiredField {
           entity: TYPE.to_string(),

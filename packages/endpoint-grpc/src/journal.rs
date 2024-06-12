@@ -1,8 +1,11 @@
-use crate::map_err;
+use crate::{decode_strings, decode_uuid, decode_uuids, map_err};
 use backend_core::entity::{journal, ReadRoot};
+use itertools::Itertools;
 use pb::journal_service_server::{JournalService, JournalServiceServer};
 use pb::{
-  FindAllRequest, FindAllResponse, FindByIdRequest, FindByIdResponse, Journal, JournalQuery,
+  journal_command, FindAllRequest, FindAllResponse, FindByIdRequest, FindByIdResponse,
+  HandleCommandRequest, HandleCommandResponse, Journal, JournalCommand, JournalCommandBatch,
+  JournalCommandCreate, JournalCommandDelete, JournalCommandUpdate, JournalQuery,
 };
 use sea_orm::DatabaseConnection;
 use std::collections::HashSet;
@@ -25,6 +28,8 @@ impl prost::Name for Journal {
   const PACKAGE: &'static str = "whiterabbit.journal.v1";
   const NAME: &'static str = "Journal";
 }
+
+// Model -> Proto
 
 impl From<Vec<journal::Root>> for FindAllResponse {
   fn from(results: Vec<journal::Root>) -> Self {
@@ -53,21 +58,77 @@ impl From<journal::Root> for FindByIdResponse {
   }
 }
 
+// Proto -> Model
+
 impl TryFrom<JournalQuery> for journal::Query {
   type Error = Status;
 
   fn try_from(value: JournalQuery) -> Result<Self, Self::Error> {
+    println!("Journal Query Proto: {value:?}");
     Ok(Self {
-      id: value
-        .id
-        .iter()
-        .map(|v| v.parse())
-        .collect::<Result<HashSet<_>, _>>()
-        .map_err(|_| Status::new(Code::Internal, "Invalid UUID"))?,
-      name: HashSet::from_iter(value.name.clone()),
-      unit: value.unit.clone(),
+      id: decode_uuids(value.id)?,
+      name: HashSet::from_iter(value.name),
+      unit: value.unit,
       tags: value.tags.iter().cloned().collect(),
-      full_text: value.full_text.clone(),
+      full_text: value.full_text,
+    })
+  }
+}
+
+impl From<JournalCommandCreate> for journal::CommandCreate {
+  fn from(value: JournalCommandCreate) -> Self {
+    journal::CommandCreate {
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      tags: HashSet::from_iter(value.tags),
+    }
+  }
+}
+
+impl TryFrom<JournalCommandUpdate> for journal::CommandUpdate {
+  type Error = Status;
+
+  fn try_from(value: JournalCommandUpdate) -> Result<Self, Self::Error> {
+    Ok(journal::CommandUpdate {
+      id: decode_uuid(value.id)?,
+      name: value.name,
+      description: value.description,
+      unit: value.unit,
+      tags: value.tags.map(decode_strings),
+    })
+  }
+}
+
+impl TryFrom<JournalCommandDelete> for journal::CommandDelete {
+  type Error = Status;
+
+  fn try_from(value: JournalCommandDelete) -> Result<Self, Self::Error> {
+    Ok(journal::CommandDelete { id: decode_uuids(value.id)? })
+  }
+}
+
+impl TryFrom<JournalCommandBatch> for journal::CommandBatch {
+  type Error = Status;
+
+  fn try_from(value: JournalCommandBatch) -> Result<Self, Self::Error> {
+    Ok(journal::CommandBatch {
+      create: value.create.into_iter().map(|c| c.into()).collect(),
+      update: value.update.into_iter().map(|c| c.try_into()).try_collect()?,
+      delete: decode_uuids(value.delete)?,
+    })
+  }
+}
+
+impl TryFrom<journal_command::Command> for journal::Command {
+  type Error = Status;
+
+  fn try_from(value: journal_command::Command) -> Result<Self, Self::Error> {
+    Ok(match value {
+      journal_command::Command::Create(command) => journal::Command::Create(command.into()),
+      journal_command::Command::Update(command) => journal::Command::Update(command.try_into()?),
+      journal_command::Command::Delete(command) => journal::Command::Delete(command.try_into()?),
+      journal_command::Command::Batch(command) => journal::Command::Batch(command.try_into()?),
     })
   }
 }
@@ -107,6 +168,24 @@ impl JournalService for JournalServiceImpl {
     .map(|model| model.into());
 
     Ok(Response::new(FindByIdResponse { value: model }))
+  }
+
+  async fn handle_command(
+    &self,
+    request: Request<HandleCommandRequest>,
+  ) -> Result<Response<HandleCommandResponse>, Status> {
+    if let Some(JournalCommand { command: Some(command) }) = request.get_ref().command.clone() {
+      let command: journal::Command = command.try_into()?;
+      let values = journal::Root::handle(self.db.as_ref(), command)
+        .await
+        .map_err(map_err)?
+        .into_iter()
+        .map(|model| model.into())
+        .collect();
+      Ok(Response::new(HandleCommandResponse { values }))
+    } else {
+      Err(Status::invalid_argument("Command field should not be empty"))
+    }
   }
 }
 

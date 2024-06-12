@@ -4,6 +4,8 @@ package whiterabbit.account.v1;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
 
 message Account {
   string id = 1;
@@ -35,6 +37,43 @@ message AccountQuery {
   string full_text = 7;
 }
 
+message AccountCommand {
+  oneof command {
+    AccountCommandCreate create = 1;
+    AccountCommandUpdate update = 2;
+    AccountCommandDelete delete = 3;
+    AccountCommandBatch batch = 4;
+  }
+}
+
+message AccountCommandCreate {
+  string journal_id = 1;
+  string name = 2;
+  string description = 3;
+  string unit = 4;
+  AccountType type = 5;
+  repeated string tags = 6;
+}
+
+message AccountCommandUpdate {
+  string id = 1;
+  string name = 2;
+  google.protobuf.StringValue description = 3;
+  string unit = 4;
+  AccountType type = 5;
+  google.protobuf.ListValue tags = 6;
+}
+
+message AccountCommandDelete {
+  repeated string id = 1;
+}
+
+message AccountCommandBatch {
+  repeated AccountCommandCreate create = 1;
+  repeated AccountCommandUpdate update = 2;
+  repeated string delete = 3;
+}
+
 message FindAllRequest {
   AccountQuery query = 1;
 }
@@ -53,7 +92,16 @@ message FindByIdResponse {
   map<string, google.protobuf.Any> included = 2;
 }
 
+message HandleCommandRequest {
+  AccountCommand command = 1;
+}
+
+message HandleCommandResponse {
+  repeated Account values = 1;
+}
+
 service AccountService {
   rpc FindAll(FindAllRequest) returns (FindAllResponse);
   rpc FindById(FindByIdRequest) returns (FindByIdResponse);
+  rpc HandleCommand(HandleCommandRequest) returns (HandleCommandResponse);
 }

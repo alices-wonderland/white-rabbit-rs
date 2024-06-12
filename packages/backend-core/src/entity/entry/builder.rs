@@ -87,7 +87,7 @@ impl Builder {
     }
 
     Ok(Root {
-      id: self.id.unwrap_or_else(Uuid::new_v4),
+      id: self.id.unwrap_or_else(Uuid::now_v7),
       journal_id,
       name,
       description,

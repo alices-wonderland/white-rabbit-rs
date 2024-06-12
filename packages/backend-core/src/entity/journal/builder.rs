@@ -30,7 +30,7 @@ impl Builder {
     let description = normalize_description(crate::entity::journal::TYPE, self.description)?;
     let unit = normalize_unit(crate::entity::journal::TYPE, self.unit)?;
     let tags = normalize_tags(crate::entity::journal::TYPE, self.tags)?;
-    Ok(Root { id: self.id.unwrap_or_else(Uuid::new_v4), name, description, unit, tags })
+    Ok(Root { id: self.id.unwrap_or_else(Uuid::now_v7), name, description, unit, tags })
   }
 
   pub fn id(self, id: Uuid) -> Builder {

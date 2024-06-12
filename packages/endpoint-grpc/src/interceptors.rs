@@ -1,7 +1,7 @@
 use tonic::metadata::MetadataValue;
 use tonic::{Request, Status};
 
-pub(crate) fn check_auth(req: Request<()>) -> Result<Request<()>, Status> {
+pub(crate) fn _check_auth(req: Request<()>) -> Result<Request<()>, Status> {
   let token: MetadataValue<_> = "Bearer some-secret-token".parse().unwrap();
   log::info!("Metadata: {:#?}", req.metadata());
 

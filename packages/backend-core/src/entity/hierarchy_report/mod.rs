@@ -162,10 +162,10 @@ mod tests {
 
   #[test]
   fn test_do_aggregate() -> anyhow::Result<()> {
-    let journal_id = Uuid::new_v4();
+    let journal_id = Uuid::now_v7();
     let mut accounts = Vec::default();
     for typ in account::Type::iter() {
-      let id = Uuid::new_v4();
+      let id = Uuid::now_v7();
       accounts.push(account::Root {
         id,
         journal_id,
@@ -176,7 +176,7 @@ mod tests {
         tags: HashSet::default(),
       });
 
-      let id = Uuid::new_v4();
+      let id = Uuid::now_v7();
       accounts.push(account::Root {
         id,
         journal_id,
@@ -190,7 +190,7 @@ mod tests {
 
     let entries = vec![
       entry::Root {
-        id: Uuid::new_v4(),
+        id: Uuid::now_v7(),
         journal_id,
         name: "Entry: 1".to_string(),
         description: "".to_string(),
@@ -203,7 +203,7 @@ mod tests {
         ],
       },
       entry::Root {
-        id: Uuid::new_v4(),
+        id: Uuid::now_v7(),
         journal_id,
         name: "Entry: 2".to_string(),
         description: "".to_string(),
