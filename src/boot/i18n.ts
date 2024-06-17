@@ -11,12 +11,15 @@ export type MessageSchema = (typeof messages)["en-US"];
 
 declare module "vue-i18n" {
   // define the locale messages schema
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface DefineLocaleMessage extends MessageSchema {}
 
   // define the datetime format schema
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface DefineDateTimeFormat {}
 
   // define the number format schema
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface DefineNumberFormat {}
 }
 

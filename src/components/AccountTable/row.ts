@@ -2,7 +2,7 @@ import sortBy from "lodash/sortBy";
 import sortedUniq from "lodash/sortedUniq";
 import get from "lodash/get";
 import isEqual from "lodash/isEqual";
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 
 import { Account, type AccountType } from "src/services/account";
 import { AbstractRow } from "components/AppTable";
@@ -24,7 +24,7 @@ export class Row extends AbstractRow<Account, EditableField> {
   }
 
   override get id(): string {
-    return this._existing?.id ?? uuidv4();
+    return this._existing?.id ?? uuidv7();
   }
 
   override reset() {

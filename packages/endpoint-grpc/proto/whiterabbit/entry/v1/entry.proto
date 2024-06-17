@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package whiterabbit.entry.v1;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+message Entry {
+  string id = 1;
+  google.protobuf.Timestamp created_date = 2;
+  string journal_id = 3;
+  string name = 4;
+  string description = 5;
+  EntryType type = 6;
+  string date = 7;
+  repeated string tags = 8;
+  repeated EntryItem items = 9;
+  EntryState state = 10;
+}
+
+enum EntryType {
+  ENTRY_TYPE_UNSPECIFIED = 0;
+  ENTRY_TYPE_RECORD = 1;
+  ENTRY_TYPE_CHECK = 2;
+}
+
+message EntryItem {
+  string account = 1;
+  string amount = 2;
+  string price = 3;
+}
+
+message EntryState {
+  oneof state_type {
+    EntryStateItem single = 1;
+    EntryStateMultiple multiple = 2;
+  }
+}
+
+message EntryStateMultiple {
+  map<string, EntryStateItem> values = 1;
+}
+
+message EntryStateItem {
+  oneof state_item_type {
+    string valid = 1;
+    EntryStateItemInvalid invalid = 2;
+  }
+}
+
+message EntryStateItemInvalid {
+  string left = 1;
+  string right = 2;
+}
+
+message EntryQuery {
+  repeated string id = 1;
+  repeated string journal_id = 2;
+  repeated string account_id = 3;
+  repeated string name = 4;
+  EntryType type = 5;
+  string start = 6;
+  string end = 7;
+  string full_text = 8;
+}
+
+message EntryCommand {
+  oneof command {
+    EntryCommandCreate create = 1;
+    EntryCommandUpdate update = 2;
+    EntryCommandDelete delete = 3;
+    EntryCommandBatch batch = 4;
+  
+  }
+}
+
+message EntryCommandCreate {
+  string journal_id = 1;
+  string name = 2;
+  string description = 3;
+  EntryType type = 4;
+  string date = 5;
+  repeated string tags = 6;
+  repeated EntryItem items = 7;
+}
+
+message EntryCommandUpdate {
+  string id = 1;
+  string name = 2;
+  google.protobuf.StringValue description = 3;
+  EntryType type = 4;
+  string date = 5;
+  google.protobuf.ListValue tags = 6;
+  repeated EntryItem items = 7;
+}
+
+message EntryCommandDelete {
+  repeated string id = 1;
+}
+
+message EntryCommandBatch {
+  repeated EntryCommandCreate create = 1;
+  repeated EntryCommandUpdate update = 2;
+  repeated string delete = 3;
+}
+
+message FindAllRequest {
+  EntryQuery query = 1;
+}
+
+message FindAllResponse {
+  repeated Entry values = 1;
+  map<string, google.protobuf.Any> included = 2;
+}
+
+message FindByIdRequest {
+  string id = 1;
+}
+
+message FindByIdResponse {
+  Entry value = 1;
+  map<string, google.protobuf.Any> included = 2;
+}
+
+message HandleCommandRequest {
+  EntryCommand command = 1;
+}
+
+message HandleCommandResponse {
+  repeated Entry values = 1;
+}
+
+service EntryService {
+  rpc FindAll(FindAllRequest) returns (FindAllResponse);
+  rpc FindById(FindByIdRequest) returns (FindByIdResponse);
+  rpc HandleCommand(HandleCommandRequest) returns (HandleCommandResponse);
+}

@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 import sortedUniq from "lodash/sortedUniq";
 import sortBy from "lodash/sortBy";
 import get from "lodash/get";
@@ -26,7 +26,7 @@ export class ParentRow extends AbstractRow<Entry, EditableField> {
 
   constructor(entry?: Entry, readonly?: boolean) {
     super(entry, readonly);
-    this.id = entry?.id ?? uuidv4();
+    this.id = entry?.id ?? uuidv7();
     this.reset();
   }
 
@@ -120,7 +120,7 @@ export class ChildRow extends AbstractRow<[Entry, EntryItem], ChildEditableField
   }
 
   override get id(): string {
-    return `${this.parentId}:${uuidv4()}`;
+    return `${this.parentId}:${uuidv7()}`;
   }
 
   override reset() {

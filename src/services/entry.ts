@@ -4,6 +4,20 @@ export const ENTRY_TYPE = "entries";
 
 export const ENTRY_API_KEY = Symbol("ENTRY_API_KEY");
 
+export const ENTRY_FIELDS = [
+  "id",
+  "journalId",
+  "name",
+  "description",
+  "type",
+  "date",
+  "tags",
+  "items",
+  "state",
+] as const;
+
+export type EntryField = (typeof ENTRY_FIELDS)[number];
+
 export class Entry implements Model<typeof ENTRY_TYPE> {
   id: string;
   journalId: string;
@@ -25,7 +39,7 @@ export class Entry implements Model<typeof ENTRY_TYPE> {
     tags,
     items,
     state,
-  }: Omit<Entry, "modelType">) {
+  }: Pick<Entry, EntryField>) {
     this.id = id;
     this.journalId = journalId;
     this.name = name;
@@ -64,15 +78,14 @@ export interface EntryQuery extends Query {
   readonly id?: string[];
   readonly journalId?: string[];
   readonly accountId?: string[];
-  readonly name?: string;
+  readonly name?: string[];
   readonly type?: EntryType;
   readonly start?: string;
   readonly end?: string;
-  readonly fullText?: [string, string[]];
+  readonly fullText?: string;
 }
 
 export interface EntryCommandCreate extends Command<`${typeof ENTRY_TYPE}:create`> {
-  readonly id?: string;
   readonly journalId: string;
   readonly name: string;
   readonly description: string;

@@ -140,7 +140,7 @@ const columnDefs = computed(() => {
                 rows.value = rows.value.filter((row) => row.id !== params.data?.id);
               } else if (params.data) {
                 params.data.deleted = !params.data.deleted;
-                params.node && params.api.redrawRows({ rowNodes: [params.node] });
+                params.api.redrawRows({ rowNodes: [params.node] });
                 triggerRef(rows);
               }
             },

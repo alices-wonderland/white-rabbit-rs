@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tonic::codec::CompressionEncoding;
-use tonic::transport::server::Routes;
+use tonic::service::Routes;
 use tonic::{Code, Request, Response, Status};
 use tonic_reflection::server::Builder;
 use uuid::Uuid;

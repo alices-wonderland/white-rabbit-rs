@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package whiterabbit.hierarchy_report.v1;
+
+message HierarchyReport {
+  string id = 1;
+  string journal_id = 2;
+  string prefix = 3;
+  string unit = 4;
+  map<string, string> values = 5;
+}
+
+message HierarchyReportQuery {
+  repeated string id = 1;
+  repeated string journal_id = 2;
+  repeated string start = 3;
+  repeated string end = 4;
+}
+
+
+message FindAllRequest {
+  HierarchyReportQuery query = 1;
+}
+
+message FindAllResponse {
+  repeated HierarchyReport values = 1;
+}
+
+message FindByIdRequest {
+  string id = 1;
+}
+
+message FindByIdResponse {
+  HierarchyReport value = 1;
+}
+
+service HierarchyReportService {
+  rpc FindAll(FindAllRequest) returns (FindAllResponse);
+  rpc FindById(FindByIdRequest) returns (FindByIdResponse);
+}

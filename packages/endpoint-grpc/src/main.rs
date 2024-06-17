@@ -8,7 +8,7 @@ use itertools::Itertools;
 use prost_types::{value, ListValue};
 use std::collections::HashSet;
 use std::sync::Arc;
-use tonic::transport::server::Routes;
+use tonic::service::Routes;
 use tonic::{transport::Server, Code, Status};
 use tonic_reflection::server::Builder;
 
