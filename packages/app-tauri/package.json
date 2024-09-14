@@ -1,6 +1,6 @@
 {
   "name": "@white-rabbit/app-tauri",
-  "packageManager": "yarn@4.2.2",
+  "packageManager": "yarn@4.5.0",
   "version": "0.1.0",
   "scripts": {
     "dev": "yarn tauri dev",
