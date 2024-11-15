@@ -40,7 +40,7 @@ jobs:
         name: Test and coverage
       - name: Push coverage to Codecov
         if: matrix.platform == 'ubuntu-latest'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: target/debug/coverage/lcov.info
       - name: Push coverage to Codacy
