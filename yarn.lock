@@ -1468,9 +1468,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intlify/bundle-utils@npm:^9.0.0-beta.0":
-  version: 9.0.0-beta.0
-  resolution: "@intlify/bundle-utils@npm:9.0.0-beta.0"
+"@intlify/bundle-utils@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "@intlify/bundle-utils@npm:10.0.0"
   dependencies:
     "@intlify/message-compiler": "npm:next"
     "@intlify/shared": "npm:next"
@@ -1486,7 +1486,7 @@ __metadata:
       optional: true
     vue-i18n:
       optional: true
-  checksum: 10/a3b560336ed7b5f87a6210f2ef80c742c4401ae4445f595bf84864141a071389b14a71e60e5b37c73ae7c1d426d92f75c4ec6ac1bad569bc1f5fec616d2152b1
+  checksum: 10/1c5359dda91f10ef784218e982a3e6b13c2946fd5a8d5726760de712a1b78338ae9c783a6ab02a53488ffbc60a43238620cc4171d9b5ed4485b75919d5bf75bf
   languageName: node
   linkType: hard
 
@@ -1534,17 +1534,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intlify/unplugin-vue-i18n@npm:^5.2.0":
-  version: 5.2.0
-  resolution: "@intlify/unplugin-vue-i18n@npm:5.2.0"
+"@intlify/shared@npm:latest":
+  version: 10.0.4
+  resolution: "@intlify/shared@npm:10.0.4"
+  checksum: 10/5a35798c6ee7fd1f1a5a3fe3fb15871ca87998c607ab5642255d0685d2a7b895c7241707333ff09d4b879a5092a9ff72bba67882917d19fcee03838f827ae349
+  languageName: node
+  linkType: hard
+
+"@intlify/unplugin-vue-i18n@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@intlify/unplugin-vue-i18n@npm:6.0.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.4.0"
-    "@intlify/bundle-utils": "npm:^9.0.0-beta.0"
-    "@intlify/shared": "npm:next"
+    "@intlify/bundle-utils": "npm:^10.0.0"
+    "@intlify/shared": "npm:latest"
     "@intlify/vue-i18n-extensions": "npm:^7.0.0"
     "@rollup/pluginutils": "npm:^5.1.0"
-    "@typescript-eslint/scope-manager": "npm:^7.13.0"
-    "@typescript-eslint/typescript-estree": "npm:^7.13.0"
+    "@typescript-eslint/scope-manager": "npm:^8.13.0"
+    "@typescript-eslint/typescript-estree": "npm:^8.13.0"
     debug: "npm:^4.3.3"
     fast-glob: "npm:^3.2.12"
     js-yaml: "npm:^4.1.0"
@@ -1563,7 +1570,7 @@ __metadata:
       optional: true
     vue-i18n:
       optional: true
-  checksum: 10/39c61db26cab6ccb01f6e7cec5d8a942175ddddfef88877c7956fe1270e2c3b5bf9b5fe9c8727184a5c0cf962cc01a6f2d2ffeeb14a2ee5eeb2c13583a22b4d4
+  checksum: 10/f0a4b864df61852ab8c840f8c0f8207df6f7cef2ba6120cee470cb010935d53f36a1c4f84c6d93181f360d163a78ce5996a0c2999d32f58ba447b4288e4e796e
   languageName: node
   linkType: hard
 
@@ -2499,13 +2506,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/scope-manager@npm:^7.13.0":
-  version: 7.18.0
-  resolution: "@typescript-eslint/scope-manager@npm:7.18.0"
+"@typescript-eslint/scope-manager@npm:^8.13.0":
+  version: 8.14.0
+  resolution: "@typescript-eslint/scope-manager@npm:8.14.0"
   dependencies:
-    "@typescript-eslint/types": "npm:7.18.0"
-    "@typescript-eslint/visitor-keys": "npm:7.18.0"
-  checksum: 10/9eb2ae5d69d9f723e706c16b2b97744fc016996a5473bed596035ac4d12429b3d24e7340a8235d704efa57f8f52e1b3b37925ff7c2e3384859d28b23a99b8bcc
+    "@typescript-eslint/types": "npm:8.14.0"
+    "@typescript-eslint/visitor-keys": "npm:8.14.0"
+  checksum: 10/48ff44a790254b5a98c17bf15176fbdc1408b58eb3ccd8eda9c5707811786de25e1bccc5c490dcc05cbd34b685e162ee4e92b28f57b071c522274fa97f23c98c
   languageName: node
   linkType: hard
 
@@ -2524,10 +2531,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/types@npm:7.18.0":
-  version: 7.18.0
-  resolution: "@typescript-eslint/types@npm:7.18.0"
-  checksum: 10/0e30c73a3cc3c67dd06360a5a12fd12cee831e4092750eec3d6c031bdc4feafcb0ab1d882910a73e66b451a4f6e1dd015e9e2c4d45bf6bf716a474e5d123ddf0
+"@typescript-eslint/types@npm:8.14.0":
+  version: 8.14.0
+  resolution: "@typescript-eslint/types@npm:8.14.0"
+  checksum: 10/1924aef8efdf5399d6cc9ef3a5307fda39b1a2be129ab8cb24a46dc0a37156230e77f2809ab709d5d0a43891b6ffd67ce45292724e8f8164ac19e1786c5f4644
   languageName: node
   linkType: hard
 
@@ -2557,14 +2564,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/typescript-estree@npm:^7.13.0":
-  version: 7.18.0
-  resolution: "@typescript-eslint/typescript-estree@npm:7.18.0"
+"@typescript-eslint/typescript-estree@npm:^8.13.0":
+  version: 8.14.0
+  resolution: "@typescript-eslint/typescript-estree@npm:8.14.0"
   dependencies:
-    "@typescript-eslint/types": "npm:7.18.0"
-    "@typescript-eslint/visitor-keys": "npm:7.18.0"
+    "@typescript-eslint/types": "npm:8.14.0"
+    "@typescript-eslint/visitor-keys": "npm:8.14.0"
     debug: "npm:^4.3.4"
-    globby: "npm:^11.1.0"
+    fast-glob: "npm:^3.3.2"
     is-glob: "npm:^4.0.3"
     minimatch: "npm:^9.0.4"
     semver: "npm:^7.6.0"
@@ -2572,7 +2579,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10/b01e66235a91aa4439d02081d4a5f8b4a7cf9cb24f26b334812f657e3c603493e5f41e5c1e89cf4efae7d64509fa1f73affc16afc5e15cb7f83f724577c82036
+  checksum: 10/b0b9f228071b6338dbf5e2ac52848fa6af630e8d84d4102e1cccaae67114f2bff82bd027af2818e3ad778668e3c3d4a2fb31b7f4c8a9796295e5aa87903fb313
   languageName: node
   linkType: hard
 
@@ -2590,13 +2597,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/visitor-keys@npm:7.18.0":
-  version: 7.18.0
-  resolution: "@typescript-eslint/visitor-keys@npm:7.18.0"
+"@typescript-eslint/visitor-keys@npm:8.14.0":
+  version: 8.14.0
+  resolution: "@typescript-eslint/visitor-keys@npm:8.14.0"
   dependencies:
-    "@typescript-eslint/types": "npm:7.18.0"
+    "@typescript-eslint/types": "npm:8.14.0"
     eslint-visitor-keys: "npm:^3.4.3"
-  checksum: 10/b7cfe6fdeae86c507357ac6b2357813c64fb2fbf1aaf844393ba82f73a16e2599b41981b34200d9fc7765d70bc3a8181d76b503051e53f04bcb7c9afef637eab
+  checksum: 10/735cc9c2ce3235e543d03afe0de740022888e69ed9f5027564e1c959a3a087106bcf21b5b8d3ac872171c0a585744f0442b76fe6ba68341a735a4b4a15f52a46
   languageName: node
   linkType: hard
 
@@ -11067,7 +11074,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.5.0"
     "@commitlint/config-conventional": "npm:^19.5.0"
     "@eslint/js": "npm:^9.11.1"
-    "@intlify/unplugin-vue-i18n": "npm:^5.2.0"
+    "@intlify/unplugin-vue-i18n": "npm:^6.0.0"
     "@quasar/vite-plugin": "npm:^1.7.0"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
